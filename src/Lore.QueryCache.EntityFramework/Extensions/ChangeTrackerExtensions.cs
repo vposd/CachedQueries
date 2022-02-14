@@ -16,7 +16,7 @@ public static class ChangeTrackerExtensions
                 e.State is EntityState.Modified or EntityState.Deleted or EntityState.Added)
             .Select(e => e.Entity.GetType().FullName)
             .Cast<string>()
-            .Distinct();
+            .ToHashSet();
 
         await CacheManager.InvalidateCacheAsync(entities);
     }

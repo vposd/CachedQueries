@@ -8,11 +8,11 @@ public static class QueryableExtensions
     /// Cache and return query results with write-through strategy.
     /// </summary>
     /// <param name="query">Query to cache</param>
-    /// <param name="tags">Tags for further invalidation</param>
+    /// <param name="tags">Invalidation tags</param>
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>List query results</returns>
-    public static async Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query, List<string> tags,
+    public static async Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query, IReadOnlyCollection<string> tags,
         CancellationToken cancellationToken = default) where T : class
     {
         var key = CacheManager.CacheKeyFactory.GetCacheKey(query, tags);
@@ -53,11 +53,11 @@ public static class QueryableExtensions
     /// Cache and return query first result with write-through strategy
     /// </summary>
     /// <param name="query">Query to cache</param>
-    /// <param name="tags">Linking tags for further invalidation</param>
+    /// <param name="tags">Invalidation tags</param>
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
-    public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query, List<string> tags,
+    public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query, IReadOnlyCollection<string> tags,
         CancellationToken cancellationToken = default) where T : class
     {
         var key = CacheManager.CacheKeyFactory.GetCacheKey(query, tags);

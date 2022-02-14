@@ -37,7 +37,7 @@ public static class ReflectionExtensions
         }
         
         if (expressionArgument.Method.Name is not ("Include" or "ThenInclude"))
-            return list.Distinct().ToList();
+            return list.ToHashSet();
 
         var expression = expressionArgument.Arguments.First(x => x is UnaryExpression);
         var lambda = (LambdaExpression) ((UnaryExpression) expression).Operand;
@@ -49,7 +49,7 @@ public static class ReflectionExtensions
             if (type is not null)
                 list.Add(type);
 
-            return list.Distinct().ToList();
+            return list.ToHashSet();
         }
         
         list.Add(returnType);
@@ -57,6 +57,6 @@ public static class ReflectionExtensions
         var memberExpression = (MemberExpression) lambda.Body;
         list.Add(memberExpression.Expression!.Type);
 
-        return list.Distinct().ToList();
+        return list.ToHashSet();
     }
 }
