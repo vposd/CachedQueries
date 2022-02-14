@@ -10,11 +10,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lore.QueryCache.EntityFrame
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lore.QueryCache.DependencyInjection", "src\Lore.QueryCache.DependencyInjection\Lore.QueryCache.DependencyInjection.csproj", "{D5FD982C-81D8-4695-B2D8-CC8365F8EF43}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lore.QueryCache.CacheManager.Tests", "tests\Lore.QueryCache.CacheManager.Tests\Lore.QueryCache.CacheManager.Tests.csproj", "{A5189820-8995-4394-928E-461E03966AA4}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lore.QueryCache.EntityFramework.Tests", "tests\Lore.QueryCache.EntityFramework.Tests\Lore.QueryCache.EntityFramework.Tests.csproj", "{A99924F7-C95F-4D32-9C3A-CA6642BB80E5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lore.QueryCache.DependencyInjection.Tests", "tests\Lore.QueryCache.DependencyInjection.Tests\Lore.QueryCache.DependencyInjection.Tests.csproj", "{8B9FEDDB-47A1-484B-8E6A-0E2C5134DFF9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lore.QueryCache.Manager.Tests", "tests\Lore.QueryCache.Manager.Tests\Lore.QueryCache.Manager.Tests.csproj", "{402250F9-B61A-4330-AE4F-DC73349DC023}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -34,10 +34,6 @@ Global
 		{D5FD982C-81D8-4695-B2D8-CC8365F8EF43}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D5FD982C-81D8-4695-B2D8-CC8365F8EF43}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D5FD982C-81D8-4695-B2D8-CC8365F8EF43}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A5189820-8995-4394-928E-461E03966AA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A5189820-8995-4394-928E-461E03966AA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A5189820-8995-4394-928E-461E03966AA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A5189820-8995-4394-928E-461E03966AA4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A99924F7-C95F-4D32-9C3A-CA6642BB80E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A99924F7-C95F-4D32-9C3A-CA6642BB80E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A99924F7-C95F-4D32-9C3A-CA6642BB80E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -46,13 +42,17 @@ Global
 		{8B9FEDDB-47A1-484B-8E6A-0E2C5134DFF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B9FEDDB-47A1-484B-8E6A-0E2C5134DFF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8B9FEDDB-47A1-484B-8E6A-0E2C5134DFF9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{402250F9-B61A-4330-AE4F-DC73349DC023}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{402250F9-B61A-4330-AE4F-DC73349DC023}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{402250F9-B61A-4330-AE4F-DC73349DC023}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{402250F9-B61A-4330-AE4F-DC73349DC023}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{78C214AF-D894-4877-BF27-AE02B720EF2F} = {14A8B701-EB22-44CC-9F76-1AD93F6DAD64}
 		{EEDACFCF-94EE-427F-B063-A9CB537D26E8} = {14A8B701-EB22-44CC-9F76-1AD93F6DAD64}
 		{D5FD982C-81D8-4695-B2D8-CC8365F8EF43} = {14A8B701-EB22-44CC-9F76-1AD93F6DAD64}
-		{A5189820-8995-4394-928E-461E03966AA4} = {E27B2523-A56F-460D-95E5-CDB83641628A}
 		{A99924F7-C95F-4D32-9C3A-CA6642BB80E5} = {E27B2523-A56F-460D-95E5-CDB83641628A}
 		{8B9FEDDB-47A1-484B-8E6A-0E2C5134DFF9} = {E27B2523-A56F-460D-95E5-CDB83641628A}
+		{402250F9-B61A-4330-AE4F-DC73349DC023} = {E27B2523-A56F-460D-95E5-CDB83641628A}
 	EndGlobalSection
 EndGlobal
