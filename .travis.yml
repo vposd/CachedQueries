@@ -1,0 +1,14 @@
+language: csharp  
+sudo: required  
+dist: bionic  
+mono: none
+dotnet: 6.0
+
+os: - linux 
+
+before_script: 
+- dotnet restore ".\CalculatorCLI\CalculatorCLI.sln" 
+
+script: 
+- dotnet build -c Release 
+- dotnet test -c Release -v n
