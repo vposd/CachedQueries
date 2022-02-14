@@ -1,10 +1,10 @@
 language: csharp
-sudo: required
 dist: bionic
 mono: none
 dotnet: 6.0
+os: linux
 before_script:
-  - dotnet restore
+  - dotnet restore .\Lore.QueryCache.sln
 script:
   - dotnet build -c Release
   - dotnet test -c Release
