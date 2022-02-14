@@ -4,6 +4,9 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Lore.QueryCache;
 
+/// <summary>
+/// Cache service using IMemoryCache implementation.
+/// </summary>
 public class MemoryCache : ICache
 {
     private readonly IMemoryCache _cache;

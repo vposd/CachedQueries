@@ -4,8 +4,14 @@ using Microsoft.EntityFrameworkCore.Query;
 
 namespace Lore.QueryCache.EntityFramework.Extensions;
 
-public static class ReflectExtension
+public static class ReflectionExtensions
 {
+    /// <summary>
+    /// Returns list of types extracted from Include and ThenInclude methods.
+    /// </summary>
+    /// <param name="query">Query param</param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
     public static IEnumerable<Type> GetIncludeTypes<T>(this IQueryable<T> query)
     {
         if (query.Expression is QueryRootExpression queryRoot)

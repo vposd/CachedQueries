@@ -4,6 +4,14 @@ namespace Lore.QueryCache.EntityFramework.Extensions;
 
 public static class QueryableExtensions
 {
+    /// <summary>
+    /// Cache and return query results with write-through strategy.
+    /// </summary>
+    /// <param name="query">Query to cache</param>
+    /// <param name="tags">Tags for further invalidation</param>
+    /// <param name="cancellationToken"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns>List query results</returns>
     public static async Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query, List<string> tags,
         CancellationToken cancellationToken = default) where T : class
     {
@@ -21,6 +29,14 @@ public static class QueryableExtensions
         return value;
     }
 
+    /// <summary>
+    /// Cache query results with write-through strategy.
+    /// Using tags for invalidation as type names from Include and ThenInclude methods.
+    /// </summary>
+    /// <param name="query">Query to cache</param>
+    /// <param name="cancellationToken"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns>List query results</returns>
     public static Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query,
         CancellationToken cancellationToken = default) where T : class
     {
@@ -33,6 +49,14 @@ public static class QueryableExtensions
         return ToCachedListAsync(query, tags, cancellationToken);
     }
 
+    /// <summary>
+    /// Cache and return query first result with write-through strategy
+    /// </summary>
+    /// <param name="query">Query to cache</param>
+    /// <param name="tags">Linking tags for further invalidation</param>
+    /// <param name="cancellationToken"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns>FirstOrDefault query result</returns>
     public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query, List<string> tags,
         CancellationToken cancellationToken = default) where T : class
     {
@@ -50,6 +74,14 @@ public static class QueryableExtensions
         return value;
     }
 
+    /// <summary>
+    /// Cache and return query first result with write-through strategy.
+    /// Using tags for invalidation as type names from Include and ThenInclude methods.
+    /// </summary>
+    /// <param name="query">Query to cache</param>
+    /// <param name="cancellationToken"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns>FirstOrDefault query result</returns>
     public static Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
         CancellationToken cancellationToken = default) where T : class
     {
@@ -59,6 +91,7 @@ public static class QueryableExtensions
             .Where(x => !string.IsNullOrEmpty(x))
             .Cast<string>()
             .ToList();
+        
         return CachedFirstOrDefaultAsync(query, tags, cancellationToken);
     }
 }

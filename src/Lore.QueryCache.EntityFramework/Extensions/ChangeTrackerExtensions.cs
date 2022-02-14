@@ -5,6 +5,10 @@ namespace Lore.QueryCache.EntityFramework.Extensions;
 
 public static class ChangeTrackerExtensions
 {
+    /// <summary>
+    /// Invalidate cache for explicit tags approach.
+    /// </summary>
+    /// <param name="changeTracker"></param>
     public static async Task ExpireEntitiesCacheAsync(this ChangeTracker changeTracker)
     {
         var entities = changeTracker.Entries()
@@ -14,6 +18,6 @@ public static class ChangeTrackerExtensions
             .Cast<string>()
             .Distinct();
 
-        await CacheManager.ExpireTagsAsync(entities);
+        await CacheManager.InvalidateCacheAsync(entities);
     }
 }

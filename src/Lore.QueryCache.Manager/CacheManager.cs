@@ -2,10 +2,22 @@
 
 namespace Lore.QueryCache;
 
+/// <summary>
+/// Static cache manager.
+/// Contains ICache, ICacheKeyFactory implementation and responsible for link/unlink invalidation tags.
+/// </summary>
 public static class CacheManager
 {
+    /// <summary>
+    /// ICacheKeyFactory implementation.
+    /// Contains base CacheKeyFactory by default.
+    /// </summary>
     public static ICacheKeyFactory CacheKeyFactory { get; set; } = new CacheKeyFactory();
 
+    /// <summary>
+    /// ICache implemntation
+    /// </summary>
+    /// <exception cref="ArgumentException">Throws when cache is not defined</exception>
     public static ICache Cache
     {
         get
@@ -18,6 +30,9 @@ public static class CacheManager
         set => _cache = value;
     }
 
+    /// <summary>
+    /// Custom cache prefix. Just for lulz.
+    /// </summary>
     public static string CachePrefix
     {
         set => _cachePrefix = value;
@@ -26,6 +41,11 @@ public static class CacheManager
     private static string _cachePrefix = "lore_";
     private static ICache? _cache;
 
+    /// <summary>
+    /// Link invalidation tags to cache key
+    /// </summary>
+    /// <param name="key">Cache key</param>
+    /// <param name="tags">Invalidation tags</param>
     public static void LinkTags(string key, IEnumerable<string> tags)
     {
         if (string.IsNullOrWhiteSpace(key))
@@ -46,6 +66,11 @@ public static class CacheManager
         }
     }
 
+    /// <summary>
+    /// Async link invalidation tags to cache key
+    /// </summary>
+    /// <param name="key">Cache key</param>
+    /// <param name="tags">Invalidation tags</param>
     public static async Task LinkTagsAsync(string key, IEnumerable<string> tags)
     {
         if (string.IsNullOrWhiteSpace(key))
@@ -64,7 +89,11 @@ public static class CacheManager
         }
     }
 
-    public static void ExpireTags(IEnumerable<string> tags)
+    /// <summary>
+    /// Remove all cache entries linked to provided invalidation tags
+    /// </summary>
+    /// <param name="tags">Invalidation tags</param>
+    public static void InvalidateCache(IEnumerable<string> tags)
     {
         var keysToRemove = new List<string>();
         var tagsToExpire = tags.Distinct().Select(tag => _cachePrefix + tag).ToList();
@@ -82,7 +111,11 @@ public static class CacheManager
             Cache.DeleteAsync(item).Wait();
     }
 
-    public static async Task ExpireTagsAsync(IEnumerable<string> tags)
+    /// <summary>
+    /// Async remove all cache entries linked to provided invalidation tags
+    /// </summary>
+    /// <param name="tags">Invalidation tags</param>
+    public static async Task InvalidateCacheAsync(IEnumerable<string> tags)
     {
         var keysToRemove = new List<string>();
         var tagsToExpire = tags.Distinct().Select(tag => _cachePrefix + tag).ToList();

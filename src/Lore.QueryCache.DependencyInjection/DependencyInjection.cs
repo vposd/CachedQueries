@@ -6,6 +6,12 @@ namespace Lore.QueryCache.DependencyInjection;
 
 public static class DependencyInjection
 {
+    /// <summary>
+    /// Configure caching DI
+    /// </summary>
+    /// <param name="services"></param>
+    /// <param name="configOptions"></param>
+    /// <returns></returns>
     public static IServiceCollection AddLoreCache(this IServiceCollection services,
         Action<LoreCacheOptions> configOptions)
     {
@@ -15,6 +21,11 @@ public static class DependencyInjection
         return services;
     }
 
+    /// <summary>
+    /// Use cache
+    /// </summary>
+    /// <param name="app"></param>
+    /// <returns></returns>
     public static IApplicationBuilder UseLoreCache(this IApplicationBuilder app)
     {
         using var serviceScope = app.ApplicationServices.CreateScope();

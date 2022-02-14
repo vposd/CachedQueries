@@ -4,6 +4,9 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace Lore.QueryCache;
 
+/// <summary>
+/// Cache service using IDistributedCache implementation.
+/// </summary>
 public class DistributedCache : ICache
 {
     private readonly IDistributedCache _cache;
