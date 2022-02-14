@@ -105,8 +105,8 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
 
         // When
-        CacheManager.LinkTags(key, new List<string>() { "tag_1", "tag_2" });
-        CacheManager.LinkTags(key, new List<string>() { "tag_1", });
+        await CacheManager.LinkTagsAsync(key, new List<string>() { "tag_1", "tag_2" });
+        await CacheManager.LinkTagsAsync(key, new List<string>() { "tag_1", });
 
         // Then
         var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_1");
@@ -159,6 +159,7 @@ public class CacheManagerTests
         
         // When
         CacheManager.InvalidateCache(new List<string>() { "tag_2" });
+        CacheManager.InvalidateCache(new List<string>() { "tag_3" });
 
         // Then
         var key1Value = await CacheManager.Cache.GetAsync<string>("key_1");
@@ -183,6 +184,7 @@ public class CacheManagerTests
         
         // When
         await CacheManager.InvalidateCacheAsync(new List<string>() { "tag_2" });
+        await CacheManager.InvalidateCacheAsync(new List<string>() { "tag_3" });
 
         // Then
         var key1Value = await CacheManager.Cache.GetAsync<string>("key_1");
