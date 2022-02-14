@@ -12,7 +12,7 @@ public interface ICache
     /// <typeparam name="T">TEntity type</typeparam>
     /// <returns></returns>
     Task<T?> GetAsync<T>(string key);
-    
+
     /// <summary>
     /// Set value to cache
     /// </summary>
@@ -22,7 +22,7 @@ public interface ICache
     /// <typeparam name="T">TEntity type</typeparam>
     /// <returns></returns>
     Task SetAsync<T>(string key, T value, TimeSpan? expire = null);
-    
+
     /// <summary>
     /// Remove item from cache
     /// </summary>

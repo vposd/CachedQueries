@@ -12,7 +12,8 @@ public static class QueryableExtensions
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>List query results</returns>
-    public static async Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query, IReadOnlyCollection<string> tags,
+    public static async Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query,
+        IReadOnlyCollection<string> tags,
         CancellationToken cancellationToken = default) where T : class
     {
         var key = CacheManager.CacheKeyFactory.GetCacheKey(query, tags);
@@ -57,7 +58,8 @@ public static class QueryableExtensions
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
-    public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query, IReadOnlyCollection<string> tags,
+    public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
+        IReadOnlyCollection<string> tags,
         CancellationToken cancellationToken = default) where T : class
     {
         var key = CacheManager.CacheKeyFactory.GetCacheKey(query, tags);
@@ -91,7 +93,7 @@ public static class QueryableExtensions
             .Where(x => !string.IsNullOrEmpty(x))
             .Cast<string>()
             .ToList();
-        
+
         return CachedFirstOrDefaultAsync(query, tags, cancellationToken);
     }
 }

@@ -91,7 +91,7 @@ public sealed class ReflectExtensionsTest
         types.Should().Contain(typeof(Comment));
         types.Should().Contain(typeof(Post));
     }
-    
+
     [Fact]
     public async Task GetIncludeTypes_Should_Return_Include_And_ThenInclude_Types_With_Filters()
     {

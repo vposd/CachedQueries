@@ -35,7 +35,7 @@ public static class ReflectionExtensions
 
             list.AddRange(itemExpression.GetMemberCallExpressionTypes());
         }
-        
+
         if (expressionArgument.Method.Name is not ("Include" or "ThenInclude"))
             return list.ToHashSet();
 
@@ -51,9 +51,9 @@ public static class ReflectionExtensions
 
             return list.ToHashSet();
         }
-        
+
         list.Add(returnType);
-            
+
         var memberExpression = (MemberExpression) lambda.Body;
         list.Add(memberExpression.Expression!.Type);
 
