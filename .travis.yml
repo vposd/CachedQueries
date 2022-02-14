@@ -3,8 +3,6 @@ dist: bionic
 mono: none
 dotnet: 6.0
 os: linux
-before_script:
-  - dotnet restore .\Lore.QueryCache.sln
+solition: Lore.QueryCache.sln
 script:
-  - dotnet build -c Release
-  - dotnet test -c Release
+  - dotnet restore
