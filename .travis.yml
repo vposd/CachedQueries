@@ -6,3 +6,5 @@ os: linux
 solition: Lore.QueryCache.sln
 script:
   - dotnet restore
+  - dotnet test
+  - dotnet build

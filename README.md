@@ -1,5 +1,7 @@
 # Lore.QueryCache
 
+[![Build Status](https://app.travis-ci.com/vposd/Lore.QueryCache.svg?branch=master)](https://app.travis-ci.com/github/vposd/Lore.QueryCache)
+
 A library provides IQueryable results caching using IMemoryCache or IDistributedCache.
 
 ## Setup
