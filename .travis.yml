@@ -6,5 +6,6 @@ os: linux
 solition: Lore.QueryCache.sln
 script:
   - dotnet restore
-  - dotnet test -c Release
+  - dotnet test -c Release /p:CollectCoverage=true  /p:CoverletOutput=../coverage/ /p:MergeWith="../CoverageResults/coverage.json" /p:CoverletOutputFormat="lcov%2cjson" -m:1
+  - cat ./tests/coverage/coverage.info | coveralls
   - dotnet build -c Release

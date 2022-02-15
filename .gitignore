@@ -234,3 +234,5 @@ tools/*
 report/*
 
 .idea
+lcov.info
+coverage
