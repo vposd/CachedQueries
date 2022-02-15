@@ -1,4 +1,5 @@
 dotnet test --collect="XPlat Code Coverage";
 
-./tools/reportgenerator.exe -reports:tests\**\*.xml -targetdir:report/
+reportgenerator -reports:tests\**\*.xml -targetdir:report/
 
+./report/index.html
