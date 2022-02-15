@@ -4,7 +4,7 @@ configuration: Release
 platform: Any CPU
 environment:
   COVERALL_REPO_TOKEN:
-    -secure: MWUFI8zEsgpEMW1l8HOlNkY6/9GjOwHzaySRk+sO3hTq33sOeHfFbNq0ZUzS9PVf
+    secure: MWUFI8zEsgpEMW1l8HOlNkY6/9GjOwHzaySRk+sO3hTq33sOeHfFbNq0ZUzS9PVf
 build_script:
   - pwsh: dotnet restore
   - pwsh: dotnet build -c Release
