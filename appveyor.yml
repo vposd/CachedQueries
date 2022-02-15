@@ -3,7 +3,7 @@ image: Visual Studio 2022
 configuration: Release
 platform: Any CPU
 environment:
-  COVERALL_REPO_TOKEN:
+  COVERALLS_REPO_TOKEN:
     secure: MWUFI8zEsgpEMW1l8HOlNkY6/9GjOwHzaySRk+sO3hTq33sOeHfFbNq0ZUzS9PVf
 build_script:
   - pwsh: dotnet restore
@@ -15,7 +15,7 @@ test_script:
 
       dotnet new tool-manifest
 
-      dotnet tool install coveralls.net --tool-path tools
+      dotnet tool install coveralls.net
 
       dotnet tool restore
 
@@ -31,10 +31,6 @@ test_script:
 
       echo $env:APPVEYOR_JOB_ID
 
-      $coveralls = "./tools/csmacnz.Coveralls.exe"
-
-      & $coveralls --version
-
-      & $coveralls --lcov -i ./tests/coverage/coverage.info --repoToken $env:COVERALLS_REPO_TOKEN --commitId $env:APPVEYOR_REPO_COMMIT --commitBranch $env:APPVEYOR_REPO_BRANCH --commitAuthor $env:APPVEYOR_REPO_COMMIT_AUTHOR --commitEmail $env:APPVEYOR_REPO_COMMIT_AUTHOR_EMAIL --commitMessage $env:APPVEYOR_REPO_COMMIT_MESSAGE --jobId $env:APPVEYOR_JOB_ID --serviceName appveyor
+      dotnet csmacnz.Coveralls --lcov -i ./tests/coverage/coverage.info --repoToken $env:COVERALLS_REPO_TOKEN --commitId $env:APPVEYOR_REPO_COMMIT --commitBranch $env:APPVEYOR_REPO_BRANCH --commitAuthor $env:APPVEYOR_REPO_COMMIT_AUTHOR --commitEmail $env:APPVEYOR_REPO_COMMIT_AUTHOR_EMAIL --commitMessage $env:APPVEYOR_REPO_COMMIT_MESSAGE --jobId $env:APPVEYOR_JOB_ID --serviceName appveyor
 
       echo "Done"
