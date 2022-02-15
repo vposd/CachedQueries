@@ -4,9 +4,9 @@ configuration: Release
 platform: Any CPU
 environment:
   COVERALL_REPO_TOKEN: MWUFI8zEsgpEMW1l8HOlNkY6/9GjOwHzaySRk+sO3hTq33sOeHfFbNq0ZUzS9PVf
-build:
-  publish_nuget: false
-  parallel: true
-  verbosity: normal
+build_script:
+  - ps: >-
+      dotnet restore
+      dotnet build -c Release
 test_script:
   - ps: dotnet test -c Release /p:CollectCoverage=true  /p:CoverletOutput=../coverage/ /p:MergeWith="../CoverageResults/coverage.json" /p:CoverletOutputFormat="lcov%2cjson" -m:1
