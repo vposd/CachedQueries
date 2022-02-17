@@ -14,7 +14,7 @@ public static class QueryableExtensions
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>List query results</returns>
-    public static async Task<IEnumerable<T>> ToCacheableListAsync<T>(this IQueryable<T> query,
+    public static async Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query,
         IReadOnlyCollection<string> tags,
         CancellationToken cancellationToken = default) where T : class
     {
@@ -42,11 +42,11 @@ public static class QueryableExtensions
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>List query results</returns>
-    public static Task<IEnumerable<T>> ToCacheableListAsync<T>(this IQueryable<T> query,
+    public static Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query,
         CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
-        return query.ToCacheableListAsync(tags, cancellationToken);
+        return query.ToCachedListAsync(tags, cancellationToken);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public static class QueryableExtensions
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
-    public static async Task<T?> CacheableFirstOfDefaultAsync<T>(this IQueryable<T> query,
+    public static async Task<T?> CachedFirstOfDefaultAsync<T>(this IQueryable<T> query,
         IReadOnlyCollection<string> tags,
         CancellationToken cancellationToken = default) where T : class
     {
@@ -86,7 +86,7 @@ public static class QueryableExtensions
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
-    public static async Task<T?> CacheableFirstOfDefaultAsync<T>(this IQueryable<T> query,
+    public static async Task<T?> CachedFirstOfDefaultAsync<T>(this IQueryable<T> query,
         Expression<Func<T, bool>> predicate,
         IReadOnlyCollection<string> tags,
         CancellationToken cancellationToken = default) where T : class
@@ -115,11 +115,11 @@ public static class QueryableExtensions
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
-    public static Task<T?> CacheableFirstOfDefaultAsync<T>(this IQueryable<T> query,
+    public static Task<T?> CachedFirstOfDefaultAsync<T>(this IQueryable<T> query,
         CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
-        return query.CacheableFirstOfDefaultAsync(tags, cancellationToken);
+        return query.CachedFirstOfDefaultAsync(tags, cancellationToken);
     }
 
     /// <summary>
@@ -131,12 +131,12 @@ public static class QueryableExtensions
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
-    public static Task<T?> CacheableFirstOfDefaultAsync<T>(this IQueryable<T> query,
+    public static Task<T?> CachedFirstOfDefaultAsync<T>(this IQueryable<T> query,
         Expression<Func<T, bool>> predicate,
         CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
-        return query.CacheableFirstOfDefaultAsync(predicate, tags, cancellationToken);
+        return query.CachedFirstOfDefaultAsync(predicate, tags, cancellationToken);
     }
     
     private static List<string> RetrieveInvalidationTagsFromQuery<T>(IQueryable<T> query) where T : class
