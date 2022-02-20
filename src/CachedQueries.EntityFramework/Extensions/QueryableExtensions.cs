@@ -11,11 +11,13 @@ public static class QueryableExtensions
     /// </summary>
     /// <param name="query">Query to cache</param>
     /// <param name="tags">Invalidation tags</param>
+    /// <param name="expire">Expiration timespan</param>
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>List query results</returns>
     public static async Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query,
         IReadOnlyCollection<string> tags,
+        TimeSpan? expire = null,
         CancellationToken cancellationToken = default) where T : class
     {
         var key = CacheManager.CacheKeyFactory.GetCacheKey(query, tags);
@@ -28,7 +30,7 @@ public static class QueryableExtensions
 
         var value = await query.ToListAsync(cancellationToken);
         
-        await CacheManager.Cache.SetAsync(key, value);
+        await CacheManager.Cache.SetAsync(key, value, expire);
         await CacheManager.LinkTagsAsync(key, tags);
         
         return value;
@@ -39,14 +41,16 @@ public static class QueryableExtensions
     /// Using tags for invalidation as type names from Include and ThenInclude methods.
     /// </summary>
     /// <param name="query">Query to cache</param>
+    /// <param name="expire">Expiration timespan</param>
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>List query results</returns>
     public static Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query,
+        TimeSpan? expire = null,
         CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
-        return query.ToCachedListAsync(tags, cancellationToken);
+        return query.ToCachedListAsync(tags, expire, cancellationToken);
     }
 
     /// <summary>
@@ -54,11 +58,13 @@ public static class QueryableExtensions
     /// </summary>
     /// <param name="query">Query to cache</param>
     /// <param name="tags">Invalidation tags</param>
+    /// <param name="expire">Expiration timespan</param>
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
     public static async Task<T?> CachedFirstOfDefaultAsync<T>(this IQueryable<T> query,
         IReadOnlyCollection<string> tags,
+        TimeSpan? expire = null,
         CancellationToken cancellationToken = default) where T : class
     {
         var key = CacheManager.CacheKeyFactory.GetCacheKey(query, tags);
@@ -71,24 +77,26 @@ public static class QueryableExtensions
 
         var value = await query.FirstOrDefaultAsync(cancellationToken);
         
-        await CacheManager.Cache.SetAsync(key, value);
+        await CacheManager.Cache.SetAsync(key, value, expire);
         await CacheManager.LinkTagsAsync(key, tags);
         
         return value;
     }
-    
+
     /// <summary>
     /// Cache and return query first result with write-through strategy
     /// </summary>
     /// <param name="predicate">A function to test each element for a condition.</param>
     /// <param name="query">Query to cache</param>
     /// <param name="tags">Invalidation tags</param>
+    /// <param name="expire">Expiration timespan</param>
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
     public static async Task<T?> CachedFirstOfDefaultAsync<T>(this IQueryable<T> query,
         Expression<Func<T, bool>> predicate,
         IReadOnlyCollection<string> tags,
+        TimeSpan? expire = null,
         CancellationToken cancellationToken = default) where T : class
     {
         var key = CacheManager.CacheKeyFactory.GetCacheKey(query, tags);
@@ -101,7 +109,7 @@ public static class QueryableExtensions
 
         var value = await query.FirstOrDefaultAsync(predicate, cancellationToken);
         
-        await CacheManager.Cache.SetAsync(key, value);
+        await CacheManager.Cache.SetAsync(key, value, expire);
         await CacheManager.LinkTagsAsync(key, tags);
         
         return value;
@@ -113,13 +121,15 @@ public static class QueryableExtensions
     /// </summary>
     /// <param name="query">Query to cache</param>
     /// <param name="cancellationToken"></param>
+    /// <param name="expire">Expiration timespan</param>
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
     public static Task<T?> CachedFirstOfDefaultAsync<T>(this IQueryable<T> query,
+        TimeSpan? expire = null,
         CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
-        return query.CachedFirstOfDefaultAsync(tags, cancellationToken);
+        return query.CachedFirstOfDefaultAsync(tags, expire, cancellationToken);
     }
 
     /// <summary>
@@ -128,15 +138,17 @@ public static class QueryableExtensions
     /// </summary>
     /// <param name="predicate">A function to test each element for a condition.</param>
     /// <param name="query">Query to cache</param>
+    /// <param name="expire">Expiration timespan</param>
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
     public static Task<T?> CachedFirstOfDefaultAsync<T>(this IQueryable<T> query,
         Expression<Func<T, bool>> predicate,
+        TimeSpan? expire = null,
         CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
-        return query.CachedFirstOfDefaultAsync(predicate, tags, cancellationToken);
+        return query.CachedFirstOfDefaultAsync(predicate, tags, expire, cancellationToken);
     }
     
     private static List<string> RetrieveInvalidationTagsFromQuery<T>(IQueryable<T> query) where T : class
