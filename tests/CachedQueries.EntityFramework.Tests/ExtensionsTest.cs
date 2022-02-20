@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
 using CachedQueries.Core;
@@ -86,7 +87,7 @@ public sealed class ExtensionsTest
             .Include(x => x.Posts)
             .ThenInclude(x => x.Comments)
             .Where(x => x.Id > 0)
-            .ToCachedListAsync();
+            .ToCachedListAsync(CancellationToken.None);
 
         context.Blogs.Add(_fixture.Create<Blog>());
         await context.SaveChangesAsync();
@@ -179,7 +180,7 @@ public sealed class ExtensionsTest
         entitiesFromDb.Should().HaveCount(3);
         entitiesFromCache.Should().HaveCount(3);
     }
-
+    
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -199,7 +200,6 @@ public sealed class ExtensionsTest
         else
             await context.Blogs.Where(x => x.Id == entities[0].Id)
                 .CachedFirstOfDefaultAsync(new List<string> { nameof(Blog) });
-        
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
@@ -239,7 +239,7 @@ public sealed class ExtensionsTest
             await context.Blogs
                 .Include(x => x.Author)
                 .Include(x => x.Posts).ThenInclude(x => x.Comments)
-                .Where(x => x.Id == entities[0].Id).CachedFirstOfDefaultAsync();
+                .Where(x => x.Id == entities[0].Id).CachedFirstOfDefaultAsync(CancellationToken.None);
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";

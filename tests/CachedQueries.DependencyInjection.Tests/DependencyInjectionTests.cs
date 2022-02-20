@@ -18,7 +18,7 @@ public class DependencyInjectionTests
 
         // When
         services.AddDistributedMemoryCache();
-        services.AddLoreCache(options => options.UseCache<DistributedCache>());
+        services.AddQueriesCaching(options => options.UseCache<DistributedCache>());
 
         // Then
         var provider = services.BuildServiceProvider();
@@ -35,7 +35,7 @@ public class DependencyInjectionTests
 
         // When
         services.AddDistributedMemoryCache();
-        services.AddLoreCache(options => options.UseEntityFramework());
+        services.AddQueriesCaching(options => options.UseEntityFramework());
 
         // Then
         CacheManager.CacheKeyFactory.Should().BeOfType<QueryCacheKeyFactory>();
@@ -49,10 +49,10 @@ public class DependencyInjectionTests
 
         // When
         services.AddMemoryCache();
-        services.AddLoreCache(options => options.UseCache<MemoryCache>().UseEntityFramework());
+        services.AddQueriesCaching(options => options.UseCache<MemoryCache>().UseEntityFramework());
 
         var builder = new ApplicationBuilder(services.BuildServiceProvider());
-        builder.UseLoreCache();
+        builder.UseQueriesCaching();
 
         // Then
         CacheManager.Cache.Should().BeOfType<MemoryCache>();

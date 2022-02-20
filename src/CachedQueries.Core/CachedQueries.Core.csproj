@@ -6,6 +6,8 @@
         <Nullable>enable</Nullable>
         <RootNamespace>CachedQueries.Core</RootNamespace>
         <PackageId>CachedQueries.Core</PackageId>
+        <LangVersion>10</LangVersion>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     </PropertyGroup>
 
     <ItemGroup>

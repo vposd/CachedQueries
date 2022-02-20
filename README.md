@@ -12,14 +12,14 @@ A library provides IQueryable results caching with smart invalidation.
 Setup with DI
 
 ```c#
-services.AddLoreCache(options =>
+services.AddQueriesCaching(options =>
     options
         .UseCache<DistributedCache>()
         .UseEntityFramework());
 
 ...
 
-app.UseLoreCache();
+app.UseQueriesCaching();
 ```
 
 Or Setup with static class

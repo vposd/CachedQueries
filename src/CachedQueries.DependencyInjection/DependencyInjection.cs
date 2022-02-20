@@ -13,10 +13,10 @@ public static class DependencyInjection
     /// <param name="services"></param>
     /// <param name="configOptions"></param>
     /// <returns></returns>
-    public static IServiceCollection AddLoreCache(this IServiceCollection services,
-        Action<LoreCacheOptions> configOptions)
+    public static IServiceCollection AddQueriesCaching(this IServiceCollection services,
+        Action<QueryCacheOptions> configOptions)
     {
-        var options = new LoreCacheOptions(services);
+        var options = new QueryCacheOptions(services);
         configOptions(options);
 
         return services;
@@ -27,7 +27,7 @@ public static class DependencyInjection
     /// </summary>
     /// <param name="app"></param>
     /// <returns></returns>
-    public static IApplicationBuilder UseLoreCache(this IApplicationBuilder app)
+    public static IApplicationBuilder UseQueriesCaching(this IApplicationBuilder app)
     {
         using var serviceScope = app.ApplicationServices.CreateScope();
         var cache = serviceScope.ServiceProvider.GetRequiredService<ICache>();

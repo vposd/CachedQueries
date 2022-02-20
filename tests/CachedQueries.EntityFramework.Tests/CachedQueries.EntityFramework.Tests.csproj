@@ -7,6 +7,10 @@
         <IsPackable>false</IsPackable>
 
         <RootNamespace>CachedQueries.EntityFramework.Tests</RootNamespace>
+
+        <OutputType>Library</OutputType>
+
+        <LangVersion>10</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>

@@ -8,7 +8,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CachedQueries.Core", "src\C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CachedQueries.EntityFramework", "src\CachedQueries.EntityFramework\CachedQueries.EntityFramework.csproj", "{EEDACFCF-94EE-427F-B063-A9CB537D26E8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CachedQueries.DependencyInjector", "src\CachedQueries.DependencyInjector\CachedQueries.DependencyInjector.csproj", "{D5FD982C-81D8-4695-B2D8-CC8365F8EF43}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CachedQueries.DependencyInjection", "src\CachedQueries.DependencyInjection\CachedQueries.DependencyInjection.csproj", "{D5FD982C-81D8-4695-B2D8-CC8365F8EF43}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CachedQueries.EntityFramework.Tests", "tests\CachedQueries.EntityFramework.Tests\CachedQueries.EntityFramework.Tests.csproj", "{A99924F7-C95F-4D32-9C3A-CA6642BB80E5}"
 EndProject

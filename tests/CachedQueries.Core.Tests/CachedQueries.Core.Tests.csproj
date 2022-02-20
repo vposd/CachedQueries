@@ -7,6 +7,10 @@
         <IsPackable>false</IsPackable>
 
         <RootNamespace>CachedQueries.Core.Tests</RootNamespace>
+
+        <OutputType>Library</OutputType>
+
+        <LangVersion>10</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,7 +20,7 @@
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
         <PackageReference Include="FluentAssertions" Version="6.5.1" />
-        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="5.0.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
         <PackageReference Include="Moq" Version="4.16.1" />

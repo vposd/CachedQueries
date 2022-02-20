@@ -1,4 +1,7 @@
-﻿namespace CachedQueries.Core.Interfaces;
+﻿using System.Collections.Generic;
+using System.Linq;
+
+namespace CachedQueries.Core.Interfaces;
 
 /// <summary>
 /// Cache key factory service interface

@@ -1,4 +1,7 @@
-﻿namespace CachedQueries.Core.Interfaces;
+﻿using System;
+using System.Threading.Tasks;
+
+namespace CachedQueries.Core.Interfaces;
 
 /// <summary>
 /// Cache service interface

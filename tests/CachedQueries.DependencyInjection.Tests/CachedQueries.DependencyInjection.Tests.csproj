@@ -7,6 +7,10 @@
         <IsPackable>false</IsPackable>
 
         <RootNamespace>CachedQueries.DependencyInjection.Tests</RootNamespace>
+
+        <OutputType>Library</OutputType>
+
+        <LangVersion>10</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -29,7 +33,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\CachedQueries.DependencyInjector\CachedQueries.DependencyInjector.csproj" />
+        <ProjectReference Include="..\..\src\CachedQueries.DependencyInjection\CachedQueries.DependencyInjection.csproj" />
     </ItemGroup>
 
 </Project>

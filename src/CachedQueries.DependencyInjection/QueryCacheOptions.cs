@@ -8,11 +8,11 @@ namespace CachedQueries.DependencyInjection;
 /// <summary>
 /// Cache options
 /// </summary>
-public class LoreCacheOptions
+public class QueryCacheOptions
 {
     private readonly IServiceCollection _services;
 
-    public LoreCacheOptions(IServiceCollection services)
+    public QueryCacheOptions(IServiceCollection services)
     {
         _services = services;
     }
@@ -22,7 +22,7 @@ public class LoreCacheOptions
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    public LoreCacheOptions UseCache<T>() where T : class, ICache
+    public QueryCacheOptions UseCache<T>() where T : class, ICache
     {
         _services.AddSingleton<ICache, T>();
         return this;
@@ -32,7 +32,7 @@ public class LoreCacheOptions
     /// Use Entity Framework workflow
     /// </summary>
     /// <returns></returns>
-    public LoreCacheOptions UseEntityFramework()
+    public QueryCacheOptions UseEntityFramework()
     {
         CacheManager.CacheKeyFactory = new QueryCacheKeyFactory();
         return this;

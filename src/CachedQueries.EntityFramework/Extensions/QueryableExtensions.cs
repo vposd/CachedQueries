@@ -52,6 +52,21 @@ public static class QueryableExtensions
         var tags = RetrieveInvalidationTagsFromQuery(query);
         return query.ToCachedListAsync(tags, expire, cancellationToken);
     }
+    
+    /// <summary>
+    /// Cache query results with write-through strategy.
+    /// Using tags for invalidation as type names from Include and ThenInclude methods.
+    /// </summary>
+    /// <param name="query">Query to cache</param>
+    /// <param name="cancellationToken"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns>List query results</returns>
+    public static Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query,
+        CancellationToken cancellationToken) where T : class
+    {
+        var tags = RetrieveInvalidationTagsFromQuery(query);
+        return query.ToCachedListAsync(tags, null, cancellationToken);
+    }
 
     /// <summary>
     /// Cache and return query first result with write-through strategy
@@ -130,6 +145,21 @@ public static class QueryableExtensions
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
         return query.CachedFirstOfDefaultAsync(tags, expire, cancellationToken);
+    }
+    
+    /// <summary>
+    /// Cache and return query first result with write-through strategy.
+    /// Using tags for invalidation as type names from Include and ThenInclude methods.
+    /// </summary>
+    /// <param name="query">Query to cache</param>
+    /// <param name="cancellationToken"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns>FirstOrDefault query result</returns>
+    public static Task<T?> CachedFirstOfDefaultAsync<T>(this IQueryable<T> query,
+        CancellationToken cancellationToken) where T : class
+    {
+        var tags = RetrieveInvalidationTagsFromQuery(query);
+        return query.CachedFirstOfDefaultAsync(tags, null, cancellationToken);
     }
 
     /// <summary>
