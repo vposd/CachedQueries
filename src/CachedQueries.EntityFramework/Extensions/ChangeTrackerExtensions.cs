@@ -7,7 +7,7 @@ namespace CachedQueries.EntityFramework.Extensions;
 public static class ChangeTrackerExtensions
 {
     /// <summary>
-    /// Invalidate cache for explicit tags approach.
+    /// Invalidate cache for implicit tags approach.
     /// </summary>
     /// <param name="changeTracker"></param>
     public static async Task ExpireEntitiesCacheAsync(this ChangeTracker changeTracker)

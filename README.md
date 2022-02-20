@@ -58,7 +58,7 @@ await context.ChangeTracker.ExpireEntitiesCacheAsync();
 ```
 
 ### Implicit tags
-Also it's possible to use implicit tags:
+Also it's possible to use explicit tags:
 ```c#
 var results = context.Blogs
     .Include(x => x.Posts)
