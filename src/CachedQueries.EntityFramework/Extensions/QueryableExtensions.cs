@@ -116,13 +116,13 @@ public static class QueryableExtensions
     {
         var key = CacheManager.CacheKeyFactory.GetCacheKey(query, tags);
         if (string.IsNullOrEmpty(key))
-            return await query.FirstOrDefaultAsync(predicate, cancellationToken);
+            return await query.Where(predicate).FirstOrDefaultAsync(cancellationToken);
 
         var cached = await CacheManager.Cache.GetAsync<T>(key);
         if (cached is not null)
             return cached;
 
-        var value = await query.FirstOrDefaultAsync(predicate, cancellationToken);
+        var value = await query.Where(predicate).FirstOrDefaultAsync(cancellationToken);
         
         await CacheManager.Cache.SetAsync(key, value, expire);
         await CacheManager.LinkTagsAsync(key, tags);
@@ -174,11 +174,28 @@ public static class QueryableExtensions
     /// <returns>FirstOrDefault query result</returns>
     public static Task<T?> CachedFirstOfDefaultAsync<T>(this IQueryable<T> query,
         Expression<Func<T, bool>> predicate,
-        TimeSpan? expire = null,
+        TimeSpan? expire,
         CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
         return query.CachedFirstOfDefaultAsync(predicate, tags, expire, cancellationToken);
+    }
+    
+    /// <summary>
+    /// Cache and return query first result with write-through strategy.
+    /// Using tags for invalidation as type names from Include and ThenInclude methods.
+    /// </summary>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <param name="query">Query to cache</param>
+    /// <param name="cancellationToken"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns>FirstOrDefault query result</returns>
+    public static Task<T?> CachedFirstOfDefaultAsync<T>(this IQueryable<T> query,
+        Expression<Func<T, bool>> predicate,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        var tags = RetrieveInvalidationTagsFromQuery(query);
+        return query.CachedFirstOfDefaultAsync(predicate, tags, null, cancellationToken);
     }
     
     private static List<string> RetrieveInvalidationTagsFromQuery<T>(IQueryable<T> query) where T : class

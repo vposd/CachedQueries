@@ -19,10 +19,17 @@ public class MemoryCache : ICache
     public Task<T?> GetAsync<T>(string key)
     {
         var cachedResponse = _cache.Get(key)?.ToString();
-        var result = cachedResponse is not null
-            ? JsonSerializer.Deserialize<T>(cachedResponse)
-            : default;
-        return Task.FromResult(result);
+        try
+        {
+            var result = cachedResponse is not null
+                ? JsonSerializer.Deserialize<T>(cachedResponse)
+                : default;
+            return Task.FromResult(result);
+        }
+        catch (Exception)
+        {
+            return Task.FromResult<T?>(default);
+        }
     }
 
     public Task SetAsync<T>(string key, T value, TimeSpan? expire = null)

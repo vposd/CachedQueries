@@ -37,6 +37,28 @@ public class CacheManagerTests
         // Then
         action.Should().Throw<ArgumentException>("Cache is not defined");
     }
+    
+    [Theory]
+    [InlineData(CacheType.MemoryCache)]
+    [InlineData(CacheType.DistributedCache)]
+    public async Task Cache_Should_Set_And_Safe_Get_Values_From_Cache(CacheType cacheType)
+    {
+        // Given
+        ConfigureCache(cacheType);
+
+        // When
+        await CacheManager.Cache.SetAsync("key_1", new List<string>() { "tag_1", "tag_2" });
+        await CacheManager.Cache.SetAsync("key_2", new List<string>() { "tag_1", "tag_1",});
+
+        // Then
+        var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("key_1");
+        var tag2Keys = await CacheManager.Cache.GetAsync<List<string>>("key_2");
+        var tag2KeysWrongType = await CacheManager.Cache.GetAsync<string>("key_2");
+
+        tag1Keys.Should().BeEquivalentTo(new List<string>() { "tag_1", "tag_2" });
+        tag2Keys.Should().BeEquivalentTo(new List<string>() { "tag_1", "tag_1" });
+        tag2KeysWrongType.Should().BeNull();
+    }
 
     [Theory]
     [InlineData(CacheType.MemoryCache)]

@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>CachedQueries</id>
-    <version>1.0.0</version>
+    <version>1.0.28</version>
     <authors>Valerii Pozdnyakov</authors>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <license type="expression">MIT</license>
@@ -11,12 +11,12 @@
     <copyright>Copyright Valerii Pozdnyakov 2022</copyright>
     <tags>entity-framework ef-core cache query caching</tags>
     <dependencies>
-      <group targetFramework=".NETStandard2.1" />
+      <group targetFramework=".NET6" />
     </dependencies>
   </metadata>
   <files>
-    <file src="src/CachedQueries.Core/bin/Debug/netstandard2.1/CachedQueries.Core.dll" target="lib\netstandard2.1"/>
-    <file src="src/CachedQueries.DependencyInjection/bin/Debug/netstandard2.1/CachedQueries.DependencyInjection.dll" target="lib\netstandard2.1"/>
-    <file src="src/CachedQueries.EntityFramework/bin/Debug/netstandard2.1/CachedQueries.EntityFramework.dll" target="lib\netstandard2.1"/>
+    <file src="src/CachedQueries.Core/bin/Debug/net6.0/CachedQueries.Core.dll" target="lib\net6.0"/>
+    <file src="src/CachedQueries.DependencyInjection/bin/Debug/net6.0/CachedQueries.DependencyInjection.dll" target="lib\net6.0"/>
+    <file src="src/CachedQueries.EntityFramework/bin/Debug/net6.0/CachedQueries.EntityFramework.dll" target="lib\net6.0"/>
   </files>
 </package>
