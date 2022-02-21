@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>CachedQueries</id>
-    <version>1.0.28</version>
+    <version>1.0.1</version>
     <authors>Valerii Pozdnyakov</authors>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <license type="expression">MIT</license>
@@ -15,8 +15,8 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="src/CachedQueries.Core/bin/Debug/net6.0/CachedQueries.Core.dll" target="lib\net6.0"/>
-    <file src="src/CachedQueries.DependencyInjection/bin/Debug/net6.0/CachedQueries.DependencyInjection.dll" target="lib\net6.0"/>
-    <file src="src/CachedQueries.EntityFramework/bin/Debug/net6.0/CachedQueries.EntityFramework.dll" target="lib\net6.0"/>
+    <file src="src/CachedQueries.Core/bin/Release/net6.0/CachedQueries.Core.dll" target="lib\net6.0"/>
+    <file src="src/CachedQueries.DependencyInjection/bin/Release/net6.0/CachedQueries.DependencyInjection.dll" target="lib\net6.0"/>
+    <file src="src/CachedQueries.EntityFramework/bin/Release/net6.0/CachedQueries.EntityFramework.dll" target="lib\net6.0"/>
   </files>
 </package>
