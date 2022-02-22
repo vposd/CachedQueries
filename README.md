@@ -44,8 +44,7 @@ var results = context.Blogs
 ```c#
 var results = context.Blogs
     .Include(x => x.Posts)
-    .Where(x => x.Id == request.Id)
-    .CachedFirstOrDefaultAsync(cancellationToken);
+    .CachedFirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 ```
 
 ### Invalidate cache
@@ -55,15 +54,4 @@ To invalidate cache just call this extension before context save changes.
 
 ```c#
 await context.ChangeTracker.ExpireEntitiesCacheAsync();
-```
-
-### Implicit tags
-Also it's possible to use explicit tags:
-```c#
-var results = context.Blogs
-    .Include(x => x.Posts)
-    .ToCachedListAsync(new List<string> { "all_blogs", "today" }, cancellationToken);
-
-...
-CacheManager.ExpireTagsAsync(new List<string> { "today" });
 ```
