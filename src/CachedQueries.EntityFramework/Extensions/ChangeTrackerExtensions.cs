@@ -10,7 +10,7 @@ public static class ChangeTrackerExtensions
     /// Invalidate cache for implicit tags approach.
     /// </summary>
     /// <param name="changeTracker"></param>
-    public static async Task ExpireEntitiesCacheAsync(this ChangeTracker changeTracker)
+    public static async Task ExpireEntitiesCacheAsync(this ChangeTracker changeTracker, CancellationToken cancellationToken = default)
     {
         var entities = changeTracker.Entries()
             .Where(e =>
@@ -19,6 +19,6 @@ public static class ChangeTrackerExtensions
             .Cast<string>()
             .ToHashSet();
 
-        await CacheManager.InvalidateCacheAsync(entities);
+        await CacheManager.InvalidateCacheAsync(entities, cancellationToken);
     }
 }

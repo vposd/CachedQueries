@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>CachedQueries</id>
-    <version>1.0.1</version>
+    <version>1.0.0</version>
     <authors>Valerii Pozdnyakov</authors>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <license type="expression">MIT</license>

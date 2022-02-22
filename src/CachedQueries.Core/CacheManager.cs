@@ -115,20 +115,20 @@ public static class CacheManager
     /// Async remove all cache entries linked to provided invalidation tags
     /// </summary>
     /// <param name="tags">Invalidation tags</param>
-    public static async Task InvalidateCacheAsync(IEnumerable<string> tags)
+    public static async Task InvalidateCacheAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default)
     {
         var keysToRemove = new List<string>();
         var tagsToExpire = tags.Distinct().Select(tag => _cachePrefix + tag).ToList();
 
         foreach (var tagKey in tagsToExpire)
         {
-            var list = await Cache.GetAsync<List<string>>(tagKey) ?? new List<string>();
+            var list = await Cache.GetAsync<List<string>>(tagKey, cancellationToken) ?? new List<string>();
 
             keysToRemove.AddRange(list);
             keysToRemove.Add(tagKey);
         }
 
         foreach (var item in keysToRemove.Distinct().ToList())
-            await Cache.DeleteAsync(item);
+            await Cache.DeleteAsync(item, cancellationToken);
     }
 }
