@@ -1,4 +1,5 @@
 ﻿using CachedQueries.Core;
+using CachedQueries.EntityFramework.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace CachedQueries.EntityFramework;
@@ -17,7 +18,10 @@ public class QueryCacheKeyFactory : CacheKeyFactory
     /// <returns>The cache key</returns>
     public override string GetCacheKey<T>(IQueryable<T> query, IEnumerable<string> tags) where T : class
     {
-        var command = query.ToQueryString() + string.Join('_', tags.ToList());
+        var sqlString = query.ToQueryString();
+        var expressionString = query.Expression.ToString();
+        
+        var command = sqlString + expressionString + string.Join('_', tags.ToList());
         return GetStringSha256Hash(command);
     }
 }

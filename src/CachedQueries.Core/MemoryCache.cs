@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using CachedQueries.Core.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -10,6 +11,10 @@ namespace CachedQueries.Core;
 public class MemoryCache : ICache
 {
     private readonly IMemoryCache _cache;
+    private readonly JsonSerializerOptions _settings = new()
+    {
+        ReferenceHandler = ReferenceHandler.Preserve
+    };
 
     public MemoryCache(IMemoryCache cache)
     {
@@ -22,7 +27,7 @@ public class MemoryCache : ICache
         try
         {
             var result = cachedResponse is not null
-                ? JsonSerializer.Deserialize<T>(cachedResponse)
+                ? JsonSerializer.Deserialize<T>(cachedResponse, _settings)
                 : default;
             return Task.FromResult(result);
         }
@@ -34,7 +39,7 @@ public class MemoryCache : ICache
 
     public Task SetAsync<T>(string key, T value, TimeSpan? expire = null, CancellationToken cancellationToken = default)
     {
-        var serialized = JsonSerializer.Serialize(value);
+        var serialized = JsonSerializer.Serialize(value, _settings);
         _cache.Set(key, serialized, new MemoryCacheEntryOptions { SlidingExpiration = expire });
         return Task.CompletedTask;
     }

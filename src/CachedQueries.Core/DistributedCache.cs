@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using CachedQueries.Core.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
 
@@ -9,6 +10,11 @@ namespace CachedQueries.Core;
 /// </summary>
 public class DistributedCache : ICache
 {
+    private readonly JsonSerializerOptions _settings = new()
+    {
+        ReferenceHandler = ReferenceHandler.Preserve
+    };
+    
     private readonly IDistributedCache _cache;
 
     public DistributedCache(IDistributedCache cache)
@@ -27,7 +33,7 @@ public class DistributedCache : ICache
         try
         {
             return cachedResponse is not null
-                ? JsonSerializer.Deserialize<T>(cachedResponse)
+                ? JsonSerializer.Deserialize<T>(cachedResponse, _settings)
                 : default;
         }
         catch (Exception)
@@ -38,7 +44,7 @@ public class DistributedCache : ICache
 
     public async Task SetAsync<T>(string key, T value, TimeSpan? expire = null, CancellationToken cancellationToken = default)
     {
-            var response = JsonSerializer.Serialize(value);
+        var response = JsonSerializer.Serialize(value, _settings);
             await _cache.SetStringAsync(
                 key,
                 response,

@@ -28,6 +28,6 @@ public class QueryCacheKeyFactoryDefaultTests
         var result = keyFactory.GetCacheKey(query, new List<string> { "tag_1" });
 
         // Then
-        result.Should().Be("B04F275F6619399119D790C245CE8CE39E5D4C4BF40908DCA1DB782E69663962");
+        result.Should().Be("5A75650695F5D73333D7912E3EDF74F54414B8A52429C77D3D05D3997B7D32C9");
     }
 }

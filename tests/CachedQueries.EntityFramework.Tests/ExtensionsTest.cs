@@ -66,7 +66,11 @@ public sealed class ExtensionsTest
         await context.SaveChangesAsync();
 
         var entitiesFromDb = await context.Blogs.ToListAsync();
-        var entitiesFromCache = await context.Blogs.ToCachedListAsync(new List<string> { nameof(Blog) });
+        var entitiesFromCache = await context.Blogs
+            .Include(x => x.Posts)
+            .ThenInclude(x => x.Comments)
+            .Where(x => x.Id > 0)
+            .ToCachedListAsync(new List<string> { nameof(Blog) });
 
         // Then
         entitiesFromDb.Should().HaveCount(3);
