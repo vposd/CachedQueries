@@ -1,7 +1,7 @@
 # CachedQueries
 
 [![License](http://img.shields.io/:license-mit-blue.svg)](https://vposd.mit-license.org/)
-[![Build status](https://ci.appveyor.com/api/projects/status/qbpx3i8eq3cl05f1?svg=true)](https://ci.appveyor.com/project/vposd/lore-querycache)
+[![Build status](https://ci.appveyor.com/api/projects/status/bykgne88bjlkb5kb?svg=true)](https://ci.appveyor.com/project/vposd/cachedqueries)
 [![Coverage Status](https://coveralls.io/repos/github/vposd/Lore.QueryCache/badge.svg?branch=master)](https://coveralls.io/github/vposd/Lore.QueryCache?branch=master)
 [![CodeFactor](https://www.codefactor.io/repository/github/vposd/cachedqueries/badge)](https://www.codefactor.io/repository/github/vposd/cachedqueries)
 
