@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-
-namespace CachedQueries.Core.Interfaces;
+﻿namespace CachedQueries.Core.Interfaces;
 
 /// <summary>
 /// Cache service interface
@@ -12,6 +9,7 @@ public interface ICache
     /// Get results from cache
     /// </summary>
     /// <param name="key">Cache key</param>
+    /// <param name="cancellationToken"></param>
     /// <typeparam name="T">TEntity type</typeparam>
     /// <returns></returns>
     Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default);
@@ -22,6 +20,7 @@ public interface ICache
     /// <param name="key">Cache key</param>
     /// <param name="value">Value</param>
     /// <param name="expire">Expiration timespan</param>
+    /// <param name="cancellationToken"></param>
     /// <typeparam name="T">TEntity type</typeparam>
     /// <returns></returns>
     Task SetAsync<T>(string key, T value, TimeSpan? expire = null, CancellationToken cancellationToken = default);
@@ -30,6 +29,7 @@ public interface ICache
     /// Remove item from cache
     /// </summary>
     /// <param name="key">Cache key</param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task DeleteAsync(string key, CancellationToken cancellationToken = default);
 }

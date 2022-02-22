@@ -71,7 +71,8 @@ public static class CacheManager
     /// </summary>
     /// <param name="key">Cache key</param>
     /// <param name="tags">Invalidation tags</param>
-    public static async Task LinkTagsAsync(string key, IEnumerable<string> tags)
+    /// <param name="cancellationToken"></param>
+    public static async Task LinkTagsAsync(string key, IEnumerable<string> tags, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
             return;
@@ -79,13 +80,13 @@ public static class CacheManager
         var tagsToLink = tags.Distinct().Select(tag => _cachePrefix + tag).ToList();
         foreach (var tag in tagsToLink)
         {
-            var list = await Cache.GetAsync<List<string>>(tag)
+            var list = await Cache.GetAsync<List<string>>(tag, cancellationToken)
                        ?? new List<string>();
 
             if (!list.Contains(key))
                 list.Add(key);
 
-            await Cache.SetAsync(tag, list.Distinct());
+            await Cache.SetAsync(tag, list.Distinct(), null, cancellationToken);
         }
     }
 
@@ -115,6 +116,7 @@ public static class CacheManager
     /// Async remove all cache entries linked to provided invalidation tags
     /// </summary>
     /// <param name="tags">Invalidation tags</param>
+    /// <param name="cancellationToken"></param>
     public static async Task InvalidateCacheAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default)
     {
         var keysToRemove = new List<string>();

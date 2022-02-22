@@ -15,23 +15,23 @@ public static class QueryableExtensions
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>List query results</returns>
-    public static async Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query,
+    public static async Task<List<T>> ToCachedListAsync<T>(this IQueryable<T> query,
         IReadOnlyCollection<string> tags,
         TimeSpan? expire = null,
         CancellationToken cancellationToken = default) where T : class
     {
         var key = CacheManager.CacheKeyFactory.GetCacheKey(query, tags);
         if (string.IsNullOrEmpty(key))
-            return query;
+            return await query.ToListAsync(cancellationToken);
 
-        var cached = await CacheManager.Cache.GetAsync<IEnumerable<T>>(key);
+        var cached = await CacheManager.Cache.GetAsync<IEnumerable<T>>(key, cancellationToken);
         if (cached is not null)
-            return cached;
+            return cached.ToList();
 
         var value = await query.ToListAsync(cancellationToken);
         
-        await CacheManager.Cache.SetAsync(key, value, expire);
-        await CacheManager.LinkTagsAsync(key, tags);
+        await CacheManager.Cache.SetAsync(key, value, expire, cancellationToken);
+        await CacheManager.LinkTagsAsync(key, tags, cancellationToken);
         
         return value;
     }
@@ -45,7 +45,7 @@ public static class QueryableExtensions
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>List query results</returns>
-    public static Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query,
+    public static Task<List<T>> ToCachedListAsync<T>(this IQueryable<T> query,
         TimeSpan? expire = null,
         CancellationToken cancellationToken = default) where T : class
     {
@@ -61,7 +61,7 @@ public static class QueryableExtensions
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns>List query results</returns>
-    public static Task<IEnumerable<T>> ToCachedListAsync<T>(this IQueryable<T> query,
+    public static Task<List<T>> ToCachedListAsync<T>(this IQueryable<T> query,
         CancellationToken cancellationToken) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
@@ -86,14 +86,14 @@ public static class QueryableExtensions
         if (string.IsNullOrEmpty(key))
             return await query.FirstOrDefaultAsync(cancellationToken);
 
-        var cached = await CacheManager.Cache.GetAsync<T>(key);
+        var cached = await CacheManager.Cache.GetAsync<T>(key, cancellationToken);
         if (cached is not null)
             return cached;
 
         var value = await query.FirstOrDefaultAsync(cancellationToken);
         
-        await CacheManager.Cache.SetAsync(key, value, expire);
-        await CacheManager.LinkTagsAsync(key, tags);
+        await CacheManager.Cache.SetAsync(key, value, expire, cancellationToken);
+        await CacheManager.LinkTagsAsync(key, tags, cancellationToken);
         
         return value;
     }
@@ -118,14 +118,14 @@ public static class QueryableExtensions
         if (string.IsNullOrEmpty(key))
             return await query.Where(predicate).FirstOrDefaultAsync(cancellationToken);
 
-        var cached = await CacheManager.Cache.GetAsync<T>(key);
+        var cached = await CacheManager.Cache.GetAsync<T>(key, cancellationToken);
         if (cached is not null)
             return cached;
 
         var value = await query.Where(predicate).FirstOrDefaultAsync(cancellationToken);
         
-        await CacheManager.Cache.SetAsync(key, value, expire);
-        await CacheManager.LinkTagsAsync(key, tags);
+        await CacheManager.Cache.SetAsync(key, value, expire, cancellationToken);
+        await CacheManager.LinkTagsAsync(key, tags, cancellationToken);
         
         return value;
     }
