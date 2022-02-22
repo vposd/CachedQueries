@@ -44,8 +44,7 @@ var results = context.Blogs
 ```c#
 var results = context.Blogs
     .Include(x => x.Posts)
-    .Where(x => x.Id == request.Id)
-    .CachedFirstOrDefaultAsync(cancellationToken);
+    .CachedFirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 ```
 
 ### Invalidate cache
