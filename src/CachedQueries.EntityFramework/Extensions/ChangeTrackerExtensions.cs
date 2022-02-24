@@ -10,15 +10,22 @@ public static class ChangeTrackerExtensions
     /// Invalidate cache for implicit tags approach.
     /// </summary>
     /// <param name="changeTracker"></param>
-    public static async Task ExpireEntitiesCacheAsync(this ChangeTracker changeTracker, CancellationToken cancellationToken = default)
+    /// <param name="cancellationToken"></param>
+    /// <returns>Affected entities types</returns>
+    public static async Task<ICollection<Type>> ExpireEntitiesCacheAsync(this ChangeTracker changeTracker, CancellationToken cancellationToken = default)
     {
-        var entities = changeTracker.Entries()
+        var affectedTypes = changeTracker.Entries()
             .Where(e =>
                 e.State is EntityState.Modified or EntityState.Deleted or EntityState.Added)
-            .Select(e => e.Entity.GetType().FullName)
+            .Select(x => x.Entity.GetType())
+            .ToHashSet();
+        
+        var tags = affectedTypes
+            .Select(e => e.FullName)
             .Cast<string>()
             .ToHashSet();
 
-        await CacheManager.InvalidateCacheAsync(entities, cancellationToken);
+        await CacheManager.InvalidateCacheAsync(tags, cancellationToken);
+        return affectedTypes;
     }
 }
