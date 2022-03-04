@@ -114,15 +114,16 @@ public static class QueryableExtensions
         TimeSpan? expire = null,
         CancellationToken cancellationToken = default) where T : class
     {
+        query = query.Where(predicate);
         var key = CacheManager.CacheKeyFactory.GetCacheKey(query, tags);
         if (string.IsNullOrEmpty(key))
-            return await query.Where(predicate).FirstOrDefaultAsync(cancellationToken);
+            return await query.FirstOrDefaultAsync(cancellationToken);
 
         var cached = await CacheManager.Cache.GetAsync<T>(key, cancellationToken);
         if (cached is not null)
             return cached;
 
-        var value = await query.Where(predicate).FirstOrDefaultAsync(cancellationToken);
+        var value = await query.FirstOrDefaultAsync(cancellationToken);
         
         await CacheManager.Cache.SetAsync(key, value, expire, cancellationToken);
         await CacheManager.LinkTagsAsync(key, tags, cancellationToken);
