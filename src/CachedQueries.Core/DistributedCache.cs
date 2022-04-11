@@ -2,6 +2,7 @@
 using System.Text.Json.Serialization;
 using CachedQueries.Core.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 
 namespace CachedQueries.Core;
 
@@ -16,10 +17,12 @@ public class DistributedCache : ICache
     };
     
     private readonly IDistributedCache _cache;
+    private readonly ILogger<DistributedCache> _logger;
 
-    public DistributedCache(IDistributedCache cache)
+    public DistributedCache(IDistributedCache cache, ILoggerFactory loggerFactory)
     {
         _cache = cache;
+        _logger = loggerFactory.CreateLogger<DistributedCache>();
     }
 
     public async Task DeleteAsync(string key, CancellationToken cancellationToken = default)
@@ -36,8 +39,9 @@ public class DistributedCache : ICache
                 ? JsonSerializer.Deserialize<T>(cachedResponse, _settings)
                 : default;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            _logger.LogError("Error loading cached data: @{Message}", exception.Message);
             return default;
         }
     }
@@ -50,5 +54,10 @@ public class DistributedCache : ICache
                 response,
                 new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expire },
                 cancellationToken);
+    }
+    
+    public void Log(LogLevel logLevel, string? message, params object?[] args)
+    {
+        _logger.Log(logLevel, message, args);
     }
 }

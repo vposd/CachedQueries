@@ -4,6 +4,8 @@ using CachedQueries.EntityFramework;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace CachedQueries.DependencyInjection.Tests;
@@ -18,6 +20,7 @@ public class DependencyInjectionTests
 
         // When
         services.AddDistributedMemoryCache();
+        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
         services.AddQueriesCaching(options => options.UseCache<DistributedCache>());
 
         // Then
@@ -35,6 +38,7 @@ public class DependencyInjectionTests
 
         // When
         services.AddDistributedMemoryCache();
+        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
         services.AddQueriesCaching(options => options.UseEntityFramework());
 
         // Then
@@ -49,6 +53,7 @@ public class DependencyInjectionTests
 
         // When
         services.AddMemoryCache();
+        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
         services.AddQueriesCaching(options => options.UseCache<MemoryCache>().UseEntityFramework());
 
         var builder = new ApplicationBuilder(services.BuildServiceProvider());

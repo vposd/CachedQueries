@@ -39,4 +39,10 @@
         <ProjectReference Include="..\..\src\CachedQueries.EntityFramework\CachedQueries.EntityFramework.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Update="xunit.runner.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
 </Project>

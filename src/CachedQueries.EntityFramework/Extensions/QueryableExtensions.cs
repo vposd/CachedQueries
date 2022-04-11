@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using CachedQueries.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CachedQueries.EntityFramework.Extensions;
 
@@ -29,11 +30,7 @@ public static class QueryableExtensions
             return cached.ToList();
 
         var value = await query.ToListAsync(cancellationToken);
-        
-        await CacheManager.Cache.SetAsync(key, value, expire, cancellationToken);
-        await CacheManager.LinkTagsAsync(key, tags, cancellationToken);
-        
-        return value;
+        return await SetCacheDataAsync(key, value, tags, expire, cancellationToken);
     }
 
     /// <summary>
@@ -91,11 +88,7 @@ public static class QueryableExtensions
             return cached;
 
         var value = await query.FirstOrDefaultAsync(cancellationToken);
-        
-        await CacheManager.Cache.SetAsync(key, value, expire, cancellationToken);
-        await CacheManager.LinkTagsAsync(key, tags, cancellationToken);
-        
-        return value;
+        return await SetCacheDataAsync(key, value, tags, expire, cancellationToken);
     }
 
     /// <summary>
@@ -124,11 +117,7 @@ public static class QueryableExtensions
             return cached;
 
         var value = await query.FirstOrDefaultAsync(cancellationToken);
-        
-        await CacheManager.Cache.SetAsync(key, value, expire, cancellationToken);
-        await CacheManager.LinkTagsAsync(key, tags, cancellationToken);
-        
-        return value;
+        return await SetCacheDataAsync(key, value, tags, expire, cancellationToken);
     }
 
     /// <summary>
@@ -208,5 +197,22 @@ public static class QueryableExtensions
             .Cast<string>()
             .ToList();
         return tags;
+    }
+
+    private static async Task<T> SetCacheDataAsync<T>(string key, T value, IEnumerable<string> tags, TimeSpan? expire, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await CacheManager.Cache.SetAsync(key, value, expire, cancellationToken);
+            await CacheManager.LinkTagsAsync(key, tags, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            await CacheManager.Cache.DeleteAsync(key, cancellationToken);
+            CacheManager.Cache.Log(LogLevel.Error, "Error setting data to cache: @{Message}", exception.Message);
+            return value;
+        }
+
+        return value;
     }
 }

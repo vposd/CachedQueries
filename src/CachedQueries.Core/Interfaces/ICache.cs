@@ -1,4 +1,6 @@
-﻿namespace CachedQueries.Core.Interfaces;
+﻿using Microsoft.Extensions.Logging;
+
+namespace CachedQueries.Core.Interfaces;
 
 /// <summary>
 /// Cache service interface
@@ -32,4 +34,6 @@ public interface ICache
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task DeleteAsync(string key, CancellationToken cancellationToken = default);
+
+    void Log(LogLevel logLevel, string? message, params object?[] args);
 }

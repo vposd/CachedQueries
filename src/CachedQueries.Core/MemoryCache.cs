@@ -2,6 +2,7 @@
 using System.Text.Json.Serialization;
 using CachedQueries.Core.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace CachedQueries.Core;
 
@@ -11,14 +12,16 @@ namespace CachedQueries.Core;
 public class MemoryCache : ICache
 {
     private readonly IMemoryCache _cache;
+    private readonly ILogger<MemoryCache> _logger;
     private readonly JsonSerializerOptions _settings = new()
     {
         ReferenceHandler = ReferenceHandler.Preserve
     };
 
-    public MemoryCache(IMemoryCache cache)
+    public MemoryCache(IMemoryCache cache, ILoggerFactory loggerFactory)
     {
         _cache = cache;
+        _logger = loggerFactory.CreateLogger<MemoryCache>();
     }
 
     public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
@@ -31,8 +34,9 @@ public class MemoryCache : ICache
                 : default;
             return Task.FromResult(result);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            _logger.LogError("Error loading cached data: @{Message}", exception.Message);
             return Task.FromResult<T?>(default);
         }
     }
@@ -48,5 +52,10 @@ public class MemoryCache : ICache
     {
         _cache.Remove(key);
         return Task.CompletedTask;
+    }
+    
+    public void Log(LogLevel logLevel, string? message, params object?[] args)
+    {
+        _logger.Log(logLevel, message, args);
     }
 }

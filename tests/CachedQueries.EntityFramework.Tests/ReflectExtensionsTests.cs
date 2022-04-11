@@ -9,6 +9,8 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 using MemoryCache = CachedQueries.Core.MemoryCache;
@@ -35,11 +37,15 @@ public sealed class ReflectExtensionsTest
         });
 
         var services = new ServiceCollection();
+        
         services.AddMemoryCache();
+        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
+
         var serviceProvider = services.BuildServiceProvider();
         var memoryCache = serviceProvider.GetService<IMemoryCache>();
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
-        CacheManager.Cache = new MemoryCache(memoryCache!);
+        CacheManager.Cache = new MemoryCache(memoryCache!, loggerFactory);
         CacheManager.CacheKeyFactory = new QueryCacheKeyFactory();
     }
 

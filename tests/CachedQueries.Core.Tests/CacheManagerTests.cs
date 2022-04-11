@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using CachedQueries.Core.Interfaces;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -17,9 +20,10 @@ public class CacheManagerTests
     {
         // Given
         var memoryCacheMock = new Mock<IMemoryCache>();
+        var loggerFactoryMock = new Mock<ILoggerFactory>();
 
         // When
-        CacheManager.Cache = new MemoryCache(memoryCacheMock.Object);
+        CacheManager.Cache = new MemoryCache(memoryCacheMock.Object, loggerFactoryMock.Object);
         
         // Then
         CacheManager.Cache.Should().BeOfType<MemoryCache>();
@@ -206,6 +210,7 @@ public class CacheManagerTests
         // When
         await CacheManager.InvalidateCacheAsync(new List<string>() { "tag_2" });
         await CacheManager.InvalidateCacheAsync(new List<string>() { "tag_3" });
+        CacheManager.Cache.Log(LogLevel.Information, "All good");
 
         // Then
         var key1Value = await CacheManager.Cache.GetAsync<string>("key_1");
@@ -214,7 +219,7 @@ public class CacheManagerTests
         key1Value.Should().BeNull();
         key2Value.Should().Be("value_2");
     }
-
+    
     private static void ConfigureCache(CacheType cacheType)
     {
         switch (cacheType)
@@ -232,10 +237,13 @@ public class CacheManagerTests
     {
         var services = new ServiceCollection();
         services.AddMemoryCache();
+        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
+
         var provider = services.BuildServiceProvider();
         var cache = provider.GetRequiredService<IMemoryCache>();
-        
-        CacheManager.Cache = new MemoryCache(cache);
+        var logger = provider.GetRequiredService<ILoggerFactory>();
+
+        CacheManager.Cache = new MemoryCache(cache, logger);
         CacheManager.CachePrefix = "test_";
     }
     
@@ -243,11 +251,13 @@ public class CacheManagerTests
     {
         var services = new ServiceCollection();
         services.AddDistributedMemoryCache();
+        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
         
         var provider = services.BuildServiceProvider();
         var cache = provider.GetRequiredService<IDistributedCache>();
+        var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
         
-        CacheManager.Cache = new DistributedCache(cache);
+        CacheManager.Cache = new DistributedCache(cache, loggerFactory);
         CacheManager.CachePrefix = "test_";
     }
 

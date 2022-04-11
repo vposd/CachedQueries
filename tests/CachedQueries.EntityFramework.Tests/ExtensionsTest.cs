@@ -5,12 +5,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
 using CachedQueries.Core;
+using CachedQueries.Core.Interfaces;
 using CachedQueries.EntityFramework.Extensions;
 using CachedQueries.EntityFramework.Tests.Data;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 using MemoryCache = CachedQueries.Core.MemoryCache;
@@ -38,11 +41,13 @@ public sealed class ExtensionsTest
 
         var services = new ServiceCollection();
         services.AddMemoryCache();
+        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
 
         var serviceProvider = services.BuildServiceProvider();
         var memoryCache = serviceProvider.GetService<IMemoryCache>()!;
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
-        CacheManager.Cache = new MemoryCache(memoryCache);
+        CacheManager.Cache = new MemoryCache(memoryCache, loggerFactory);
         CacheManager.CacheKeyFactory = new QueryCacheKeyFactory();
     }
 
@@ -154,6 +159,34 @@ public sealed class ExtensionsTest
         // Then
         entitiesFromDb.Should().HaveCount(3);
         entitiesFromCache.Should().HaveCount(3);
+    }
+    
+    [Fact]
+    public async Task ToCachedListAsync_Should_Return_Data_From_Source_If_Set_Cache_Data_Throws_Error()
+    {
+        // Given
+        var services = new ServiceCollection();
+        services.AddMemoryCache();
+        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
+
+        var cacheMock = new Mock<ICache>();
+        var data = new List<Blog>();
+        data = null;
+
+        CacheManager.Cache = cacheMock.Object;
+        cacheMock.Setup(x => x.GetAsync<IEnumerable<Blog>>(It.IsAny<string>(), CancellationToken.None)).ReturnsAsync(data);
+        cacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<object>(), null, CancellationToken.None)).Throws(new Exception(""));
+        
+        await using var context = _contextFactoryMock.Object();
+        var entities = _fixture.CreateMany<Blog>(2).ToList();
+        context.Blogs.AddRange(entities);
+        await context.SaveChangesAsync();
+
+        // When
+        await context.Blogs.ToCachedListAsync();
+
+        // Then
+        cacheMock.Verify(cache => cache.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
