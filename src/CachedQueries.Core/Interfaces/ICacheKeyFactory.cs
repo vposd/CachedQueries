@@ -1,15 +1,12 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-
-namespace CachedQueries.Core.Interfaces;
+﻿namespace CachedQueries.Core.Interfaces;
 
 /// <summary>
-/// Cache key factory service interface
+///     Cache key factory service interface
 /// </summary>
 public interface ICacheKeyFactory
 {
     /// <summary>
-    /// Returns cache key
+    ///     Returns cache key
     /// </summary>
     /// <param name="query">Query param</param>
     /// <param name="tags">Linking tags for further invalidation</param>

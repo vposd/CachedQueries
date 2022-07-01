@@ -1,4 +1,5 @@
 using CachedQueries.Core;
+using CachedQueries.Core.Cache;
 using CachedQueries.Core.Interfaces;
 using CachedQueries.EntityFramework;
 using FluentAssertions;

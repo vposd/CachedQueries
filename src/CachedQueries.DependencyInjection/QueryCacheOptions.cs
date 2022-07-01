@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CachedQueries.DependencyInjection;
 
 /// <summary>
-/// Cache options
+///     Cache options
 /// </summary>
 public class QueryCacheOptions
 {
@@ -18,13 +18,16 @@ public class QueryCacheOptions
     }
 
     /// <summary>
-    /// Setup a cache service
+    /// Setup a cache invalidator
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
     public QueryCacheOptions UseCache<T>() where T : class, ICache
     {
         _services.AddSingleton<ICache, T>();
+        _services.AddSingleton<ICacheInvalidator, DefaultCacheInvalidator>();
+        _services.AddSingleton<ILockManager, DefaultLockManager>();
+
         return this;
     }
 

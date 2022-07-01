@@ -13,14 +13,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
-using MemoryCache = CachedQueries.Core.MemoryCache;
+using MemoryCache = CachedQueries.Core.Cache.MemoryCache;
 
 namespace CachedQueries.EntityFramework.Tests;
 
 public sealed class ReflectExtensionsTest
 {
-    private readonly Fixture _fixture;
     private readonly Mock<Func<TestDbContext>> _contextFactoryMock;
+    private readonly Fixture _fixture;
 
     public ReflectExtensionsTest()
     {
@@ -37,7 +37,7 @@ public sealed class ReflectExtensionsTest
         });
 
         var services = new ServiceCollection();
-        
+
         services.AddMemoryCache();
         services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
 

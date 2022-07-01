@@ -3,19 +3,60 @@
 namespace CachedQueries.Core;
 
 /// <summary>
-/// Static cache manager.
-/// Contains ICache, ICacheKeyFactory implementation and responsible for link/unlink invalidation tags.
+///     Static cache manager.
+///     Contains ICache, ICacheKeyFactory implementation and responsible for link/unlink invalidation tags.
 /// </summary>
 public static class CacheManager
 {
+    private static ICache? _cache;
+    private static ILockManager _lockManager = new DefaultLockManager();
+    private static ICacheInvalidator? _cacheInvalidator;
+
     /// <summary>
-    /// ICacheKeyFactory implementation.
-    /// Contains base CacheKeyFactory by default.
+    ///     ICacheKeyFactory implementation.
+    ///     Contains base CacheKeyFactory by default.
     /// </summary>
     public static ICacheKeyFactory CacheKeyFactory { get; set; } = new CacheKeyFactory();
 
     /// <summary>
-    /// ICache implemntation
+    ///     Lock Timeout
+    /// </summary>
+    public static TimeSpan LockTimeout { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    ///     ILockManager implementation
+    /// </summary>
+    /// <exception cref="ArgumentException">Throws when lock manager is not defined</exception>
+    public static ILockManager LockManager
+    {
+        get
+        {
+            if (_lockManager is null)
+                throw new ArgumentException("LockManager is not defined");
+
+            return _lockManager;
+        }
+        set => _lockManager = value;
+    }
+
+    /// <summary>
+    ///     ICacheInvalidator implementation
+    /// </summary>
+    /// <exception cref="ArgumentException">Throws when cache invalidator is not defined</exception>
+    public static ICacheInvalidator CacheInvalidator
+    {
+        get
+        {
+            if (_cacheInvalidator is null)
+                throw new ArgumentException("CacheInvalidator is not defined");
+
+            return _cacheInvalidator;
+        }
+        set => _cacheInvalidator = value;
+    }
+
+    /// <summary>
+    ///     ICache implementation
     /// </summary>
     /// <exception cref="ArgumentException">Throws when cache is not defined</exception>
     public static ICache Cache
@@ -31,18 +72,12 @@ public static class CacheManager
     }
 
     /// <summary>
-    /// Custom cache prefix. Just for lulz.
+    ///     Custom cache prefix. Just for lulz.
     /// </summary>
-    public static string CachePrefix
-    {
-        set => _cachePrefix = value;
-    }
-
-    private static string _cachePrefix = "lore_";
-    private static ICache? _cache;
+    public static string CachePrefix { get; set; } = "lore_";
 
     /// <summary>
-    /// Link invalidation tags to cache key
+    ///     Link invalidation tags to cache key
     /// </summary>
     /// <param name="key">Cache key</param>
     /// <param name="tags">Invalidation tags</param>
@@ -51,7 +86,7 @@ public static class CacheManager
         if (string.IsNullOrWhiteSpace(key))
             return;
 
-        var tagsToLink = tags.Distinct().Select(tag => _cachePrefix + tag).ToList();
+        var tagsToLink = tags.Distinct().Select(tag => CachePrefix + tag).ToList();
         foreach (var tag in tagsToLink)
         {
             var list = Cache.GetAsync<List<string>>(tag)
@@ -67,17 +102,18 @@ public static class CacheManager
     }
 
     /// <summary>
-    /// Async link invalidation tags to cache key
+    ///     Async link invalidation tags to cache key
     /// </summary>
     /// <param name="key">Cache key</param>
     /// <param name="tags">Invalidation tags</param>
     /// <param name="cancellationToken"></param>
-    public static async Task LinkTagsAsync(string key, IEnumerable<string> tags, CancellationToken cancellationToken = default)
+    public static async Task LinkTagsAsync(string key, IEnumerable<string> tags,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
             return;
 
-        var tagsToLink = tags.Distinct().Select(tag => _cachePrefix + tag).ToList();
+        var tagsToLink = tags.Distinct().Select(tag => CachePrefix + tag).ToList();
         foreach (var tag in tagsToLink)
         {
             var list = await Cache.GetAsync<List<string>>(tag, cancellationToken)
@@ -86,51 +122,18 @@ public static class CacheManager
             if (!list.Contains(key))
                 list.Add(key);
 
-            await Cache.SetAsync(tag, list.Distinct(), null, cancellationToken);
+            await Cache.SetAsync(tag, list.Distinct(), useLock: false, expire: null, cancellationToken);
         }
     }
 
     /// <summary>
-    /// Remove all cache entries linked to provided invalidation tags
-    /// </summary>
-    /// <param name="tags">Invalidation tags</param>
-    public static void InvalidateCache(IEnumerable<string> tags)
-    {
-        var keysToRemove = new List<string>();
-        var tagsToExpire = tags.Distinct().Select(tag => _cachePrefix + tag).ToList();
-
-        foreach (var tag in tagsToExpire)
-        {
-            var list = Cache.GetAsync<List<string>>(tag).ConfigureAwait(false).GetAwaiter()
-                .GetResult() ?? new List<string>();
-
-            keysToRemove.AddRange(list);
-            keysToRemove.Add(tag);
-        }
-
-        foreach (var item in keysToRemove.Distinct().ToList())
-            Cache.DeleteAsync(item).Wait();
-    }
-
-    /// <summary>
-    /// Async remove all cache entries linked to provided invalidation tags
+    ///     Async remove all cache entries linked to provided invalidation tags
     /// </summary>
     /// <param name="tags">Invalidation tags</param>
     /// <param name="cancellationToken"></param>
-    public static async Task InvalidateCacheAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default)
+    public static async Task InvalidateCacheAsync(IEnumerable<string> tags,
+        CancellationToken cancellationToken = default)
     {
-        var keysToRemove = new List<string>();
-        var tagsToExpire = tags.Distinct().Select(tag => _cachePrefix + tag).ToList();
-
-        foreach (var tagKey in tagsToExpire)
-        {
-            var list = await Cache.GetAsync<List<string>>(tagKey, cancellationToken) ?? new List<string>();
-
-            keysToRemove.AddRange(list);
-            keysToRemove.Add(tagKey);
-        }
-
-        foreach (var item in keysToRemove.Distinct().ToList())
-            await Cache.DeleteAsync(item, cancellationToken);
+        await CacheInvalidator.InvalidateCacheAsync(tags, cancellationToken);
     }
 }
