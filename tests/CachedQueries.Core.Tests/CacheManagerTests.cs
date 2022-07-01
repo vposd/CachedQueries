@@ -49,6 +49,32 @@ public class CacheManagerTests
         action.Should().Throw<ArgumentException>("Cache is not defined");
     }
 
+    [Fact]
+    public void Should_Throw_Error_When_LockManager_Is_Not_Defined()
+    {
+        // Given
+        CacheManager.LockManager = null!;
+
+        // When
+        var action = () => CacheManager.LockManager;
+
+        // Then
+        action.Should().Throw<ArgumentException>("LockManager is not defined");
+    }
+
+    [Fact]
+    public void Should_Throw_Error_When_CacheInvalidator_Is_Not_Defined()
+    {
+        // Given
+        CacheManager.CacheInvalidator = null!;
+
+        // When
+        var action = () => CacheManager.CacheInvalidator;
+
+        // Then
+        action.Should().Throw<ArgumentException>("CacheInvalidator is not defined");
+    }
+
     [Theory]
     [InlineData(CacheType.MemoryCache)]
     [InlineData(CacheType.DistributedCache)]
