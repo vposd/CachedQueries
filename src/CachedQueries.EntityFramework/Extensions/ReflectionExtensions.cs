@@ -7,7 +7,7 @@ namespace CachedQueries.EntityFramework.Extensions;
 public static class ReflectionExtensions
 {
     /// <summary>
-    /// Returns list of types extracted from Include and ThenInclude methods.
+    ///     Returns list of types extracted from Include and ThenInclude methods.
     /// </summary>
     /// <param name="query">Query param</param>
     /// <typeparam name="T"></typeparam>

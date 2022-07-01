@@ -3,12 +3,12 @@
 namespace CachedQueries.Core.Interfaces;
 
 /// <summary>
-/// Cache service interface
+///     Cache service interface
 /// </summary>
 public interface ICache
 {
     /// <summary>
-    /// Get results from cache
+    ///     Get results from cache
     /// </summary>
     /// <param name="key">Cache key</param>
     /// <param name="cancellationToken"></param>
@@ -17,18 +17,19 @@ public interface ICache
     Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Set value to cache
+    ///     Set value to cache
     /// </summary>
     /// <param name="key">Cache key</param>
     /// <param name="value">Value</param>
+    /// <param name="useLock">Use lock when set</param>
     /// <param name="expire">Expiration timespan</param>
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T">TEntity type</typeparam>
     /// <returns></returns>
-    Task SetAsync<T>(string key, T value, TimeSpan? expire = null, CancellationToken cancellationToken = default);
+    Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Remove item from cache
+    ///     Remove item from cache
     /// </summary>
     /// <param name="key">Cache key</param>
     /// <param name="cancellationToken"></param>

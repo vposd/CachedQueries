@@ -4,20 +4,20 @@ using CachedQueries.Core.Interfaces;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 
-namespace CachedQueries.Core;
+namespace CachedQueries.Core.Cache;
 
 /// <summary>
-/// Cache service using IDistributedCache implementation.
+///     Cache service using IDistributedCache implementation.
 /// </summary>
 public class DistributedCache : ICache
 {
+    private readonly IDistributedCache _cache;
+    private readonly ILogger<DistributedCache> _logger;
+
     private readonly JsonSerializerOptions _settings = new()
     {
         ReferenceHandler = ReferenceHandler.Preserve
     };
-    
-    private readonly IDistributedCache _cache;
-    private readonly ILogger<DistributedCache> _logger;
 
     public DistributedCache(IDistributedCache cache, ILoggerFactory loggerFactory)
     {
@@ -27,7 +27,9 @@ public class DistributedCache : ICache
 
     public async Task DeleteAsync(string key, CancellationToken cancellationToken = default)
     {
+        await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
         await _cache.RemoveAsync(key, cancellationToken);
+        await CacheManager.LockManager.ReleaseLockAsync(key);
     }
 
     public async Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken)
@@ -46,16 +48,24 @@ public class DistributedCache : ICache
         }
     }
 
-    public async Task SetAsync<T>(string key, T value, TimeSpan? expire = null, CancellationToken cancellationToken = default)
+    public async Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null,
+        CancellationToken cancellationToken = default)
     {
         var response = JsonSerializer.Serialize(value, _settings);
-            await _cache.SetStringAsync(
-                key,
-                response,
-                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expire },
-                cancellationToken);
+
+        if (useLock)
+            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+
+        await _cache.SetStringAsync(
+            key,
+            response,
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expire },
+            cancellationToken);
+
+        if (useLock)
+            await CacheManager.LockManager.ReleaseLockAsync(key);
     }
-    
+
     public void Log(LogLevel logLevel, string? message, params object?[] args)
     {
         _logger.Log(logLevel, message, args);

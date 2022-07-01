@@ -16,14 +16,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
-using MemoryCache = CachedQueries.Core.MemoryCache;
+using MemoryCache = CachedQueries.Core.Cache.MemoryCache;
 
 namespace CachedQueries.EntityFramework.Tests;
 
 public sealed class ExtensionsTest
 {
-    private readonly Fixture _fixture;
     private readonly Mock<Func<TestDbContext>> _contextFactoryMock;
+    private readonly Fixture _fixture;
 
     public ExtensionsTest()
     {
@@ -48,6 +48,7 @@ public sealed class ExtensionsTest
         var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
         CacheManager.Cache = new MemoryCache(memoryCache, loggerFactory);
+        CacheManager.CacheInvalidator = new DefaultCacheInvalidator(CacheManager.Cache);
         CacheManager.CacheKeyFactory = new QueryCacheKeyFactory();
     }
 
@@ -160,7 +161,7 @@ public sealed class ExtensionsTest
         entitiesFromDb.Should().HaveCount(3);
         entitiesFromCache.Should().HaveCount(3);
     }
-    
+
     [Fact]
     public async Task ToCachedListAsync_Should_Return_Data_From_Source_If_Set_Cache_Data_Throws_Error()
     {
@@ -174,9 +175,11 @@ public sealed class ExtensionsTest
         data = null;
 
         CacheManager.Cache = cacheMock.Object;
-        cacheMock.Setup(x => x.GetAsync<IEnumerable<Blog>>(It.IsAny<string>(), CancellationToken.None)).ReturnsAsync(data);
-        cacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<object>(), null, CancellationToken.None)).Throws(new Exception(""));
-        
+        cacheMock.Setup(x => x.GetAsync<IEnumerable<Blog>>(It.IsAny<string>(), CancellationToken.None))
+            .ReturnsAsync(data);
+        cacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<object>(), true, null, CancellationToken.None))
+            .Throws(new Exception(""));
+
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Blog>(2).ToList();
         context.Blogs.AddRange(entities);
@@ -233,10 +236,10 @@ public sealed class ExtensionsTest
         // When
         if (usePredicate)
             await context.Blogs
-                .CachedFirstOfDefaultAsync(x => x.Id == entities[0].Id, new List<string> { nameof(Blog) });
+                .CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id, new List<string> { nameof(Blog) });
         else
             await context.Blogs.Where(x => x.Id == entities[0].Id)
-                .CachedFirstOfDefaultAsync(new List<string> { nameof(Blog) });
+                .CachedFirstOrDefaultAsync(new List<string> { nameof(Blog) });
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
@@ -245,9 +248,9 @@ public sealed class ExtensionsTest
         var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
             ? await context.Blogs
-                .CachedFirstOfDefaultAsync(x => x.Id == entities[0].Id, new List<string> { nameof(Blog) })
+                .CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id, new List<string> { nameof(Blog) })
             : await context.Blogs.Where(x => x.Id == entities[0].Id)
-                .CachedFirstOfDefaultAsync(new List<string> { nameof(Blog) });
+                .CachedFirstOrDefaultAsync(new List<string> { nameof(Blog) });
 
         // Then
         entityFromDb?.Name.Should().Be("new name");
@@ -271,12 +274,12 @@ public sealed class ExtensionsTest
             await context.Blogs
                 .Include(x => x.Author)
                 .Include(x => x.Posts).ThenInclude(x => x.Comments)
-                .CachedFirstOfDefaultAsync(x => x.Id == entities[0].Id);
+                .CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id);
         else
             await context.Blogs
                 .Include(x => x.Author)
                 .Include(x => x.Posts).ThenInclude(x => x.Comments)
-                .Where(x => x.Id == entities[0].Id).CachedFirstOfDefaultAsync(CancellationToken.None);
+                .Where(x => x.Id == entities[0].Id).CachedFirstOrDefaultAsync(CancellationToken.None);
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
@@ -287,11 +290,11 @@ public sealed class ExtensionsTest
             ? await context.Blogs
                 .Include(x => x.Author)
                 .Include(x => x.Posts).ThenInclude(x => x.Comments)
-                .CachedFirstOfDefaultAsync(x => x.Id == entities[0].Id)
+                .CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id)
             : await context.Blogs
                 .Include(x => x.Author)
                 .Include(x => x.Posts).ThenInclude(x => x.Comments)
-                .Where(x => x.Id == entities[0].Id).CachedFirstOfDefaultAsync();
+                .Where(x => x.Id == entities[0].Id).CachedFirstOrDefaultAsync();
         ;
 
         // Then
@@ -313,11 +316,11 @@ public sealed class ExtensionsTest
 
         // When
         if (usePredicate)
-            await context.Blogs.CachedFirstOfDefaultAsync(x => x.Id == entities[0].Id,
+            await context.Blogs.CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id,
                 new List<string> { nameof(Blog) });
         else
             await context.Blogs.Where(x => x.Id == entities[0].Id)
-                .CachedFirstOfDefaultAsync(new List<string> { nameof(Blog) });
+                .CachedFirstOrDefaultAsync(new List<string> { nameof(Blog) });
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
@@ -325,11 +328,11 @@ public sealed class ExtensionsTest
         await CacheManager.InvalidateCacheAsync(new List<string> { nameof(Blog) });
 
         var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
-        var entityFromCache = (usePredicate)
+        var entityFromCache = usePredicate
             ? await context.Blogs
-                .CachedFirstOfDefaultAsync(x => x.Id == entities[0].Id, new List<string> { nameof(Blog) })
+                .CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id, new List<string> { nameof(Blog) })
             : await context.Blogs.Where(x => x.Id == entities[0].Id)
-                .CachedFirstOfDefaultAsync(new List<string> { nameof(Blog) });
+                .CachedFirstOrDefaultAsync(new List<string> { nameof(Blog) });
 
         // Then
         entityFromDb?.Name.Should().Be("new name");
@@ -349,9 +352,9 @@ public sealed class ExtensionsTest
 
         // When
         if (usePredicate)
-            await context.Blogs.CachedFirstOfDefaultAsync(x => x.Id == entities[0].Id);
+            await context.Blogs.CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id);
         else
-            await context.Blogs.Where(x => x.Id == entities[0].Id).CachedFirstOfDefaultAsync();
+            await context.Blogs.Where(x => x.Id == entities[0].Id).CachedFirstOrDefaultAsync();
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
@@ -360,8 +363,8 @@ public sealed class ExtensionsTest
 
         var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
-            ? await context.Blogs.CachedFirstOfDefaultAsync(x => x.Id == entities[0].Id)
-            : await context.Blogs.Where(x => x.Id == entities[0].Id).CachedFirstOfDefaultAsync();
+            ? await context.Blogs.CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id)
+            : await context.Blogs.Where(x => x.Id == entities[0].Id).CachedFirstOrDefaultAsync();
 
         // Then
         entityFromDb?.Name.Should().Be("new name");
@@ -382,11 +385,11 @@ public sealed class ExtensionsTest
 
         // When
         if (usePredicate)
-            await context.Blogs.CachedFirstOfDefaultAsync(x => x.Id == entities[0].Id,
+            await context.Blogs.CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id,
                 new List<string> { nameof(Blog) });
         else
             await context.Blogs.Where(x => x.Id == entities[0].Id)
-                .CachedFirstOfDefaultAsync(new List<string> { nameof(Blog) });
+                .CachedFirstOrDefaultAsync(new List<string> { nameof(Blog) });
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
@@ -395,15 +398,15 @@ public sealed class ExtensionsTest
         var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
             ? await context.Blogs
-                .CachedFirstOfDefaultAsync(x => x.Id == entities[0].Id, new List<string> { nameof(Blog) })
+                .CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id, new List<string> { nameof(Blog) })
             : await context.Blogs.Where(x => x.Id == entities[0].Id)
-                .CachedFirstOfDefaultAsync(new List<string> { nameof(Blog) });
+                .CachedFirstOrDefaultAsync(new List<string> { nameof(Blog) });
 
         // Then
         entityFromDb?.Name.Should().Be("new name");
         entityFromCache?.Name.Should().Be("new name");
     }
-    
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -418,21 +421,21 @@ public sealed class ExtensionsTest
 
         // When
         if (usePredicate)
-            await context.Blogs.CachedFirstOfDefaultAsync(x => x.Id == entities[0].Id, TimeSpan.FromSeconds(20));
-        else 
+            await context.Blogs.CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id, TimeSpan.FromSeconds(20));
+        else
             await context.Blogs.Where(x => x.Id == entities[0].Id)
-                .CachedFirstOfDefaultAsync(TimeSpan.FromMinutes(1));
-        
+                .CachedFirstOrDefaultAsync(TimeSpan.FromMinutes(1));
+
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
         await context.SaveChangesAsync();
 
         var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
-        var entityFromCache = usePredicate 
+        var entityFromCache = usePredicate
             ? await context.Blogs
-                .CachedFirstOfDefaultAsync(x => x.Id == entities[0].Id, new List<string> { nameof(Blog) })
+                .CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id, new List<string> { nameof(Blog) })
             : await context.Blogs.Where(x => x.Id == entities[0].Id)
-                .CachedFirstOfDefaultAsync(new List<string> { nameof(Blog) });
+                .CachedFirstOrDefaultAsync(new List<string> { nameof(Blog) });
 
         // Then
         entityFromDb?.Name.Should().Be("new name");

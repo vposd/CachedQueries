@@ -6,7 +6,7 @@ using Xunit;
 
 namespace CachedQueries.Core.Tests;
 
-class Entity
+internal class Entity
 {
     public long Id { get; set; }
 }

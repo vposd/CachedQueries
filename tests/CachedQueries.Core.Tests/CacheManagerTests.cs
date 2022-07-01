@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using CachedQueries.Core.Interfaces;
+using CachedQueries.Core.Cache;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -10,11 +10,18 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using MemoryCache = CachedQueries.Core.Cache.MemoryCache;
 
 namespace CachedQueries.Core.Tests;
 
 public class CacheManagerTests
 {
+    public enum CacheType
+    {
+        MemoryCache,
+        DistributedCache
+    }
+
     [Fact]
     public void Should_Set_Cache()
     {
@@ -24,11 +31,11 @@ public class CacheManagerTests
 
         // When
         CacheManager.Cache = new MemoryCache(memoryCacheMock.Object, loggerFactoryMock.Object);
-        
+
         // Then
         CacheManager.Cache.Should().BeOfType<MemoryCache>();
     }
-    
+
     [Fact]
     public void Should_Throw_Error_When_Cache_Is_Not_Defined()
     {
@@ -37,11 +44,11 @@ public class CacheManagerTests
 
         // When
         var action = () => CacheManager.Cache;
-        
+
         // Then
         action.Should().Throw<ArgumentException>("Cache is not defined");
     }
-    
+
     [Theory]
     [InlineData(CacheType.MemoryCache)]
     [InlineData(CacheType.DistributedCache)]
@@ -51,16 +58,16 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
 
         // When
-        await CacheManager.Cache.SetAsync("key_1", new List<string>() { "tag_1", "tag_2" });
-        await CacheManager.Cache.SetAsync("key_2", new List<string>() { "tag_1", "tag_1",});
+        await CacheManager.Cache.SetAsync("key_1", new List<string> { "tag_1", "tag_2" });
+        await CacheManager.Cache.SetAsync("key_2", new List<string> { "tag_1", "tag_1" });
 
         // Then
         var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("key_1");
         var tag2Keys = await CacheManager.Cache.GetAsync<List<string>>("key_2");
         var tag2KeysWrongType = await CacheManager.Cache.GetAsync<string>("key_2");
 
-        tag1Keys.Should().BeEquivalentTo(new List<string>() { "tag_1", "tag_2" });
-        tag2Keys.Should().BeEquivalentTo(new List<string>() { "tag_1", "tag_1" });
+        tag1Keys.Should().BeEquivalentTo(new List<string> { "tag_1", "tag_2" });
+        tag2Keys.Should().BeEquivalentTo(new List<string> { "tag_1", "tag_1" });
         tag2KeysWrongType.Should().BeNull();
     }
 
@@ -73,8 +80,8 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
 
         // When
-        CacheManager.LinkTags("key_1", new List<string>() { "tag_1", "tag_2" });
-        CacheManager.LinkTags("key_2", new List<string>() { "tag_1", "tag_1",});
+        CacheManager.LinkTags("key_1", new List<string> { "tag_1", "tag_2" });
+        CacheManager.LinkTags("key_2", new List<string> { "tag_1", "tag_1" });
 
         // Then
         var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_1");
@@ -84,13 +91,13 @@ public class CacheManagerTests
         tag1Keys.Should().HaveCount(2);
         tag1Keys.Should().Contain("key_1");
         tag1Keys.Should().Contain("key_2");
-        
+
         tag2Keys.Should().HaveCount(1);
         tag2Keys.Should().Contain("key_1");
 
         tag3Keys.Should().BeNull();
     }
-    
+
     [Theory]
     [InlineData(CacheType.MemoryCache, null)]
     [InlineData(CacheType.MemoryCache, "")]
@@ -104,8 +111,8 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
 
         // When
-        CacheManager.LinkTags(key, new List<string>() { "tag_1", "tag_2" });
-        CacheManager.LinkTags(key, new List<string>() { "tag_1", "tag_1", });
+        CacheManager.LinkTags(key, new List<string> { "tag_1", "tag_2" });
+        CacheManager.LinkTags(key, new List<string> { "tag_1", "tag_1" });
 
         // Then
         var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_1");
@@ -116,7 +123,7 @@ public class CacheManagerTests
         tag2Keys.Should().BeNull();
         tag3Keys.Should().BeNull();
     }
-    
+
     [Theory]
     [InlineData(CacheType.MemoryCache, null)]
     [InlineData(CacheType.MemoryCache, "")]
@@ -130,8 +137,8 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
 
         // When
-        await CacheManager.LinkTagsAsync(key, new List<string>() { "tag_1", "tag_2" });
-        await CacheManager.LinkTagsAsync(key, new List<string>() { "tag_1", });
+        await CacheManager.LinkTagsAsync(key, new List<string> { "tag_1", "tag_2" });
+        await CacheManager.LinkTagsAsync(key, new List<string> { "tag_1" });
 
         // Then
         var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_1");
@@ -142,7 +149,7 @@ public class CacheManagerTests
         tag2Keys.Should().BeNull();
         tag3Keys.Should().BeNull();
     }
-    
+
     [Theory]
     [InlineData(CacheType.MemoryCache)]
     [InlineData(CacheType.DistributedCache)]
@@ -152,8 +159,8 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
 
         // When
-        await CacheManager.LinkTagsAsync("key_1", new List<string>() { "tag_1", "tag_2" });
-        await CacheManager.LinkTagsAsync("key_2", new List<string>() { "tag_1", });
+        await CacheManager.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" });
+        await CacheManager.LinkTagsAsync("key_2", new List<string> { "tag_1" });
 
         // Then
         var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_1");
@@ -163,13 +170,13 @@ public class CacheManagerTests
         tag1Keys.Should().HaveCount(2);
         tag1Keys.Should().Contain("key_1");
         tag1Keys.Should().Contain("key_2");
-        
+
         tag2Keys.Should().HaveCount(1);
         tag2Keys.Should().Contain("key_1");
 
         tag3Keys.Should().BeNull();
     }
-    
+
     [Theory]
     [InlineData(CacheType.MemoryCache)]
     [InlineData(CacheType.DistributedCache)]
@@ -179,12 +186,12 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
         await CacheManager.Cache.SetAsync("key_1", "value_1");
         await CacheManager.Cache.SetAsync("key_2", "value_2");
-        await CacheManager.LinkTagsAsync("key_1", new List<string>() { "tag_1", "tag_2" });
-        await CacheManager.LinkTagsAsync("key_2", new List<string>() { "tag_1", });
-        
+        await CacheManager.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" });
+        await CacheManager.LinkTagsAsync("key_2", new List<string> { "tag_1" });
+
         // When
-        CacheManager.InvalidateCache(new List<string>() { "tag_2" });
-        CacheManager.InvalidateCache(new List<string>() { "tag_3" });
+        CacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { "tag_2" }).Wait();
+        CacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { "tag_3" }).Wait();
 
         // Then
         var key1Value = await CacheManager.Cache.GetAsync<string>("key_1");
@@ -194,7 +201,7 @@ public class CacheManagerTests
         key1Value.Should().BeNull();
         key2Value.Should().Be("value_2");
     }
-    
+
     [Theory]
     [InlineData(CacheType.MemoryCache)]
     [InlineData(CacheType.DistributedCache)]
@@ -204,12 +211,12 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
         await CacheManager.Cache.SetAsync("key_1", "value_1");
         await CacheManager.Cache.SetAsync("key_2", "value_2");
-        await CacheManager.LinkTagsAsync("key_1", new List<string>() { "tag_1", "tag_2" });
-        await CacheManager.LinkTagsAsync("key_2", new List<string>() { "tag_1", });
-        
+        await CacheManager.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" });
+        await CacheManager.LinkTagsAsync("key_2", new List<string> { "tag_1" });
+
         // When
-        await CacheManager.InvalidateCacheAsync(new List<string>() { "tag_2" });
-        await CacheManager.InvalidateCacheAsync(new List<string>() { "tag_3" });
+        await CacheManager.InvalidateCacheAsync(new List<string> { "tag_2" });
+        await CacheManager.InvalidateCacheAsync(new List<string> { "tag_3" });
         CacheManager.Cache.Log(LogLevel.Information, "All good");
 
         // Then
@@ -219,7 +226,7 @@ public class CacheManagerTests
         key1Value.Should().BeNull();
         key2Value.Should().Be("value_2");
     }
-    
+
     private static void ConfigureCache(CacheType cacheType)
     {
         switch (cacheType)
@@ -244,26 +251,22 @@ public class CacheManagerTests
         var logger = provider.GetRequiredService<ILoggerFactory>();
 
         CacheManager.Cache = new MemoryCache(cache, logger);
+        CacheManager.CacheInvalidator = new DefaultCacheInvalidator(CacheManager.Cache);
         CacheManager.CachePrefix = "test_";
     }
-    
+
     private static void ConfigureDistributedCache()
     {
         var services = new ServiceCollection();
         services.AddDistributedMemoryCache();
         services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
-        
+
         var provider = services.BuildServiceProvider();
         var cache = provider.GetRequiredService<IDistributedCache>();
         var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-        
-        CacheManager.Cache = new DistributedCache(cache, loggerFactory);
-        CacheManager.CachePrefix = "test_";
-    }
 
-    public enum CacheType
-    {
-        MemoryCache,
-        DistributedCache
+        CacheManager.Cache = new DistributedCache(cache, loggerFactory);
+        CacheManager.CacheInvalidator = new DefaultCacheInvalidator(CacheManager.Cache);
+        CacheManager.CachePrefix = "test_";
     }
 }
