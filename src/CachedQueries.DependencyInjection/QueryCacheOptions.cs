@@ -26,6 +26,7 @@ public class QueryCacheOptions
     {
         _services.AddSingleton<ICache, T>();
         _services.AddSingleton<ICacheInvalidator, DefaultCacheInvalidator>();
+        _services.AddSingleton<ILockManager, DefaultLockManager>();
 
         return this;
     }

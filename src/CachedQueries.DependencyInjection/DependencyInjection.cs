@@ -33,9 +33,11 @@ public static class DependencyInjection
 
         var cache = serviceScope.ServiceProvider.GetRequiredService<ICache>();
         var cacheInvalidator = serviceScope.ServiceProvider.GetRequiredService<ICacheInvalidator>();
+        var lockManager = serviceScope.ServiceProvider.GetRequiredService<ILockManager>();
 
         CacheManager.Cache = cache;
         CacheManager.CacheInvalidator = cacheInvalidator;
+        CacheManager.LockManager = lockManager;
 
         return app;
     }
