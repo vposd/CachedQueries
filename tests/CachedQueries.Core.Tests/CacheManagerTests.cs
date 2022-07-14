@@ -98,6 +98,31 @@ public class CacheManagerTests
     }
 
     [Theory]
+    [InlineData(CacheType.MemoryCache, true)]
+    [InlineData(CacheType.MemoryCache, false)]
+    [InlineData(CacheType.DistributedCache, true)]
+    [InlineData(CacheType.DistributedCache, false)]
+    public async Task Cache_Should_Delete_Values_From_Cache(CacheType cacheType, bool useLock)
+    {
+        // Given
+        ConfigureCache(cacheType);
+
+        await CacheManager.Cache.SetAsync("key_1", new List<string> { "tag_1", "tag_2" });
+        await CacheManager.Cache.SetAsync("key_2", new List<string> { "tag_1", "tag_1" });
+
+        // When
+        await CacheManager.Cache.DeleteAsync("key_1", useLock);
+        await CacheManager.Cache.DeleteAsync("key_2", useLock);
+
+        // Then
+        var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("key_1");
+        var tag2Keys = await CacheManager.Cache.GetAsync<List<string>>("key_2");
+
+        tag1Keys.Should().BeNull();
+        tag2Keys.Should().BeNull();
+    }
+
+    [Theory]
     [InlineData(CacheType.MemoryCache)]
     [InlineData(CacheType.DistributedCache)]
     public async Task LinkTags_Should_Link_Invalidation_Tags_To_Cache_Key(CacheType cacheType)

@@ -22,7 +22,7 @@ public class DefaultCacheInvalidator : ICacheInvalidator
         var keysToRemove = new List<string>(tagsList);
 
         var tagsToExpireTasks = tagsList.Distinct().Select(tag => CacheManager.CachePrefix + tag)
-            .Select(tagKey => _cache.GetAsync<List<string>>(tagKey, cancellationToken))
+            .Select(tagKey => _cache.GetAsync<List<string>>(tagKey, useLock: false, cancellationToken))
             .ToList();
 
         await Task.WhenAll(tagsToExpireTasks);
@@ -32,7 +32,7 @@ public class DefaultCacheInvalidator : ICacheInvalidator
 
         var tasks = keysToRemove
             .Distinct()
-            .Select(item => _cache.DeleteAsync(item, cancellationToken));
+            .Select(item => _cache.DeleteAsync(item, useLock: false, cancellationToken));
 
         await Task.WhenAll(tasks);
     }

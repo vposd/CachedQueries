@@ -116,7 +116,7 @@ public static class CacheManager
         var tagsToLink = tags.Distinct().Select(tag => CachePrefix + tag).ToList();
         foreach (var tag in tagsToLink)
         {
-            var list = await Cache.GetAsync<List<string>>(tag, cancellationToken)
+            var list = await Cache.GetAsync<List<string>>(tag, useLock: false, cancellationToken)
                        ?? new List<string>();
 
             if (!list.Contains(key))

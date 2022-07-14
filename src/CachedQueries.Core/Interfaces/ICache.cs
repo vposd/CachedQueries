@@ -11,10 +11,11 @@ public interface ICache
     ///     Get results from cache
     /// </summary>
     /// <param name="key">Cache key</param>
+    /// <param name="useLock">Use lock when set</param>
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T">TEntity type</typeparam>
     /// <returns></returns>
-    Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default);
+    Task<T?> GetAsync<T>(string key, bool useLock = true, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Set value to cache
@@ -32,9 +33,10 @@ public interface ICache
     ///     Remove item from cache
     /// </summary>
     /// <param name="key">Cache key</param>
+    /// <param name="useLock">Use lock when set</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task DeleteAsync(string key, CancellationToken cancellationToken = default);
+    Task DeleteAsync(string key, bool useLock = true, CancellationToken cancellationToken = default);
 
     void Log(LogLevel logLevel, string? message, params object?[] args);
 }

@@ -25,20 +25,27 @@ public class MemoryCache : ICache
         _logger = loggerFactory.CreateLogger<MemoryCache>();
     }
 
-    public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
+    public async Task<T?> GetAsync<T>(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
+        if (useLock)
+            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+
         var cachedResponse = _cache.Get(key)?.ToString();
+
+        if (useLock)
+            await CacheManager.LockManager.ReleaseLockAsync(key);
+
         try
         {
             var result = cachedResponse is not null
                 ? JsonSerializer.Deserialize<T>(cachedResponse, _settings)
                 : default;
-            return Task.FromResult(result);
+            return result;
         }
         catch (Exception exception)
         {
             _logger.LogError("Error loading cached data: @{Message}", exception.Message);
-            return Task.FromResult<T?>(default);
+            return default;
         }
     }
 
@@ -56,11 +63,15 @@ public class MemoryCache : ICache
             await CacheManager.LockManager.ReleaseLockAsync(key);
     }
 
-    public async Task DeleteAsync(string key, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
-        await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+        if (useLock)
+            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+
         _cache.Remove(key);
-        await CacheManager.LockManager.ReleaseLockAsync(key);
+
+        if (useLock)
+            await CacheManager.LockManager.ReleaseLockAsync(key);
     }
 
     public void Log(LogLevel logLevel, string? message, params object?[] args)

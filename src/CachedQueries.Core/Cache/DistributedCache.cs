@@ -25,16 +25,27 @@ public class DistributedCache : ICache
         _logger = loggerFactory.CreateLogger<DistributedCache>();
     }
 
-    public async Task DeleteAsync(string key, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
-        await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+        if (useLock)
+            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+
         await _cache.RemoveAsync(key, cancellationToken);
-        await CacheManager.LockManager.ReleaseLockAsync(key);
+
+        if (useLock)
+            await CacheManager.LockManager.ReleaseLockAsync(key);
     }
 
-    public async Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken)
+    public async Task<T?> GetAsync<T>(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
+        if (useLock)
+            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+
         var cachedResponse = await _cache.GetStringAsync(key, cancellationToken);
+
+        if (useLock)
+            await CacheManager.LockManager.ReleaseLockAsync(key);
+
         try
         {
             return cachedResponse is not null

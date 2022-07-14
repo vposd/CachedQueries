@@ -25,7 +25,7 @@ public static class QueryableExtensions
         if (string.IsNullOrEmpty(key))
             return await query.ToListAsync(cancellationToken);
 
-        var cached = await CacheManager.Cache.GetAsync<IEnumerable<T>>(key, cancellationToken);
+        var cached = await CacheManager.Cache.GetAsync<IEnumerable<T>>(key, useLock: true, cancellationToken);
         if (cached is not null)
             return cached.ToList();
 
@@ -83,7 +83,7 @@ public static class QueryableExtensions
         if (string.IsNullOrEmpty(key))
             return await query.FirstOrDefaultAsync(cancellationToken);
 
-        var cached = await CacheManager.Cache.GetAsync<T>(key, cancellationToken);
+        var cached = await CacheManager.Cache.GetAsync<T>(key, useLock: true, cancellationToken);
         if (cached is not null)
             return cached;
 
@@ -112,7 +112,7 @@ public static class QueryableExtensions
         if (string.IsNullOrEmpty(key))
             return await query.FirstOrDefaultAsync(cancellationToken);
 
-        var cached = await CacheManager.Cache.GetAsync<T>(key, cancellationToken);
+        var cached = await CacheManager.Cache.GetAsync<T>(key, useLock: true, cancellationToken);
         if (cached is not null)
             return cached;
 
@@ -209,7 +209,7 @@ public static class QueryableExtensions
         }
         catch (Exception exception)
         {
-            await CacheManager.Cache.DeleteAsync(key, cancellationToken);
+            await CacheManager.Cache.DeleteAsync(key, useLock: true, cancellationToken);
             CacheManager.Cache.Log(LogLevel.Error, "Error setting data to cache: @{Message}", exception.Message);
             return value;
         }

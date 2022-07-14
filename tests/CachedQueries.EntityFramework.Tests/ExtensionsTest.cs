@@ -175,7 +175,7 @@ public sealed class ExtensionsTest
         data = null;
 
         CacheManager.Cache = cacheMock.Object;
-        cacheMock.Setup(x => x.GetAsync<IEnumerable<Blog>>(It.IsAny<string>(), CancellationToken.None))
+        cacheMock.Setup(x => x.GetAsync<IEnumerable<Blog>>(It.IsAny<string>(), It.IsAny<bool>(), CancellationToken.None))
             .ReturnsAsync(data);
         cacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<object>(), true, null, CancellationToken.None))
             .Throws(new Exception(""));
@@ -189,7 +189,7 @@ public sealed class ExtensionsTest
         await context.Blogs.ToCachedListAsync();
 
         // Then
-        cacheMock.Verify(cache => cache.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        cacheMock.Verify(cache => cache.DeleteAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
