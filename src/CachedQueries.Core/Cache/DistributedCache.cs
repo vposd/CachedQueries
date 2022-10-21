@@ -27,24 +27,15 @@ public class DistributedCache : ICache
 
     public async Task DeleteAsync(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
-        if (useLock)
-            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
-
         await _cache.RemoveAsync(key, cancellationToken);
-
-        if (useLock)
-            await CacheManager.LockManager.ReleaseLockAsync(key);
     }
 
     public async Task<T?> GetAsync<T>(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
         if (useLock)
-            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+            await CacheManager.LockManager.CheckLockAsync(key, cancellationToken);
 
         var cachedResponse = await _cache.GetStringAsync(key, cancellationToken);
-
-        if (useLock)
-            await CacheManager.LockManager.ReleaseLockAsync(key);
 
         try
         {

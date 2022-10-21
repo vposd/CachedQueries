@@ -22,6 +22,8 @@ public static class ChangeTrackerExtensions
             .ToHashSet();
 
         var tags = affectedTypes
+            .Concat(affectedTypes.Select(af => af.BaseType).Where(x => x != null))
+            .Cast<Type>()
             .Select(e => e.FullName)
             .Cast<string>()
             .ToHashSet();
