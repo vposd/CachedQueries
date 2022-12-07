@@ -115,6 +115,37 @@ public sealed class ExtensionsTest
     }
 
     [Fact]
+    public async Task ToCachedListAsync_Should_Cache_List_Results_With_Lifetime()
+    {
+        // Given
+        await using var context = _contextFactoryMock.Object();
+        var entities = _fixture.CreateMany<Blog>(2).ToList();
+        context.Blogs.AddRange(entities);
+        await context.SaveChangesAsync();
+
+        // When
+        await context.Blogs
+            .Include(x => x.Posts)
+            .ThenInclude(x => x.Comments)
+            .Where(x => x.Id > 0)
+            .ToCachedListAsync(CancellationToken.None);
+
+        context.Blogs.Add(_fixture.Create<Blog>());
+        await context.SaveChangesAsync();
+
+        var entitiesFromDb = await context.Blogs.ToListAsync();
+        var entitiesFromCache = await context.Blogs
+            .Include(x => x.Posts)
+            .ThenInclude(x => x.Comments)
+            .Where(x => x.Id > 0)
+            .ToCachedListAsync(TimeSpan.FromHours(1));
+
+        // Then
+        entitiesFromDb.Should().HaveCount(3);
+        entitiesFromCache.Should().HaveCount(2);
+    }
+
+    [Fact]
     public async Task ToCachedListAsync_Should_Update_Cache_List_Results_After_Expiration_With_Explicit_Tags()
     {
         // Given
@@ -177,7 +208,7 @@ public sealed class ExtensionsTest
         CacheManager.Cache = cacheMock.Object;
         cacheMock.Setup(x => x.GetAsync<IEnumerable<Blog>>(It.IsAny<string>(), It.IsAny<bool>(), CancellationToken.None))
             .ReturnsAsync(data);
-        cacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<object>(), true, null, CancellationToken.None))
+        cacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<object>(), true, It.IsAny<TimeSpan>(), CancellationToken.None))
             .Throws(new Exception(""));
 
         await using var context = _contextFactoryMock.Object();

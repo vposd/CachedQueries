@@ -24,6 +24,11 @@ public static class CacheManager
     public static TimeSpan LockTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
+    ///     Default Lifetime
+    /// </summary>
+    public static TimeSpan DefaultLifetime { get; set; } = TimeSpan.FromDays(1);
+
+    /// <summary>
     ///     ILockManager implementation
     /// </summary>
     /// <exception cref="ArgumentException">Throws when lock manager is not defined</exception>

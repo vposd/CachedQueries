@@ -10,9 +10,8 @@ public static class ReflectionExtensions
     ///     Returns list of types extracted from Include and ThenInclude methods.
     /// </summary>
     /// <param name="query">Query param</param>
-    /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    public static IEnumerable<Type> GetIncludeTypes<T>(this IQueryable<T> query)
+    public static IEnumerable<Type> GetIncludeTypes(this IQueryable query)
     {
         if (query.Expression is QueryRootExpression queryRoot)
             return new List<Type> { queryRoot.EntityType.ClrType };
@@ -23,18 +22,7 @@ public static class ReflectionExtensions
 
     private static IEnumerable<Type> GetMemberCallExpressionTypes(this MethodCallExpression expressionArgument)
     {
-        var list = new List<Type>();
-
-        foreach (var item in expressionArgument.Arguments.ToList())
-        {
-            if (item is QueryRootExpression queryRoot)
-                list.Add(queryRoot.EntityType.ClrType);
-
-            if (item is not MethodCallExpression itemExpression)
-                continue;
-
-            list.AddRange(itemExpression.GetMemberCallExpressionTypes());
-        }
+        var list = GetArgumentTypes(expressionArgument);
 
         if (expressionArgument.Method.Name is not ("Include" or "ThenInclude"))
             return list.ToHashSet();
@@ -58,5 +46,23 @@ public static class ReflectionExtensions
         list.Add(memberExpression.Expression!.Type);
 
         return list.ToHashSet();
+    }
+
+    private static List<Type> GetArgumentTypes(MethodCallExpression expressionArgument)
+    {
+        var list = new List<Type>();
+
+        foreach (var item in expressionArgument.Arguments.ToList())
+        {
+            if (item is QueryRootExpression queryRoot)
+                list.Add(queryRoot.EntityType.ClrType);
+
+            if (item is not MethodCallExpression itemExpression)
+                continue;
+
+            list.AddRange(itemExpression.GetMemberCallExpressionTypes());
+        }
+
+        return list;
     }
 }
