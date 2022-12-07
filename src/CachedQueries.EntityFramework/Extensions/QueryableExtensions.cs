@@ -18,7 +18,7 @@ public static class QueryableExtensions
     /// <returns>List query results</returns>
     public static async Task<List<T>> ToCachedListAsync<T>(this IQueryable<T> query,
         IReadOnlyCollection<string> tags,
-        TimeSpan? expire = null,
+        TimeSpan expire,
         CancellationToken cancellationToken = default) where T : class
     {
         var key = CacheManager.CacheKeyFactory.GetCacheKey(query, tags);
@@ -34,6 +34,21 @@ public static class QueryableExtensions
     }
 
     /// <summary>
+    ///     Cache and return query results with write-through strategy.
+    /// </summary>
+    /// <param name="query">Query to cache</param>
+    /// <param name="tags">Invalidation tags</param>
+    /// <param name="cancellationToken"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns>List query results</returns>
+    public static async Task<List<T>> ToCachedListAsync<T>(this IQueryable<T> query,
+        IReadOnlyCollection<string> tags,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await query.ToCachedListAsync(tags, CacheManager.DefaultLifetime, cancellationToken);
+    }
+
+    /// <summary>
     ///     Cache query results with write-through strategy.
     ///     Using tags for invalidation as type names from Include and ThenInclude methods.
     /// </summary>
@@ -43,7 +58,7 @@ public static class QueryableExtensions
     /// <typeparam name="T"></typeparam>
     /// <returns>List query results</returns>
     public static Task<List<T>> ToCachedListAsync<T>(this IQueryable<T> query,
-        TimeSpan? expire = null,
+        TimeSpan expire,
         CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
@@ -59,10 +74,10 @@ public static class QueryableExtensions
     /// <typeparam name="T"></typeparam>
     /// <returns>List query results</returns>
     public static Task<List<T>> ToCachedListAsync<T>(this IQueryable<T> query,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
-        return query.ToCachedListAsync(tags, null, cancellationToken);
+        return query.ToCachedListAsync(tags, CacheManager.DefaultLifetime, cancellationToken);
     }
 
     /// <summary>
@@ -76,7 +91,7 @@ public static class QueryableExtensions
     /// <returns>FirstOrDefault query result</returns>
     public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
         IReadOnlyCollection<string> tags,
-        TimeSpan? expire = null,
+        TimeSpan expire,
         CancellationToken cancellationToken = default) where T : class
     {
         var key = CacheManager.CacheKeyFactory.GetCacheKey(query, tags);
@@ -94,6 +109,21 @@ public static class QueryableExtensions
     /// <summary>
     ///     Cache and return query first result with write-through strategy
     /// </summary>
+    /// <param name="query">Query to cache</param>
+    /// <param name="tags">Invalidation tags</param>
+    /// <param name="cancellationToken"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns>FirstOrDefault query result</returns>
+    public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
+        IReadOnlyCollection<string> tags,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await query.CachedFirstOrDefaultAsync(tags, CacheManager.DefaultLifetime, cancellationToken);
+    }
+
+    /// <summary>
+    ///     Cache and return query first result with write-through strategy
+    /// </summary>
     /// <param name="predicate">A function to test each element for a condition.</param>
     /// <param name="query">Query to cache</param>
     /// <param name="tags">Invalidation tags</param>
@@ -104,7 +134,7 @@ public static class QueryableExtensions
     public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
         Expression<Func<T, bool>> predicate,
         IReadOnlyCollection<string> tags,
-        TimeSpan? expire = null,
+        TimeSpan expire,
         CancellationToken cancellationToken = default) where T : class
     {
         query = query.Where(predicate);
@@ -130,7 +160,7 @@ public static class QueryableExtensions
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
     public static Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
-        TimeSpan? expire = null,
+        TimeSpan expire,
         CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
@@ -146,10 +176,10 @@ public static class QueryableExtensions
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
     public static Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
-        return query.CachedFirstOrDefaultAsync(tags, null, cancellationToken);
+        return query.CachedFirstOrDefaultAsync(tags, CacheManager.DefaultLifetime, cancellationToken);
     }
 
     /// <summary>
@@ -164,11 +194,29 @@ public static class QueryableExtensions
     /// <returns>FirstOrDefault query result</returns>
     public static Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
         Expression<Func<T, bool>> predicate,
-        TimeSpan? expire,
+        TimeSpan expire,
         CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
         return query.CachedFirstOrDefaultAsync(predicate, tags, expire, cancellationToken);
+    }
+
+    /// <summary>
+    ///     Cache and return query first result with write-through strategy.
+    ///     Using tags for invalidation as type names from Include and ThenInclude methods.
+    /// </summary>
+    /// <param name="predicate">A function to test each element for a condition.</param>
+    /// <param name="query">Query to cache</param>
+    /// <param name="tags">Invalidation tags</param>
+    /// <param name="cancellationToken"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns>FirstOrDefault query result</returns>
+    public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
+        Expression<Func<T, bool>> predicate,
+        IReadOnlyCollection<string> tags,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        return await query.CachedFirstOrDefaultAsync(predicate, tags, CacheManager.DefaultLifetime, cancellationToken);
     }
 
     /// <summary>
@@ -185,10 +233,10 @@ public static class QueryableExtensions
         CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
-        return query.CachedFirstOrDefaultAsync(predicate, tags, null, cancellationToken);
+        return query.CachedFirstOrDefaultAsync(predicate, tags, CacheManager.DefaultLifetime, cancellationToken);
     }
 
-    private static List<string> RetrieveInvalidationTagsFromQuery<T>(IQueryable<T> query) where T : class
+    private static List<string> RetrieveInvalidationTagsFromQuery(IQueryable query)
     {
         var includedTypes = query.GetIncludeTypes();
         var tags = includedTypes
@@ -199,7 +247,7 @@ public static class QueryableExtensions
         return tags;
     }
 
-    private static async Task<T> SetCacheDataAsync<T>(string key, T value, IEnumerable<string> tags, TimeSpan? expire,
+    private static async Task<T> SetCacheDataAsync<T>(string key, T value, IEnumerable<string> tags, TimeSpan expire,
         CancellationToken cancellationToken)
     {
         try

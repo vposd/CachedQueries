@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CachedQueries.DependencyInjection;
 
 /// <summary>
-///     Cache options
+/// Cache options
 /// </summary>
 public class QueryCacheOptions
 {
