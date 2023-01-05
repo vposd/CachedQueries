@@ -14,7 +14,7 @@ public static class ReflectionExtensions
     public static IEnumerable<Type> GetIncludeTypes(this IQueryable query)
     {
         if (query.Expression is QueryRootExpression queryRoot)
-            return new List<Type> { queryRoot.EntityType.ClrType };
+            return new List<Type> { queryRoot.ElementType };
 
         var expression = (MethodCallExpression) query.Expression;
         return expression.GetMemberCallExpressionTypes();
@@ -55,7 +55,7 @@ public static class ReflectionExtensions
         foreach (var item in expressionArgument.Arguments.ToList())
         {
             if (item is QueryRootExpression queryRoot)
-                list.Add(queryRoot.EntityType.ClrType);
+                list.Add(queryRoot.ElementType);
 
             if (item is not MethodCallExpression itemExpression)
                 continue;
