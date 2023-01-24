@@ -17,7 +17,6 @@ jobs:
           dotnet test -c Release /p:CollectCoverage=true  /p:CoverletOutput=../coverage/ /p:MergeWith="../CoverageResults/coverage.json" /p:CoverletOutputFormat=lcov
       - name: Generate coverage report
         run: |
-          cd ./MyLibrary.Tests/
           dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov
       - name: Publish coverage report
         uses: coverallsapp/github-action@master
