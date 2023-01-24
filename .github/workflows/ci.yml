@@ -16,6 +16,7 @@ jobs:
         run: |
           dotnet new tool-manifest
           dotnet tool install coveralls.net
+          dotnet add package coverlet.msbuild
           dotnet tool restore
           dotnet test /p:CollectCoverage=true  /p:CoverletOutput=../coverage/ /p:MergeWith="../CoverageResults/coverage.json" /p:CoverletOutputFormat=lcov.json -m:1
       - name: Publish coverage report
