@@ -29,9 +29,5 @@ jobs:
           dotnet restore
           dotnet build -c Release
       - name: Nuget pack
-        uses: actions/checkout@main
-          - name: Build
-            run: |
-              dotnet pack -c Release /p:Version=${VERSION} --no-build --output ./out
-
-      
+        run: |
+          dotnet pack -c Release /p:Version=${VERSION} --no-build --output ./out
