@@ -14,8 +14,16 @@ jobs:
       - name: Run Tests
         shell: pwsh
         run: |
-          dotnet test -c Release /p:CollectCoverage=true  /p:CoverletOutput=../coverage/ /p:MergeWith="../CoverageResults/coverage.json" /p:CoverletOutputFormat="lcov%2cjson" -m:1
-
+          dotnet test -c Release /p:CollectCoverage=true  /p:CoverletOutput=../coverage/ /p:MergeWith="../CoverageResults/coverage.json" /p:CoverletOutputFormat="lcov.json" -m:1
+      - name: Generate coverage report
+        run: |
+          cd ./MyLibrary.Tests/
+          dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov
+      - name: Publish coverage report
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./tests/coverage/coverage.info
   build:
     runs-on: ubuntu-latest
     steps:
