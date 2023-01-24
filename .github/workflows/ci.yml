@@ -28,8 +28,9 @@ jobs:
         run: |
           dotnet restore
           dotnet build -c Release
-      - name: Set VERSION variable from tag
-        run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+      - name: Get version
+        uses: damienaicheh/extract-version-from-tag-action@v1.0.0
+        run: echo $MAJOR
       - name: Nuget Pack
         run: |
           dotnet pack -c Release /p:Version=${VERSION} --no-build --output ./out
