@@ -102,7 +102,7 @@ public static class CacheManager
             if (!list.Contains(key))
                 list.Add(key);
 
-            Cache.SetAsync(tag, list.Distinct()).Wait();
+            Cache.SetAsync(tag, list.Distinct()).ConfigureAwait(false).GetAwaiter().GetResult();
         }
     }
 
@@ -113,22 +113,24 @@ public static class CacheManager
     /// <param name="tags">Invalidation tags</param>
     /// <param name="cancellationToken"></param>
     public static async Task LinkTagsAsync(string key, IEnumerable<string> tags,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(key))
             return;
 
         var tagsToLink = tags.Distinct().Select(tag => CachePrefix + tag).ToList();
-        foreach (var tag in tagsToLink)
+
+        async Task LinkTagAsync(string tag)
         {
-            var list = await Cache.GetAsync<List<string>>(tag, useLock: false, cancellationToken)
-                       ?? new List<string>();
+            var list = await Cache.GetAsync<List<string>>(tag, useLock: false, cancellationToken) ?? new List<string>();
 
             if (!list.Contains(key))
                 list.Add(key);
 
             await Cache.SetAsync(tag, list.Distinct(), useLock: false, expire: null, cancellationToken);
         }
+
+        await Task.WhenAll(tagsToLink.Select(LinkTagAsync));
     }
 
     /// <summary>
@@ -137,7 +139,7 @@ public static class CacheManager
     /// <param name="tags">Invalidation tags</param>
     /// <param name="cancellationToken"></param>
     public static async Task InvalidateCacheAsync(IEnumerable<string> tags,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         await CacheInvalidator.InvalidateCacheAsync(tags, cancellationToken);
     }
