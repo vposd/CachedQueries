@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using CachedQueries.Core.Cache;
 using FluentAssertions;
@@ -188,8 +189,8 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
 
         // When
-        await CacheManager.LinkTagsAsync(key, new List<string> { "tag_1", "tag_2" });
-        await CacheManager.LinkTagsAsync(key, new List<string> { "tag_1" });
+        await CacheManager.LinkTagsAsync(key, new List<string> { "tag_1", "tag_2" }, CancellationToken.None);
+        await CacheManager.LinkTagsAsync(key, new List<string> { "tag_1" }, CancellationToken.None);
 
         // Then
         var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_1");
@@ -210,8 +211,8 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
 
         // When
-        await CacheManager.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" });
-        await CacheManager.LinkTagsAsync("key_2", new List<string> { "tag_1" });
+        await CacheManager.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" }, CancellationToken.None);
+        await CacheManager.LinkTagsAsync("key_2", new List<string> { "tag_1" }, CancellationToken.None);
 
         // Then
         var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_1");
@@ -237,8 +238,8 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
         await CacheManager.Cache.SetAsync("key_1", "value_1");
         await CacheManager.Cache.SetAsync("key_2", "value_2");
-        await CacheManager.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" });
-        await CacheManager.LinkTagsAsync("key_2", new List<string> { "tag_1" });
+        await CacheManager.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" }, CancellationToken.None);
+        await CacheManager.LinkTagsAsync("key_2", new List<string> { "tag_1" }, CancellationToken.None);
 
         // When
         CacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { "tag_2" }).Wait();
@@ -247,7 +248,6 @@ public class CacheManagerTests
         // Then
         var key1Value = await CacheManager.Cache.GetAsync<string>("key_1");
         var key2Value = await CacheManager.Cache.GetAsync<string>("key_2");
-        var key3Value = await CacheManager.Cache.GetAsync<string>("key_3");
 
         key1Value.Should().BeNull();
         key2Value.Should().Be("value_2");
@@ -262,12 +262,12 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
         await CacheManager.Cache.SetAsync("key_1", "value_1");
         await CacheManager.Cache.SetAsync("key_2", "value_2");
-        await CacheManager.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" });
-        await CacheManager.LinkTagsAsync("key_2", new List<string> { "tag_1" });
+        await CacheManager.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" }, CancellationToken.None);
+        await CacheManager.LinkTagsAsync("key_2", new List<string> { "tag_1" }, CancellationToken.None);
 
         // When
-        await CacheManager.InvalidateCacheAsync(new List<string> { "tag_2" });
-        await CacheManager.InvalidateCacheAsync(new List<string> { "tag_3" });
+        await CacheManager.InvalidateCacheAsync(new List<string> { "tag_2" }, CancellationToken.None);
+        await CacheManager.InvalidateCacheAsync(new List<string> { "tag_3" }, CancellationToken.None);
         CacheManager.Cache.Log(LogLevel.Information, "All good");
 
         // Then

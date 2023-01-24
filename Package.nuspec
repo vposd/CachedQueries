@@ -2,21 +2,21 @@
 <package>
   <metadata>
     <id>CachedQueries</id>
-    <version>1.0.0</version>
+    <version>$version$</version>
     <authors>Valerii Pozdnyakov</authors>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <license type="expression">MIT</license>
     <projectUrl>https://github.com/vposd/CachedQueries</projectUrl>
     <description>CacheableQueries is a query cache extension library for Entity Framework Core. The main goal is to bring caching to ef queries with flexible invalidation without any abstraction over DbSet.</description>
-    <copyright>Copyright Valerii Pozdnyakov 2022</copyright>
+    <copyright>Copyright Valerii Pozdnyakov 2023</copyright>
     <tags>entity-framework ef-core cache query caching</tags>
     <dependencies>
-      <group targetFramework=".NET6" />
+      <group targetFramework=".NET7" />
     </dependencies>
   </metadata>
   <files>
-    <file src="src/CachedQueries.Core/bin/Release/net6.0/CachedQueries.Core.dll" target="lib\net6.0"/>
-    <file src="src/CachedQueries.DependencyInjection/bin/Release/net6.0/CachedQueries.DependencyInjection.dll" target="lib\net6.0"/>
-    <file src="src/CachedQueries.EntityFramework/bin/Release/net6.0/CachedQueries.EntityFramework.dll" target="lib\net6.0"/>
+    <file src="src/CachedQueries.Core/bin/Release/net7.0/CachedQueries.Core.dll" target="lib\net7.0"/>
+    <file src="src/CachedQueries.DependencyInjection/bin/Release/net7.0/CachedQueries.DependencyInjection.dll" target="lib\net7.0"/>
+    <file src="src/CachedQueries.EntityFramework/bin/Release/net7.0/CachedQueries.EntityFramework.dll" target="lib\net7.0"/>
   </files>
 </package>
