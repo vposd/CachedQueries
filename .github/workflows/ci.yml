@@ -14,7 +14,7 @@ jobs:
       - name: Run Tests
         shell: pwsh
         run: |
-          dotnet test -c Release /p:CollectCoverage=true  /p:CoverletOutput=../coverage/ /p:MergeWith="../CoverageResults/coverage.json" /p:CoverletOutputFormat="lcov.json" -m:1
+          dotnet test -c Release /p:CollectCoverage=true  /p:CoverletOutput=../coverage/ /p:MergeWith="../CoverageResults/coverage.json" /p:CoverletOutputFormat=lcov
       - name: Generate coverage report
         run: |
           cd ./MyLibrary.Tests/
