@@ -17,7 +17,7 @@ jobs:
           dotnet new tool-manifest
           dotnet tool install coveralls.net
           dotnet tool restore
-          dotnet test /p:CollectCoverage=true  /p:CoverletOutput=../coverage/ /p:MergeWith="../CoverageResults/coverage.json" /p:CoverletOutputFormat=lcov
+          dotnet test /p:CollectCoverage=true  /p:CoverletOutput=../coverage/ /p:MergeWith="../CoverageResults/coverage.json" /p:CoverletOutputFormat=lcov.json -m:1
       - name: Publish coverage report
         uses: coverallsapp/github-action@master
         with:
