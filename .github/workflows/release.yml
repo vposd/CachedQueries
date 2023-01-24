@@ -2,9 +2,9 @@
 name: Pull request check
 
 on:
-  pull_request:
+  push:
     branches:
-      - master
+      - release
 
 jobs:
   test:
@@ -28,10 +28,3 @@ jobs:
         run: |
           dotnet restore
           dotnet build -c Release
-      - name: Nuget pack
-        uses: actions/checkout@main
-          - name: Build
-            run: |
-              dotnet pack -c Release /p:Version=${VERSION} --no-build --output ./out
-
-      
