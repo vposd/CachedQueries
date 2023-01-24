@@ -32,6 +32,9 @@ jobs:
           dotnet build -c Release
       - name: Extract version from tag
         uses: damienaicheh/extract-version-from-tag-action@v1.0.0
+      - name: Build 3
+        run: |
+          echo '${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}'
       # - name: Nuget Pack
       #   run: |
       #     dotnet pack -c Release /p:Version=${VERSION} --no-build --output ./out
