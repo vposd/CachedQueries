@@ -30,6 +30,6 @@ jobs:
           dotnet build -c Release
       - name: Set VERSION variable from tag
         run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
-      - name: Nuget pack
+      - name: Nuget Pack
         run: |
           dotnet pack -c Release /p:Version=${VERSION} --no-build --output ./out
