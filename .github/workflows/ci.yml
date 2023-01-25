@@ -36,4 +36,4 @@ jobs:
         uses: nuget/setup-nuget@v1
       - name: Nuget Pack
         run: |
-          nuget pack .\Package.nuspec -Version ${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}
+          nuget pack Package.nuspec -Version ${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}
