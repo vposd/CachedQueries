@@ -39,4 +39,4 @@ jobs:
           nuget pack Package.nuspec -Version ${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}
       - name: Nuget Push
         run: |
-          dotnet nuget push .\CachedQueries.${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+          dotnet nuget push CachedQueries.${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
