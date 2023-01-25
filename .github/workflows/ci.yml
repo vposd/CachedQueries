@@ -32,7 +32,8 @@ jobs:
           dotnet build -c Release
       - name: Extract version from tag
         uses: damienaicheh/extract-version-from-tag-action@v1.0.0
-      - name: Nuget Pack
+      - name: Nuget Setup
         uses: nuget/setup-nuget@v1
+      - name: Nuget Pack
         run: |
           nuget pack .\Package.nuspec -Version ${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}
