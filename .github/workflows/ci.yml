@@ -1,0 +1,32 @@
+---
+name: Pull request check
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - name: Run Tests
+        shell: pwsh
+        run: |
+          dotnet test /p:CollectCoverage=true  /p:CoverletOutput=../coverage/ /p:MergeWith="../CoverageResults/coverage.json" /p:CoverletOutputFormat="lcov%2cjson" -m:1
+      - name: Publish coverage report
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./tests/coverage/coverage.info
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+      - name: Build
+        run: |
+          dotnet restore
+          dotnet build -c Release
