@@ -1,8 +1,8 @@
 ---
-name: Pull request check
+name: Release check
 
 on:
-  push:
+  pull_request:
     branches:
       - release
 
@@ -24,7 +24,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
+        with:
+          fetch-depth: 0
       - name: Build
         run: |
           dotnet restore
           dotnet build -c Release
+      - name: Extract version from tag
+        uses: damienaicheh/extract-version-from-tag-action@v1.0.0
+      - name: Nuget Setup
+        uses: nuget/setup-nuget@v1
+      - name: Nuget Pack
+        run: |
+          nuget pack Package.nuspec -Version ${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}
+      - name: Nuget Push
+        run: |
+          dotnet nuget push .\CachedQueries.${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
