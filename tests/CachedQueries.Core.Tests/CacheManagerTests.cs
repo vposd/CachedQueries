@@ -124,59 +124,6 @@ public class CacheManagerTests
     }
 
     [Theory]
-    [InlineData(CacheType.MemoryCache)]
-    [InlineData(CacheType.DistributedCache)]
-    public async Task LinkTags_Should_Link_Invalidation_Tags_To_Cache_Key(CacheType cacheType)
-    {
-        // Given
-        ConfigureCache(cacheType);
-
-        // When
-        CacheManager.LinkTags("key_1", new List<string> { "tag_1", "tag_2" });
-        CacheManager.LinkTags("key_2", new List<string> { "tag_1", "tag_1" });
-
-        // Then
-        var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_1");
-        var tag2Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_2");
-        var tag3Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_3");
-
-        tag1Keys.Should().HaveCount(2);
-        tag1Keys.Should().Contain("key_1");
-        tag1Keys.Should().Contain("key_2");
-
-        tag2Keys.Should().HaveCount(1);
-        tag2Keys.Should().Contain("key_1");
-
-        tag3Keys.Should().BeNull();
-    }
-
-    [Theory]
-    [InlineData(CacheType.MemoryCache, null)]
-    [InlineData(CacheType.MemoryCache, "")]
-    [InlineData(CacheType.MemoryCache, " ")]
-    [InlineData(CacheType.DistributedCache, null)]
-    [InlineData(CacheType.DistributedCache, "")]
-    [InlineData(CacheType.DistributedCache, " ")]
-    public async Task LinkTags_Should_Not_Link_Invalidation_Tags_If_Key_Is_Empty(CacheType cacheType, string key)
-    {
-        // Given
-        ConfigureCache(cacheType);
-
-        // When
-        CacheManager.LinkTags(key, new List<string> { "tag_1", "tag_2" });
-        CacheManager.LinkTags(key, new List<string> { "tag_1", "tag_1" });
-
-        // Then
-        var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_1");
-        var tag2Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_2");
-        var tag3Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_3");
-
-        tag1Keys.Should().BeNull();
-        tag2Keys.Should().BeNull();
-        tag3Keys.Should().BeNull();
-    }
-
-    [Theory]
     [InlineData(CacheType.MemoryCache, null)]
     [InlineData(CacheType.MemoryCache, "")]
     [InlineData(CacheType.MemoryCache, " ")]
@@ -189,8 +136,8 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
 
         // When
-        await CacheManager.LinkTagsAsync(key, new List<string> { "tag_1", "tag_2" }, CancellationToken.None);
-        await CacheManager.LinkTagsAsync(key, new List<string> { "tag_1" }, CancellationToken.None);
+        await CacheManager.CacheInvalidator.LinkTagsAsync(key, new List<string> { "tag_1", "tag_2" }, CancellationToken.None);
+        await CacheManager.CacheInvalidator.LinkTagsAsync(key, new List<string> { "tag_1" }, CancellationToken.None);
 
         // Then
         var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_1");
@@ -211,8 +158,8 @@ public class CacheManagerTests
         ConfigureCache(cacheType);
 
         // When
-        await CacheManager.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" }, CancellationToken.None);
-        await CacheManager.LinkTagsAsync("key_2", new List<string> { "tag_1" }, CancellationToken.None);
+        await CacheManager.CacheInvalidator.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" }, CancellationToken.None);
+        await CacheManager.CacheInvalidator.LinkTagsAsync("key_2", new List<string> { "tag_1" }, CancellationToken.None);
 
         // Then
         var tag1Keys = await CacheManager.Cache.GetAsync<List<string>>("test_tag_1");
@@ -232,42 +179,18 @@ public class CacheManagerTests
     [Theory]
     [InlineData(CacheType.MemoryCache)]
     [InlineData(CacheType.DistributedCache)]
-    public async Task InvalidateCache_Should_Invalidate_Cache_By_Tags(CacheType cacheType)
-    {
-        // Given
-        ConfigureCache(cacheType);
-        await CacheManager.Cache.SetAsync("key_1", "value_1");
-        await CacheManager.Cache.SetAsync("key_2", "value_2");
-        await CacheManager.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" }, CancellationToken.None);
-        await CacheManager.LinkTagsAsync("key_2", new List<string> { "tag_1" }, CancellationToken.None);
-
-        // When
-        CacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { "tag_2" }).Wait();
-        CacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { "tag_3" }).Wait();
-
-        // Then
-        var key1Value = await CacheManager.Cache.GetAsync<string>("key_1");
-        var key2Value = await CacheManager.Cache.GetAsync<string>("key_2");
-
-        key1Value.Should().BeNull();
-        key2Value.Should().Be("value_2");
-    }
-
-    [Theory]
-    [InlineData(CacheType.MemoryCache)]
-    [InlineData(CacheType.DistributedCache)]
     public async Task InvalidateCacheAsync_Should_Invalidate_Cache_By_Tags(CacheType cacheType)
     {
         // Given
         ConfigureCache(cacheType);
         await CacheManager.Cache.SetAsync("key_1", "value_1");
         await CacheManager.Cache.SetAsync("key_2", "value_2");
-        await CacheManager.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" }, CancellationToken.None);
-        await CacheManager.LinkTagsAsync("key_2", new List<string> { "tag_1" }, CancellationToken.None);
+        await CacheManager.CacheInvalidator.LinkTagsAsync("key_1", new List<string> { "tag_1", "tag_2" }, CancellationToken.None);
+        await CacheManager.CacheInvalidator.LinkTagsAsync("key_2", new List<string> { "tag_1" }, CancellationToken.None);
 
         // When
-        await CacheManager.InvalidateCacheAsync(new List<string> { "tag_2" }, CancellationToken.None);
-        await CacheManager.InvalidateCacheAsync(new List<string> { "tag_3" }, CancellationToken.None);
+        await CacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { "tag_2" }, CancellationToken.None);
+        await CacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { "tag_3" }, CancellationToken.None);
         CacheManager.Cache.Log(LogLevel.Information, "All good");
 
         // Then

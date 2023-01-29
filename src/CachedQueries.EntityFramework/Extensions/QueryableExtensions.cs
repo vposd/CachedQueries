@@ -253,7 +253,7 @@ public static class QueryableExtensions
         try
         {
             await CacheManager.Cache.SetAsync(key, value, useLock: true, expire, cancellationToken);
-            await CacheManager.LinkTagsAsync(key, tags, cancellationToken);
+            await CacheManager.CacheInvalidator.LinkTagsAsync(key, tags, cancellationToken);
         }
         catch (Exception exception)
         {

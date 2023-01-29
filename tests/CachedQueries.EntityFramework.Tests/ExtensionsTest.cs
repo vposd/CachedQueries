@@ -159,7 +159,7 @@ public sealed class ExtensionsTest
 
         context.Blogs.Add(_fixture.Create<Blog>());
         await context.SaveChangesAsync();
-        await CacheManager.InvalidateCacheAsync(new List<string> { nameof(Blog) }, CancellationToken.None);
+        await CacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { nameof(Blog) }, CancellationToken.None);
 
         var entitiesFromDb = await context.Blogs.ToListAsync();
         var entitiesFromCache = await context.Blogs.ToCachedListAsync(new List<string> { nameof(Blog) });
@@ -326,7 +326,6 @@ public sealed class ExtensionsTest
                 .Include(x => x.Author)
                 .Include(x => x.Posts).ThenInclude(x => x.Comments)
                 .Where(x => x.Id == entities[0].Id).CachedFirstOrDefaultAsync();
-        ;
 
         // Then
         entityFromDb?.Name.Should().Be("new name");
@@ -356,7 +355,7 @@ public sealed class ExtensionsTest
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
         await context.SaveChangesAsync();
-        await CacheManager.InvalidateCacheAsync(new List<string> { nameof(Blog) }, CancellationToken.None);
+        await CacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { nameof(Blog) }, CancellationToken.None);
 
         var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
