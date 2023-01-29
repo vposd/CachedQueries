@@ -28,7 +28,7 @@ public static class ChangeTrackerExtensions
             .Cast<string>()
             .ToHashSet();
 
-        await CacheManager.InvalidateCacheAsync(tags, cancellationToken);
+        await CacheManager.CacheInvalidator.InvalidateCacheAsync(tags, cancellationToken);
         return affectedTypes;
     }
 }

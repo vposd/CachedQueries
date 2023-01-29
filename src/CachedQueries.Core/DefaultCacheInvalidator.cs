@@ -36,4 +36,31 @@ public class DefaultCacheInvalidator : ICacheInvalidator
 
         await Task.WhenAll(tasks);
     }
+
+    /// <summary>
+    ///     Async link invalidation tags to cache key
+    /// </summary>
+    /// <param name="key">Cache key</param>
+    /// <param name="tags">Invalidation tags</param>
+    /// <param name="cancellationToken"></param>
+    public async Task LinkTagsAsync(string key, IEnumerable<string> tags,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return;
+
+        var tagsToLink = tags.Distinct().Select(tag => CacheManager.CachePrefix + tag).ToList();
+
+        async Task LinkTagAsync(string tag)
+        {
+            var list = await _cache.GetAsync<List<string>>(tag, useLock: false, cancellationToken) ?? new List<string>();
+
+            if (!list.Contains(key))
+                list.Add(key);
+
+            await _cache.SetAsync(tag, list.Distinct(), useLock: false, expire: null, cancellationToken);
+        }
+
+        await Task.WhenAll(tagsToLink.Select(LinkTagAsync));
+    }
 }
