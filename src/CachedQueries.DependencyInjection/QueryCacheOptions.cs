@@ -15,6 +15,50 @@ public class QueryCacheOptions
     public QueryCacheOptions(IServiceCollection services)
     {
         _services = services;
+        UseKeyFactory<CacheKeyFactory>();
+        UseCacheStoreProvider<CacheStoreProvider>();
+        UseCacheInvalidator<DefaultCacheInvalidator>();
+        UseLockManager<DefaultLockManager>();
+        UseCacheOptions(new CacheOptions
+        {
+            DefaultExpiration = TimeSpan.FromHours(8),
+            LockTimeout = TimeSpan.FromSeconds(5)
+        });
+    }
+
+    /// <summary>
+    /// Setup a cache store provider
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public QueryCacheOptions UseCacheOptions(CacheOptions options)
+    {
+        _services.AddSingleton(options);
+        return this;
+    }
+
+    /// <summary>
+    /// Setup a cache store
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public QueryCacheOptions UseCacheStore<T>() where T : class, ICacheStore
+    {
+        _services.AddScoped<ICacheStore, T>();
+
+        return this;
+    }
+
+    /// <summary>
+    /// Setup a cache store provider
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public QueryCacheOptions UseCacheStoreProvider<T>() where T : class, ICacheStoreProvider
+    {
+        _services.AddScoped<ICacheStoreProvider, T>();
+
+        return this;
     }
 
     /// <summary>
@@ -22,12 +66,31 @@ public class QueryCacheOptions
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    public QueryCacheOptions UseCache<T>() where T : class, ICache
+    public QueryCacheOptions UseCacheInvalidator<T>() where T : class, ICacheInvalidator
     {
-        _services.AddSingleton<ICache, T>();
-        _services.AddSingleton<ICacheInvalidator, DefaultCacheInvalidator>();
-        _services.AddSingleton<ILockManager, DefaultLockManager>();
+        _services.AddScoped<ICacheInvalidator, T>();
+        return this;
+    }
 
+    /// <summary>
+    /// Setup a cache invalidator
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public QueryCacheOptions UseLockManager<T>() where T : class, ILockManager
+    {
+        _services.AddScoped<ILockManager, T>();
+        return this;
+    }
+
+    /// <summary>
+    /// Setup a cache invalidator
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public QueryCacheOptions UseKeyFactory<T>() where T : class, ICacheKeyFactory
+    {
+        _services.AddScoped<ICacheKeyFactory, T>();
         return this;
     }
 
@@ -37,7 +100,7 @@ public class QueryCacheOptions
     /// <returns></returns>
     public QueryCacheOptions UseEntityFramework()
     {
-        CacheManager.CacheKeyFactory = new QueryCacheKeyFactory();
+        UseKeyFactory<QueryCacheKeyFactory>();
         return this;
     }
 }

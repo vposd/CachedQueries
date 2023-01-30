@@ -5,7 +5,7 @@ namespace CachedQueries.Core.Interfaces;
 /// <summary>
 ///     Cache service interface
 /// </summary>
-public interface ICache
+public interface ICacheStore
 {
     /// <summary>
     ///     Get results from cache

@@ -9,9 +9,11 @@ namespace CachedQueries.Core.Cache;
 /// <summary>
 ///     Cache service using IMemoryCache implementation.
 /// </summary>
-public class MemoryCache : ICache
+public class MemoryCache : ICacheStore
 {
     private readonly IMemoryCache _cache;
+    private readonly ILockManager _lockManager;
+    private readonly CacheOptions _options;
     private readonly ILogger<MemoryCache> _logger;
 
     private readonly JsonSerializerOptions _settings = new()
@@ -19,21 +21,23 @@ public class MemoryCache : ICache
         ReferenceHandler = ReferenceHandler.Preserve
     };
 
-    public MemoryCache(IMemoryCache cache, ILoggerFactory loggerFactory)
+    public MemoryCache(IMemoryCache cache, ILoggerFactory loggerFactory, ILockManager lockManager, CacheOptions options)
     {
         _cache = cache;
+        _lockManager = lockManager;
+        _options = options;
         _logger = loggerFactory.CreateLogger<MemoryCache>();
     }
 
     public async Task<T?> GetAsync<T>(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
         if (useLock)
-            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+            await _lockManager.LockAsync(key, _options.LockTimeout);
 
         var cachedResponse = _cache.Get(key)?.ToString();
 
         if (useLock)
-            await CacheManager.LockManager.ReleaseLockAsync(key);
+            await _lockManager.ReleaseLockAsync(key);
 
         try
         {
@@ -55,23 +59,23 @@ public class MemoryCache : ICache
         var serialized = JsonSerializer.Serialize(value, _settings);
 
         if (useLock)
-            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+            await _lockManager.LockAsync(key, _options.LockTimeout);
 
         _cache.Set(key, serialized, new MemoryCacheEntryOptions { SlidingExpiration = expire });
 
         if (useLock)
-            await CacheManager.LockManager.ReleaseLockAsync(key);
+            await _lockManager.ReleaseLockAsync(key);
     }
 
     public async Task DeleteAsync(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
         if (useLock)
-            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+            await _lockManager.LockAsync(key, _options.LockTimeout);
 
         _cache.Remove(key);
 
         if (useLock)
-            await CacheManager.LockManager.ReleaseLockAsync(key);
+            await _lockManager.ReleaseLockAsync(key);
     }
 
     public void Log(LogLevel logLevel, string? message, params object?[] args)

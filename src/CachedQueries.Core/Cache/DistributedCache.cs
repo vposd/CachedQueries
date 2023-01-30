@@ -9,9 +9,11 @@ namespace CachedQueries.Core.Cache;
 /// <summary>
 ///     Cache service using IDistributedCache implementation.
 /// </summary>
-public class DistributedCache : ICache
+public class DistributedCache : ICacheStore
 {
     private readonly IDistributedCache _cache;
+    private readonly ILockManager _lockManager;
+    private readonly CacheOptions _options;
     private readonly ILogger<DistributedCache> _logger;
 
     private readonly JsonSerializerOptions _settings = new()
@@ -19,9 +21,11 @@ public class DistributedCache : ICache
         ReferenceHandler = ReferenceHandler.Preserve
     };
 
-    public DistributedCache(IDistributedCache cache, ILoggerFactory loggerFactory)
+    public DistributedCache(IDistributedCache cache, ILoggerFactory loggerFactory, ILockManager lockManager, CacheOptions options)
     {
         _cache = cache;
+        _lockManager = lockManager;
+        _options = options;
         _logger = loggerFactory.CreateLogger<DistributedCache>();
     }
 
@@ -33,7 +37,7 @@ public class DistributedCache : ICache
     public async Task<T?> GetAsync<T>(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
         if (useLock)
-            await CacheManager.LockManager.CheckLockAsync(key, cancellationToken);
+            await _lockManager.CheckLockAsync(key, cancellationToken);
 
         var cachedResponse = await _cache.GetStringAsync(key, cancellationToken);
 
@@ -56,7 +60,7 @@ public class DistributedCache : ICache
         var response = JsonSerializer.Serialize(value, _settings);
 
         if (useLock)
-            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+            await _lockManager.LockAsync(key, _options.LockTimeout);
 
         await _cache.SetStringAsync(
             key,
@@ -65,7 +69,7 @@ public class DistributedCache : ICache
             cancellationToken);
 
         if (useLock)
-            await CacheManager.LockManager.ReleaseLockAsync(key);
+            await _lockManager.ReleaseLockAsync(key);
     }
 
     public void Log(LogLevel logLevel, string? message, params object?[] args)

@@ -4,9 +4,9 @@ namespace CachedQueries.Core;
 
 public class DefaultCacheInvalidator : ICacheInvalidator
 {
-    private readonly ICache _cache;
+    private readonly ICacheStore _cache;
 
-    public DefaultCacheInvalidator(ICache cache)
+    public DefaultCacheInvalidator(ICacheStore cache)
     {
         _cache = cache;
     }
@@ -21,7 +21,7 @@ public class DefaultCacheInvalidator : ICacheInvalidator
         var tagsList = tags.ToList();
         var keysToRemove = new List<string>(tagsList);
 
-        var tagsToExpireTasks = tagsList.Distinct().Select(tag => CacheManager.CachePrefix + tag)
+        var tagsToExpireTasks = tagsList.Distinct()
             .Select(tagKey => _cache.GetAsync<List<string>>(tagKey, useLock: false, cancellationToken))
             .ToList();
 
@@ -49,7 +49,7 @@ public class DefaultCacheInvalidator : ICacheInvalidator
         if (string.IsNullOrWhiteSpace(key))
             return;
 
-        var tagsToLink = tags.Distinct().Select(tag => CacheManager.CachePrefix + tag).ToList();
+        var tagsToLink = tags.Distinct().ToList();
 
         async Task LinkTagAsync(string tag)
         {
