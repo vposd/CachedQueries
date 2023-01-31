@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using CachedQueries.Core;
 using CachedQueries.Core.Cache;
 using CachedQueries.Core.Enums;
-using CachedQueries.Core.Interfaces;
+using CachedQueries.DependencyInjection;
 using CachedQueries.EntityFramework;
 using CachedQueries.EntityFramework.Extensions;
 using FluentAssertions;
@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace CachedQueries.DependencyInjection.Tests;
+namespace CachedQueries.Test;
 
 public class DependencyInjectionTests
 {
