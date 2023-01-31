@@ -5,7 +5,7 @@ namespace CachedQueries.Core.Interfaces;
 /// <summary>
 ///     Cache service interface
 /// </summary>
-public interface ICache
+public interface ICacheStore
 {
     /// <summary>
     ///     Get results from cache
@@ -27,7 +27,8 @@ public interface ICache
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T">TEntity type</typeparam>
     /// <returns></returns>
-    Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null, CancellationToken cancellationToken = default);
+    Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Remove item from cache

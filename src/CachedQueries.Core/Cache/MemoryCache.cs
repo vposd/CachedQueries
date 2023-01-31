@@ -9,34 +9,36 @@ namespace CachedQueries.Core.Cache;
 /// <summary>
 ///     Cache service using IMemoryCache implementation.
 /// </summary>
-public class MemoryCache : ICache
+public class MemoryCache : ICacheStore
 {
     private readonly IMemoryCache _cache;
+    private readonly ILockManager _lockManager;
     private readonly ILogger<MemoryCache> _logger;
+    private readonly CacheOptions _options;
 
     private readonly JsonSerializerOptions _settings = new()
     {
         ReferenceHandler = ReferenceHandler.Preserve
     };
 
-    public MemoryCache(IMemoryCache cache, ILoggerFactory loggerFactory)
+    public MemoryCache(IMemoryCache cache, ILoggerFactory loggerFactory, ILockManager lockManager, CacheOptions options)
     {
         _cache = cache;
+        _lockManager = lockManager;
+        _options = options;
         _logger = loggerFactory.CreateLogger<MemoryCache>();
     }
 
     public async Task<T?> GetAsync<T>(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
-        if (useLock)
-            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
-
-        var cachedResponse = _cache.Get(key)?.ToString();
-
-        if (useLock)
-            await CacheManager.LockManager.ReleaseLockAsync(key);
-
         try
         {
+            if (useLock)
+                await _lockManager.CheckLockAsync(key, cancellationToken);
+
+            _cache.TryGetValue(key, out var value);
+            var cachedResponse = value?.ToString();
+
             var result = cachedResponse is not null
                 ? JsonSerializer.Deserialize<T>(cachedResponse, _settings)
                 : default;
@@ -44,7 +46,7 @@ public class MemoryCache : ICache
         }
         catch (Exception exception)
         {
-            _logger.LogError("Error loading cached data: @{Message}", exception.Message);
+            Log(LogLevel.Error, "Error loading cached data: @{Message}", exception.Message);
             return default;
         }
     }
@@ -52,26 +54,34 @@ public class MemoryCache : ICache
     public async Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null,
         CancellationToken cancellationToken = default)
     {
-        var serialized = JsonSerializer.Serialize(value, _settings);
+        try
+        {
+            var serialized = JsonSerializer.Serialize(value, _settings);
 
-        if (useLock)
-            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+            if (useLock)
+                await _lockManager.LockAsync(key, _options.LockTimeout);
 
-        _cache.Set(key, serialized, new MemoryCacheEntryOptions { SlidingExpiration = expire });
+            _cache.Set(key, serialized, new MemoryCacheEntryOptions { SlidingExpiration = expire });
 
-        if (useLock)
-            await CacheManager.LockManager.ReleaseLockAsync(key);
+            if (useLock)
+                await _lockManager.ReleaseLockAsync(key);
+        }
+        catch (Exception exception)
+        {
+            Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
+        }
     }
 
     public async Task DeleteAsync(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
-        if (useLock)
-            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
-
-        _cache.Remove(key);
-
-        if (useLock)
-            await CacheManager.LockManager.ReleaseLockAsync(key);
+        try
+        {
+            _cache.Remove(key);
+        }
+        catch (Exception exception)
+        {
+            Log(LogLevel.Error, "Error delete cached data: @{Message}", exception.Message);
+        }
     }
 
     public void Log(LogLevel logLevel, string? message, params object?[] args)

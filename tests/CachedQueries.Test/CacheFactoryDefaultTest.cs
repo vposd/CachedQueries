@@ -1,21 +1,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using AutoFixture;
+using CachedQueries.Core;
 using FluentAssertions;
 using Xunit;
 
-namespace CachedQueries.Core.Tests;
+namespace CachedQueries.Test;
 
 internal class Entity
 {
     public long Id { get; set; }
 }
 
-public class CacheFactoryDefaultTests
+public class CacheFactoryDefaultTest
 {
     private readonly Fixture _fixture;
 
-    public CacheFactoryDefaultTests()
+    public CacheFactoryDefaultTest()
     {
         _fixture = new Fixture();
     }

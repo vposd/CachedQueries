@@ -9,7 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\CachedQueries.EntityFramework\CachedQueries.EntityFramework.csproj"/>
         <ProjectReference Include="..\CachedQueries.Core\CachedQueries.Core.csproj"/>
     </ItemGroup>
 

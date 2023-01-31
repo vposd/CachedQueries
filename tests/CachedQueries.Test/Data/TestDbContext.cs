@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace CachedQueries.EntityFramework.Tests.Data;
+namespace CachedQueries.Test.Data;
 
 public class Blog
 {

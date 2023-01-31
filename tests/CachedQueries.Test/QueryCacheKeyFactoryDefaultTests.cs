@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using AutoFixture;
-using CachedQueries.EntityFramework.Tests.Data;
+using CachedQueries.EntityFramework;
+using CachedQueries.Test.Data;
 using FluentAssertions;
 using Xunit;
 
-namespace CachedQueries.EntityFramework.Tests;
+namespace CachedQueries.Test;
 
 public class QueryCacheKeyFactoryDefaultTests
 {
@@ -28,6 +29,6 @@ public class QueryCacheKeyFactoryDefaultTests
         var result = keyFactory.GetCacheKey(query, new List<string> { "tag_1" });
 
         // Then
-        result.Should().Be("5A75650695F5D73333D7912E3EDF74F54414B8A52429C77D3D05D3997B7D32C9");
+        result.Should().Be("85B835C82C72253EDA2CEC7C47ECCF4DF59EEA9C7379753A2121C33818A341E9");
     }
 }

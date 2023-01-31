@@ -5,11 +5,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
 using CachedQueries.Core;
-using CachedQueries.Core.Interfaces;
+using CachedQueries.Core.Cache;
+using CachedQueries.DependencyInjection;
 using CachedQueries.EntityFramework.Extensions;
-using CachedQueries.EntityFramework.Tests.Data;
+using CachedQueries.Test.Data;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -18,7 +20,7 @@ using Moq;
 using Xunit;
 using MemoryCache = CachedQueries.Core.Cache.MemoryCache;
 
-namespace CachedQueries.EntityFramework.Tests;
+namespace CachedQueries.Test;
 
 public sealed class ExtensionsTest
 {
@@ -38,24 +40,16 @@ public sealed class ExtensionsTest
                 options);
             return context;
         });
-
-        var services = new ServiceCollection();
-        services.AddMemoryCache();
-        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
-
-        var serviceProvider = services.BuildServiceProvider();
-        var memoryCache = serviceProvider.GetService<IMemoryCache>()!;
-        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-
-        CacheManager.Cache = new MemoryCache(memoryCache, loggerFactory);
-        CacheManager.CacheInvalidator = new DefaultCacheInvalidator(CacheManager.Cache);
-        CacheManager.CacheKeyFactory = new QueryCacheKeyFactory();
     }
 
-    [Fact]
-    public async Task ToCachedListAsync_Should_Cache_List_Results_With_Explicit_Tags()
+    [Theory]
+    [InlineData(typeof(MemoryCache))]
+    [InlineData(typeof(DistributedCache))]
+    public async Task ToCachedListAsync_Should_Cache_List_Results_With_Explicit_Tags(Type cacheStore)
     {
         // Given
+        InitCacheManager(cacheStore);
+
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Blog>(2).ToList();
         context.Blogs.AddRange(entities);
@@ -66,7 +60,7 @@ public sealed class ExtensionsTest
             .Include(x => x.Posts)
             .ThenInclude(x => x.Comments)
             .Where(x => x.Id > 0)
-            .ToCachedListAsync(new List<string> { nameof(Blog) });
+            .ToCachedListAsync(new List<string> { nameof(Blog) }, CancellationToken.None);
 
         context.Blogs.Add(_fixture.Create<Blog>());
         await context.SaveChangesAsync();
@@ -76,48 +70,21 @@ public sealed class ExtensionsTest
             .Include(x => x.Posts)
             .ThenInclude(x => x.Comments)
             .Where(x => x.Id > 0)
-            .ToCachedListAsync(new List<string> { nameof(Blog) });
+            .ToCachedListAsync(new List<string> { nameof(Blog) }, CancellationToken.None);
 
         // Then
         entitiesFromDb.Should().HaveCount(3);
         entitiesFromCache.Should().HaveCount(2);
     }
 
-    [Fact]
-    public async Task ToCachedListAsync_Should_Cache_List_Results()
+    [Theory]
+    [InlineData(typeof(MemoryCache))]
+    [InlineData(typeof(DistributedCache))]
+    public async Task ToCachedListAsync_Should_Cache_List_Results(Type cacheStore)
     {
         // Given
-        await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(2).ToList();
-        context.Blogs.AddRange(entities);
-        await context.SaveChangesAsync();
+        InitCacheManager(cacheStore);
 
-        // When
-        await context.Blogs
-            .Include(x => x.Posts)
-            .ThenInclude(x => x.Comments)
-            .Where(x => x.Id > 0)
-            .ToCachedListAsync(CancellationToken.None);
-
-        context.Blogs.Add(_fixture.Create<Blog>());
-        await context.SaveChangesAsync();
-
-        var entitiesFromDb = await context.Blogs.ToListAsync();
-        var entitiesFromCache = await context.Blogs
-            .Include(x => x.Posts)
-            .ThenInclude(x => x.Comments)
-            .Where(x => x.Id > 0)
-            .ToCachedListAsync();
-
-        // Then
-        entitiesFromDb.Should().HaveCount(3);
-        entitiesFromCache.Should().HaveCount(2);
-    }
-
-    [Fact]
-    public async Task ToCachedListAsync_Should_Cache_List_Results_With_Lifetime()
-    {
-        // Given
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Blog>(2).ToList();
         context.Blogs.AddRange(entities);
@@ -138,28 +105,70 @@ public sealed class ExtensionsTest
             .Include(x => x.Posts)
             .ThenInclude(x => x.Comments)
             .Where(x => x.Id > 0)
-            .ToCachedListAsync(TimeSpan.FromHours(1));
+            .ToCachedListAsync(CancellationToken.None);
 
         // Then
         entitiesFromDb.Should().HaveCount(3);
         entitiesFromCache.Should().HaveCount(2);
     }
 
-    [Fact]
-    public async Task ToCachedListAsync_Should_Update_Cache_List_Results_After_Expiration_With_Explicit_Tags()
+    [Theory]
+    [InlineData(typeof(MemoryCache))]
+    [InlineData(typeof(DistributedCache))]
+    public async Task ToCachedListAsync_Should_Cache_List_Results_With_Lifetime(Type cacheStore)
     {
         // Given
+        InitCacheManager(cacheStore);
+
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Blog>(2).ToList();
         context.Blogs.AddRange(entities);
         await context.SaveChangesAsync();
 
         // When
-        await context.Blogs.ToCachedListAsync(new List<string> { nameof(Blog) });
+        await context.Blogs
+            .Include(x => x.Posts)
+            .ThenInclude(x => x.Comments)
+            .Where(x => x.Id > 0)
+            .ToCachedListAsync(CancellationToken.None);
 
         context.Blogs.Add(_fixture.Create<Blog>());
         await context.SaveChangesAsync();
-        await CacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { nameof(Blog) }, CancellationToken.None);
+
+        var entitiesFromDb = await context.Blogs.ToListAsync();
+        var entitiesFromCache = await context.Blogs
+            .Include(x => x.Posts)
+            .ThenInclude(x => x.Comments)
+            .Where(x => x.Id > 0)
+            .ToCachedListAsync(TimeSpan.FromHours(1), CancellationToken.None);
+
+        // Then
+        entitiesFromDb.Should().HaveCount(3);
+        entitiesFromCache.Should().HaveCount(2);
+    }
+
+    [Theory]
+    [InlineData(typeof(MemoryCache))]
+    [InlineData(typeof(DistributedCache))]
+    public async Task ToCachedListAsync_Should_Update_Cache_List_Results_After_Expiration_With_Explicit_Tags(
+        Type cacheStore)
+    {
+        // Given
+        InitCacheManager(cacheStore);
+
+        await using var context = _contextFactoryMock.Object();
+        var cacheManager = CacheManagerContainer.Resolve();
+        var entities = _fixture.CreateMany<Blog>(2).ToList();
+        context.Blogs.AddRange(entities);
+        await context.SaveChangesAsync();
+
+        // When
+        await context.Blogs.ToCachedListAsync(new List<string> { nameof(Blog) }, CancellationToken.None);
+
+        context.Blogs.Add(_fixture.Create<Blog>());
+        await context.SaveChangesAsync();
+        await cacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { nameof(Blog) },
+            CancellationToken.None);
 
         var entitiesFromDb = await context.Blogs.ToListAsync();
         var entitiesFromCache = await context.Blogs.ToCachedListAsync(new List<string> { nameof(Blog) });
@@ -169,10 +178,65 @@ public sealed class ExtensionsTest
         entitiesFromCache.Should().HaveCount(3);
     }
 
-    [Fact]
-    public async Task ToCachedListAsync_Should_Update_Cache_List_Results_After_Expiration()
+    [Theory]
+    [InlineData("Get", typeof(DistributedCache))]
+    [InlineData("Remove", typeof(DistributedCache))]
+    [InlineData("Set", typeof(DistributedCache))]
+    [InlineData("Get", typeof(MemoryCache))]
+    [InlineData("Remove", typeof(MemoryCache))]
+    [InlineData("Set", typeof(MemoryCache))]
+    public async Task ToCachedListAsync_Should_Not_Throw_Error_When_Set_Cache_Error(string method, Type cacheType)
     {
         // Given
+        var services = InitCacheManager(cacheType);
+        if (cacheType == typeof(DistributedCache))
+        {
+            var cache = ConfigureFailingDistributedCache(method);
+            services.AddSingleton<IDistributedCache>(_ => cache.Object);
+
+            var serviceProvider = services.BuildServiceProvider();
+            CacheManagerContainer.Initialize(serviceProvider);
+        }
+
+        if (cacheType == typeof(MemoryCache))
+        {
+            var cache = ConfigureFailingMemoryCache(method);
+            services.AddSingleton<IMemoryCache>(_ => cache.Object);
+
+            var serviceProvider = services.BuildServiceProvider();
+            CacheManagerContainer.Initialize(serviceProvider);
+        }
+
+        await using var context = _contextFactoryMock.Object();
+        var cacheManager = CacheManagerContainer.Resolve();
+        var entities = _fixture.CreateMany<Blog>(2).ToList();
+        context.Blogs.AddRange(entities);
+        await context.SaveChangesAsync();
+
+        // When
+        await context.Blogs.ToCachedListAsync(new List<string> { nameof(Blog) }, CancellationToken.None);
+
+        context.Blogs.Add(_fixture.Create<Blog>());
+        await context.SaveChangesAsync();
+        await cacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { nameof(Blog) },
+            CancellationToken.None);
+
+        var entitiesFromDb = await context.Blogs.ToListAsync();
+        var entitiesFromCache = await context.Blogs.ToCachedListAsync(new List<string> { nameof(Blog) });
+
+        // Then
+        entitiesFromDb.Should().HaveCount(3);
+        entitiesFromCache.Should().HaveCount(3);
+    }
+
+    [Theory]
+    [InlineData(typeof(MemoryCache))]
+    [InlineData(typeof(DistributedCache))]
+    public async Task ToCachedListAsync_Should_Update_Cache_List_Results_After_Expiration(Type cacheStore)
+    {
+        // Given
+        InitCacheManager(cacheStore);
+
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Blog>(2).ToList();
         context.Blogs.AddRange(entities);
@@ -182,7 +246,7 @@ public sealed class ExtensionsTest
         await context.Blogs.ToCachedListAsync();
 
         context.Blogs.Add(_fixture.Create<Blog>());
-        await context.ChangeTracker.ExpireEntitiesCacheAsync();
+        await context.ChangeTracker.ExpireEntitiesCacheAsync(CancellationToken.None);
         await context.SaveChangesAsync();
 
         var entitiesFromDb = await context.Blogs.ToListAsync();
@@ -193,41 +257,14 @@ public sealed class ExtensionsTest
         entitiesFromCache.Should().HaveCount(3);
     }
 
-    [Fact]
-    public async Task ToCachedListAsync_Should_Return_Data_From_Source_If_Set_Cache_Data_Throws_Error()
+    [Theory]
+    [InlineData(typeof(MemoryCache))]
+    [InlineData(typeof(DistributedCache))]
+    public async Task ToCachedListAsync_Should_Not_Check_Cache_If_Key_Is_Empty_With_Explicit_Tags(Type cacheStore)
     {
         // Given
-        var services = new ServiceCollection();
-        services.AddMemoryCache();
-        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
+        InitCacheManager(cacheStore, true);
 
-        var cacheMock = new Mock<ICache>();
-        var data = new List<Blog>();
-        data = null;
-
-        CacheManager.Cache = cacheMock.Object;
-        cacheMock.Setup(x => x.GetAsync<IEnumerable<Blog>>(It.IsAny<string>(), It.IsAny<bool>(), CancellationToken.None))
-            .ReturnsAsync(data);
-        cacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<object>(), true, It.IsAny<TimeSpan>(), CancellationToken.None))
-            .Throws(new Exception(""));
-
-        await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(2).ToList();
-        context.Blogs.AddRange(entities);
-        await context.SaveChangesAsync();
-
-        // When
-        await context.Blogs.ToCachedListAsync();
-
-        // Then
-        cacheMock.Verify(cache => cache.DeleteAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task ToCachedListAsync_Should_Not_Check_Cache_If_Key_Is_Empty_With_Explicit_Tags()
-    {
-        // Given
-        CacheManager.CacheKeyFactory = new EmptyKeyCacheFactory();
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Blog>(2).ToList();
         context.Blogs.AddRange(entities);
@@ -241,7 +278,7 @@ public sealed class ExtensionsTest
 
         context.Blogs.Add(_fixture.Create<Blog>());
 
-        await context.ChangeTracker.ExpireEntitiesCacheAsync();
+        await context.ChangeTracker.ExpireEntitiesCacheAsync(CancellationToken.None);
         await context.SaveChangesAsync();
 
         var entitiesFromDb = await context.Blogs.ToListAsync();
@@ -253,11 +290,16 @@ public sealed class ExtensionsTest
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task CachedFirstOrDefaultAsync_Should_Cache_Single_Result_With_Explicit_Tags(bool usePredicate)
+    [InlineData(typeof(MemoryCache), true)]
+    [InlineData(typeof(DistributedCache), true)]
+    [InlineData(typeof(MemoryCache), false)]
+    [InlineData(typeof(DistributedCache), false)]
+    public async Task CachedFirstOrDefaultAsync_Should_Cache_Single_Result_With_Explicit_Tags(Type cacheStore,
+        bool usePredicate)
     {
         // Given
+        InitCacheManager(cacheStore);
+
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Blog>(2).ToList();
         var firstEntityName = entities[0].Name;
@@ -289,11 +331,15 @@ public sealed class ExtensionsTest
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task CachedFirstOrDefaultAsync_Should_Cache_Single_Result(bool usePredicate)
+    [InlineData(typeof(MemoryCache), true)]
+    [InlineData(typeof(DistributedCache), true)]
+    [InlineData(typeof(MemoryCache), false)]
+    [InlineData(typeof(DistributedCache), false)]
+    public async Task CachedFirstOrDefaultAsync_Should_Cache_Single_Result(Type cacheStore, bool usePredicate)
     {
         // Given
+        InitCacheManager(cacheStore);
+
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Blog>(2).ToList();
         var firstEntityName = entities[0].Name;
@@ -333,16 +379,21 @@ public sealed class ExtensionsTest
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
+    [InlineData(typeof(MemoryCache), true)]
+    [InlineData(typeof(DistributedCache), true)]
+    [InlineData(typeof(MemoryCache), false)]
+    [InlineData(typeof(DistributedCache), false)]
     public async Task CachedFirstOrDefaultAsync_Should_Update_Cache_Single_Result_After_Expiration_With_Explicit_Tags(
-        bool usePredicate)
+        Type cacheStore, bool usePredicate)
     {
         // Given
+        InitCacheManager(cacheStore);
+
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Blog>(2).ToList();
         context.Blogs.AddRange(entities);
         await context.SaveChangesAsync();
+        var cacheManager = CacheManagerContainer.Resolve();
 
         // When
         if (usePredicate)
@@ -355,7 +406,8 @@ public sealed class ExtensionsTest
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
         await context.SaveChangesAsync();
-        await CacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { nameof(Blog) }, CancellationToken.None);
+        await cacheManager.CacheInvalidator.InvalidateCacheAsync(new List<string> { nameof(Blog) },
+            CancellationToken.None);
 
         var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
@@ -370,11 +422,16 @@ public sealed class ExtensionsTest
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task CachedFirstOrDefaultAsync_Should_Update_Cache_Single_Result_After_Expiration(bool usePredicate)
+    [InlineData(typeof(MemoryCache), true)]
+    [InlineData(typeof(DistributedCache), true)]
+    [InlineData(typeof(MemoryCache), false)]
+    [InlineData(typeof(DistributedCache), false)]
+    public async Task CachedFirstOrDefaultAsync_Should_Update_Cache_Single_Result_After_Expiration(Type cacheStore,
+        bool usePredicate)
     {
         // Given
+        InitCacheManager(cacheStore);
+
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Blog>(2).ToList();
         context.Blogs.AddRange(entities);
@@ -388,7 +445,7 @@ public sealed class ExtensionsTest
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
-        await context.ChangeTracker.ExpireEntitiesCacheAsync();
+        await context.ChangeTracker.ExpireEntitiesCacheAsync(CancellationToken.None);
         await context.SaveChangesAsync();
 
         var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
@@ -402,12 +459,16 @@ public sealed class ExtensionsTest
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task CachedFirstOrDefaultAsync_Should_Not_Check_Cache_If_Key_Is_Empty(bool usePredicate)
+    [InlineData(typeof(MemoryCache), true)]
+    [InlineData(typeof(DistributedCache), true)]
+    [InlineData(typeof(MemoryCache), false)]
+    [InlineData(typeof(DistributedCache), false)]
+    public async Task CachedFirstOrDefaultAsync_Should_Not_Check_Cache_If_Key_Is_Empty(Type cacheStore,
+        bool usePredicate)
     {
         // Given
-        CacheManager.CacheKeyFactory = new EmptyKeyCacheFactory();
+        InitCacheManager(cacheStore, true);
+
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Blog>(2).ToList();
         context.Blogs.AddRange(entities);
@@ -438,12 +499,16 @@ public sealed class ExtensionsTest
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task CachedFirstOrDefaultAsync_Should_Invalidate_Cache_After_Timespan(bool usePredicate)
+    [InlineData(typeof(MemoryCache), true)]
+    [InlineData(typeof(DistributedCache), true)]
+    [InlineData(typeof(MemoryCache), false)]
+    [InlineData(typeof(DistributedCache), false)]
+    public async Task CachedFirstOrDefaultAsync_Should_Invalidate_Cache_After_Timespan(Type cacheStore,
+        bool usePredicate)
     {
         // Given
-        CacheManager.CacheKeyFactory = new EmptyKeyCacheFactory();
+        InitCacheManager(cacheStore, true);
+
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Blog>(2).ToList();
         context.Blogs.AddRange(entities);
@@ -471,12 +536,86 @@ public sealed class ExtensionsTest
         entityFromDb?.Name.Should().Be("new name");
         entityFromCache?.Name.Should().Be("new name");
     }
+
+    private static IServiceCollection InitCacheManager(Type? cacheStoreType, bool initEmptyCacheKeyFactory = false)
+    {
+        var services = new ServiceCollection();
+        services.AddMemoryCache();
+        services.AddDistributedMemoryCache();
+        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
+
+        services.AddQueriesCaching(options =>
+        {
+            if (cacheStoreType == typeof(MemoryCache))
+                options.UseCacheStore<MemoryCache>();
+
+            if (cacheStoreType == typeof(DistributedCache))
+                options.UseCacheStore<DistributedCache>();
+
+            if (initEmptyCacheKeyFactory)
+                options.UseKeyFactory<EmptyKeyCacheFactory>();
+            else
+                options.UseEntityFramework();
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+        CacheManagerContainer.Initialize(serviceProvider);
+
+        return services;
+    }
+
+    private static Mock<IDistributedCache> ConfigureFailingDistributedCache(string method)
+    {
+        var cache = new Mock<IDistributedCache>();
+
+        switch (method)
+        {
+            case "Get":
+                cache.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ThrowsAsync(new Exception(""));
+                break;
+            case "Remove":
+                cache.Setup(x => x.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .ThrowsAsync(new Exception(""));
+                break;
+            case "Set":
+                cache.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<byte[]>(),
+                        It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()))
+                    .ThrowsAsync(new Exception(""));
+                break;
+        }
+
+        return cache;
+    }
+
+    private static Mock<IMemoryCache> ConfigureFailingMemoryCache(string method)
+    {
+        var cache = new Mock<IMemoryCache>();
+        object expectedValue;
+        switch (method)
+        {
+            case "Get":
+                cache.Setup(x => x.TryGetValue(It.IsAny<object>(), out expectedValue))
+                    .Throws(new Exception(""));
+                break;
+            case "Remove":
+                cache.Setup(x => x.Remove(It.IsAny<object>()))
+                    .Throws(new Exception(""));
+                break;
+            case "Set":
+                cache.Setup(x => x.CreateEntry(It.IsAny<object>()))
+                    .Throws(new Exception(""));
+                break;
+        }
+
+        return cache;
+    }
 }
 
 public class EmptyKeyCacheFactory : CacheKeyFactory
 {
     public override string GetCacheKey<T>(IQueryable<T> query, IEnumerable<string> tags) where T : class
     {
-        return "";
+        return string.Empty;
     }
 }

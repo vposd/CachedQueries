@@ -4,9 +4,9 @@ namespace CachedQueries.Core;
 
 public class DefaultCacheInvalidator : ICacheInvalidator
 {
-    private readonly ICache _cache;
+    private readonly ICacheStore _cache;
 
-    public DefaultCacheInvalidator(ICache cache)
+    public DefaultCacheInvalidator(ICacheStore cache)
     {
         _cache = cache;
     }
@@ -21,8 +21,8 @@ public class DefaultCacheInvalidator : ICacheInvalidator
         var tagsList = tags.ToList();
         var keysToRemove = new List<string>(tagsList);
 
-        var tagsToExpireTasks = tagsList.Distinct().Select(tag => CacheManager.CachePrefix + tag)
-            .Select(tagKey => _cache.GetAsync<List<string>>(tagKey, useLock: false, cancellationToken))
+        var tagsToExpireTasks = tagsList.Distinct()
+            .Select(tagKey => _cache.GetAsync<List<string>>(tagKey, false, cancellationToken))
             .ToList();
 
         await Task.WhenAll(tagsToExpireTasks);
@@ -32,7 +32,7 @@ public class DefaultCacheInvalidator : ICacheInvalidator
 
         var tasks = keysToRemove
             .Distinct()
-            .Select(item => _cache.DeleteAsync(item, useLock: false, cancellationToken));
+            .Select(item => _cache.DeleteAsync(item, false, cancellationToken));
 
         await Task.WhenAll(tasks);
     }
@@ -49,16 +49,16 @@ public class DefaultCacheInvalidator : ICacheInvalidator
         if (string.IsNullOrWhiteSpace(key))
             return;
 
-        var tagsToLink = tags.Distinct().Select(tag => CacheManager.CachePrefix + tag).ToList();
+        var tagsToLink = tags.Distinct().ToList();
 
         async Task LinkTagAsync(string tag)
         {
-            var list = await _cache.GetAsync<List<string>>(tag, useLock: false, cancellationToken) ?? new List<string>();
+            var list = await _cache.GetAsync<List<string>>(tag, false, cancellationToken) ?? new List<string>();
 
             if (!list.Contains(key))
                 list.Add(key);
 
-            await _cache.SetAsync(tag, list.Distinct(), useLock: false, expire: null, cancellationToken);
+            await _cache.SetAsync(tag, list.Distinct(), false, null, cancellationToken);
         }
 
         await Task.WhenAll(tagsToLink.Select(LinkTagAsync));
