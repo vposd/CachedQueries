@@ -9,12 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\CachedQueries.EntityFramework\CachedQueries.EntityFramework.csproj"/>
-        <ProjectReference Include="..\CachedQueries.Core\CachedQueries.Core.csproj"/>
+        <ProjectReference Include="..\CachedQueries.Core\CachedQueries.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.2.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.2.0" />
     </ItemGroup>
 
 </Project>

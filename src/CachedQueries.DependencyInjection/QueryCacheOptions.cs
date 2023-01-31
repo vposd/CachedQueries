@@ -1,7 +1,7 @@
 ﻿using CachedQueries.Core;
 using CachedQueries.Core.Interfaces;
-using CachedQueries.EntityFramework;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CachedQueries.DependencyInjection;
 
@@ -15,7 +15,7 @@ public class QueryCacheOptions
     public QueryCacheOptions(IServiceCollection services)
     {
         _services = services;
-        UseKeyFactory<CacheKeyFactory>();
+        //UseKeyFactory<CacheKeyFactory>();
         UseCacheStoreProvider<CacheStoreProvider>();
         UseCacheInvalidator<DefaultCacheInvalidator>();
         UseLockManager<DefaultLockManager>();
@@ -91,16 +91,6 @@ public class QueryCacheOptions
     public QueryCacheOptions UseKeyFactory<T>() where T : class, ICacheKeyFactory
     {
         _services.AddScoped<ICacheKeyFactory, T>();
-        return this;
-    }
-
-    /// <summary>
-    /// Use Entity Framework workflow
-    /// </summary>
-    /// <returns></returns>
-    public QueryCacheOptions UseEntityFramework()
-    {
-        UseKeyFactory<QueryCacheKeyFactory>();
         return this;
     }
 }

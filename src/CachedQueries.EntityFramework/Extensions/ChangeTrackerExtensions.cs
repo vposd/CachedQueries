@@ -1,4 +1,5 @@
 ﻿using CachedQueries.Core.Interfaces;
+using CachedQueries.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
@@ -15,11 +16,9 @@ public static class ChangeTrackerExtensions
     public static async Task<IEnumerable<Type>> ExpireEntitiesCacheAsync(this ChangeTracker changeTracker,
         CancellationToken cancellationToken)
     {
-        if (changeTracker.Context is not ICachedContext context)
-            return Enumerable.Empty<Type>();
-
+        var cacheManager = CacheManagerContainer.Resolve();
         var (types, tags) = changeTracker.GetAffectedReferences();
-        await context.CacheManager.CacheInvalidator.InvalidateCacheAsync(tags, cancellationToken);
+        await cacheManager.CacheInvalidator.InvalidateCacheAsync(tags, cancellationToken);
         return types.ToList();
 
     }

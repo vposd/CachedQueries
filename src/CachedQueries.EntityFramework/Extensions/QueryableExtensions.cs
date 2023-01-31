@@ -1,8 +1,8 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
-using CachedQueries.Core;
 using CachedQueries.Core.Enums;
 using CachedQueries.Core.Interfaces;
+using CachedQueries.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 
@@ -22,13 +22,9 @@ public static class QueryableExtensions
     public static async Task<List<T>> ToCachedListAsync<T>(this IQueryable<T> query,
         IReadOnlyCollection<string> tags,
         TimeSpan expire,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
-        var context = query.GetContext();
-        if (context is null)
-            return await query.ToListAsync(cancellationToken);
-
-        var cacheManager = context.CacheManager;
+        var cacheManager = CacheManagerContainer.Resolve();
         var key = cacheManager.CacheKeyFactory.GetCacheKey(query, tags);
         if (string.IsNullOrEmpty(key))
             return await query.ToListAsync(cancellationToken);
@@ -55,13 +51,10 @@ public static class QueryableExtensions
     /// <returns>List query results</returns>
     public static async Task<List<T>> ToCachedListAsync<T>(this IQueryable<T> query,
         IReadOnlyCollection<string> tags,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
-        var context = query.GetContext();
-        if (context is null)
-            return await query.ToListAsync(cancellationToken);
-
-        return await query.ToCachedListAsync(tags, context.CacheManager.CacheOptions.DefaultExpiration, cancellationToken);
+        var cacheManager = CacheManagerContainer.Resolve();
+        return await query.ToCachedListAsync(tags, cacheManager.CacheOptions.DefaultExpiration, cancellationToken);
     }
 
     /// <summary>
@@ -75,7 +68,7 @@ public static class QueryableExtensions
     /// <returns>List query results</returns>
     public static Task<List<T>> ToCachedListAsync<T>(this IQueryable<T> query,
         TimeSpan expire,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
         return query.ToCachedListAsync(tags, expire, cancellationToken);
@@ -90,14 +83,11 @@ public static class QueryableExtensions
     /// <typeparam name="T"></typeparam>
     /// <returns>List query results</returns>
     public static async Task<List<T>> ToCachedListAsync<T>(this IQueryable<T> query,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
-        var context = query.GetContext();
-        if (context is null)
-            return await query.ToListAsync(cancellationToken);
-
+        var cacheManager = CacheManagerContainer.Resolve();
         var tags = RetrieveInvalidationTagsFromQuery(query);
-        return await query.ToCachedListAsync(tags, context.CacheManager.CacheOptions.DefaultExpiration, cancellationToken);
+        return await query.ToCachedListAsync(tags, cacheManager.CacheOptions.DefaultExpiration, cancellationToken);
     }
 
     /// <summary>
@@ -112,13 +102,9 @@ public static class QueryableExtensions
     public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
         IReadOnlyCollection<string> tags,
         TimeSpan expire,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
-        var context = query.GetContext();
-        if (context is null)
-            return await query.FirstOrDefaultAsync(cancellationToken);
-
-        var cacheManager = context.CacheManager;
+        var cacheManager = CacheManagerContainer.Resolve();
         var key = cacheManager.CacheKeyFactory.GetCacheKey(query, tags);
         if (string.IsNullOrEmpty(key))
             return await query.FirstOrDefaultAsync(cancellationToken);
@@ -145,13 +131,10 @@ public static class QueryableExtensions
     /// <returns>FirstOrDefault query result</returns>
     public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
         IReadOnlyCollection<string> tags,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
-        var context = query.GetContext();
-        if (context is null)
-            return await query.FirstOrDefaultAsync(cancellationToken);
-
-        return await query.CachedFirstOrDefaultAsync(tags, context.CacheManager.CacheOptions.DefaultExpiration, cancellationToken);
+        var cacheManager = CacheManagerContainer.Resolve();
+        return await query.CachedFirstOrDefaultAsync(tags, cacheManager.CacheOptions.DefaultExpiration, cancellationToken);
     }
 
     /// <summary>
@@ -168,13 +151,9 @@ public static class QueryableExtensions
         Expression<Func<T, bool>> predicate,
         IReadOnlyCollection<string> tags,
         TimeSpan expire,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
-        var context = query.GetContext();
-        if (context is null)
-            return await query.FirstOrDefaultAsync(cancellationToken);
-
-        var cacheManager = context.CacheManager;
+        var cacheManager = CacheManagerContainer.Resolve();
         query = query.Where(predicate);
         var key = cacheManager.CacheKeyFactory.GetCacheKey(query, tags);
         if (string.IsNullOrEmpty(key))
@@ -203,7 +182,7 @@ public static class QueryableExtensions
     /// <returns>FirstOrDefault query result</returns>
     public static Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
         TimeSpan expire,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
         return query.CachedFirstOrDefaultAsync(tags, expire, cancellationToken);
@@ -218,14 +197,11 @@ public static class QueryableExtensions
     /// <typeparam name="T"></typeparam>
     /// <returns>FirstOrDefault query result</returns>
     public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
-        var context = query.GetContext();
-        if (context is null)
-            return await query.FirstOrDefaultAsync(cancellationToken);
-
+        var cacheManager = CacheManagerContainer.Resolve();
         var tags = RetrieveInvalidationTagsFromQuery(query);
-        return await query.CachedFirstOrDefaultAsync(tags, context.CacheManager.CacheOptions.DefaultExpiration, cancellationToken);
+        return await query.CachedFirstOrDefaultAsync(tags, cacheManager.CacheOptions.DefaultExpiration, cancellationToken);
     }
 
     /// <summary>
@@ -241,7 +217,7 @@ public static class QueryableExtensions
     public static Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
         Expression<Func<T, bool>> predicate,
         TimeSpan expire,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
         var tags = RetrieveInvalidationTagsFromQuery(query);
         return query.CachedFirstOrDefaultAsync(predicate, tags, expire, cancellationToken);
@@ -260,13 +236,10 @@ public static class QueryableExtensions
     public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
         Expression<Func<T, bool>> predicate,
         IReadOnlyCollection<string> tags,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
-        var context = query.GetContext();
-        if (context is null)
-            return await query.FirstOrDefaultAsync(cancellationToken);
-
-        return await query.CachedFirstOrDefaultAsync(predicate, tags, context.CacheManager.CacheOptions.DefaultExpiration, cancellationToken);
+        var cacheManager = CacheManagerContainer.Resolve();
+        return await query.CachedFirstOrDefaultAsync(predicate, tags, cacheManager.CacheOptions.DefaultExpiration, cancellationToken);
     }
 
     /// <summary>
@@ -280,14 +253,11 @@ public static class QueryableExtensions
     /// <returns>FirstOrDefault query result</returns>
     public static async Task<T?> CachedFirstOrDefaultAsync<T>(this IQueryable<T> query,
         Expression<Func<T, bool>> predicate,
-        CancellationToken cancellationToken) where T : class
+        CancellationToken cancellationToken = default) where T : class
     {
-        var context = query.GetContext();
-        if (context is null)
-            return await query.FirstOrDefaultAsync(cancellationToken);
-
+        var cacheManager = CacheManagerContainer.Resolve();
         var tags = RetrieveInvalidationTagsFromQuery(query);
-        return await query.CachedFirstOrDefaultAsync(predicate, tags, context.CacheManager.CacheOptions.DefaultExpiration, cancellationToken);
+        return await query.CachedFirstOrDefaultAsync(predicate, tags, cacheManager.CacheOptions.DefaultExpiration, cancellationToken);
     }
 
     private static List<string> RetrieveInvalidationTagsFromQuery(IQueryable query)
@@ -299,24 +269,5 @@ public static class QueryableExtensions
             .Cast<string>()
             .ToList();
         return tags;
-    }
-
-    private static ICachedContext? GetContext<T>(this IQueryable<T> query) where T : class
-    {
-        if (query is not EntityQueryable<T> entityQuery)
-            return null;
-
-        var provider = entityQuery.Provider;
-
-        var cf= provider
-            .GetType()
-            .GetField("_queryCompiler", BindingFlags.NonPublic | BindingFlags.Instance)?
-            .GetValue(provider);
-
-        if (cf is null)
-        {
-            return null;
-        }
-        return null;
     }
 }

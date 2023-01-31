@@ -10,6 +10,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\CachedQueries.Core\CachedQueries.Core.csproj" />
+        <ProjectReference Include="..\CachedQueries.DependencyInjection\CachedQueries.DependencyInjection.csproj" />
     </ItemGroup>
 
     <ItemGroup>
