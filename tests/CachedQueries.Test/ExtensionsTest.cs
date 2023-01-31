@@ -8,7 +8,7 @@ using CachedQueries.Core;
 using CachedQueries.Core.Cache;
 using CachedQueries.DependencyInjection;
 using CachedQueries.EntityFramework.Extensions;
-using CachedQueries.EntityFramework.Tests.Data;
+using CachedQueries.Test.Data;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
@@ -20,7 +20,7 @@ using Moq;
 using Xunit;
 using MemoryCache = CachedQueries.Core.Cache.MemoryCache;
 
-namespace CachedQueries.EntityFramework.Tests;
+namespace CachedQueries.Test;
 
 public sealed class ExtensionsTest
 {
