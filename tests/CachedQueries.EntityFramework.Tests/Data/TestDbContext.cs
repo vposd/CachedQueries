@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using CachedQueries.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace CachedQueries.EntityFramework.Tests.Data;

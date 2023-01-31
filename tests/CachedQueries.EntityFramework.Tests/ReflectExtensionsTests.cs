@@ -2,12 +2,11 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoFixture;
-using CachedQueries.Core;
+using CachedQueries.DependencyInjection;
 using CachedQueries.EntityFramework.Extensions;
 using CachedQueries.EntityFramework.Tests.Data;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -40,13 +39,10 @@ public sealed class ReflectExtensionsTest
 
         services.AddMemoryCache();
         services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
-
-        var serviceProvider = services.BuildServiceProvider();
-        var memoryCache = serviceProvider.GetService<IMemoryCache>();
-        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-
-        CacheManager.Cache = new MemoryCache(memoryCache!, loggerFactory);
-        CacheManager.CacheKeyFactory = new QueryCacheKeyFactory();
+        services.AddQueriesCaching(options => options
+            .UseCacheStore<MemoryCache>()
+            .UseEntityFramework()
+        );
     }
 
     [Fact]

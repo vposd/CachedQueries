@@ -9,9 +9,11 @@ namespace CachedQueries.Core.Cache;
 /// <summary>
 ///     Cache service using IDistributedCache implementation.
 /// </summary>
-public class DistributedCache : ICache
+public class DistributedCache : ICacheStore
 {
     private readonly IDistributedCache _cache;
+    private readonly ILockManager _lockManager;
+    private readonly CacheOptions _options;
     private readonly ILogger<DistributedCache> _logger;
 
     private readonly JsonSerializerOptions _settings = new()
@@ -19,33 +21,43 @@ public class DistributedCache : ICache
         ReferenceHandler = ReferenceHandler.Preserve
     };
 
-    public DistributedCache(IDistributedCache cache, ILoggerFactory loggerFactory)
+    public DistributedCache(IDistributedCache cache, ILoggerFactory loggerFactory, ILockManager lockManager,
+        CacheOptions options)
     {
         _cache = cache;
+        _lockManager = lockManager;
+        _options = options;
         _logger = loggerFactory.CreateLogger<DistributedCache>();
     }
 
     public async Task DeleteAsync(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
-        await _cache.RemoveAsync(key, cancellationToken);
+        try
+        {
+            await _cache.RemoveAsync(key, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            Log(LogLevel.Error, "Error delete cached data: @{Message}", exception.Message);
+        }
     }
 
     public async Task<T?> GetAsync<T>(string key, bool useLock = true, CancellationToken cancellationToken = default)
     {
-        if (useLock)
-            await CacheManager.LockManager.CheckLockAsync(key, cancellationToken);
-
-        var cachedResponse = await _cache.GetStringAsync(key, cancellationToken);
-
         try
         {
+            if (useLock)
+                await _lockManager.CheckLockAsync(key, cancellationToken);
+
+            var cachedResponse = await _cache.GetAsync(key, cancellationToken);
+
             return cachedResponse is not null
                 ? JsonSerializer.Deserialize<T>(cachedResponse, _settings)
                 : default;
         }
         catch (Exception exception)
         {
-            _logger.LogError("Error loading cached data: @{Message}", exception.Message);
+            Log(LogLevel.Error, "Error loading cached data: @{Message}", exception.Message);
             return default;
         }
     }
@@ -53,19 +65,26 @@ public class DistributedCache : ICache
     public async Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null,
         CancellationToken cancellationToken = default)
     {
-        var response = JsonSerializer.Serialize(value, _settings);
+        try
+        {
+            var response = JsonSerializer.SerializeToUtf8Bytes(value, _settings);
 
-        if (useLock)
-            await CacheManager.LockManager.LockAsync(key, CacheManager.LockTimeout);
+            if (useLock)
+                await _lockManager.LockAsync(key, _options.LockTimeout);
 
-        await _cache.SetStringAsync(
-            key,
-            response,
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expire },
-            cancellationToken);
+            await _cache.SetAsync(
+                key,
+                response,
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expire },
+                cancellationToken);
 
-        if (useLock)
-            await CacheManager.LockManager.ReleaseLockAsync(key);
+            if (useLock)
+                await _lockManager.ReleaseLockAsync(key);
+        }
+        catch (Exception exception)
+        {
+            Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
+        }
     }
 
     public void Log(LogLevel logLevel, string? message, params object?[] args)
