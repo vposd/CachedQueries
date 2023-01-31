@@ -6,9 +6,10 @@ namespace CachedQueries.Core;
 ///     Cache manager
 ///     Contains ICache, ICacheKeyFactory implementation and responsible for link/unlink invalidation tags.
 /// </summary>
-public class CacheManager: ICacheManager
+public class CacheManager : ICacheManager
 {
-    public CacheManager(ILockManager lockManager, ICacheStoreProvider cacheStoreProvider, ICacheInvalidator cacheInvalidator, ICacheKeyFactory cacheKeyFactory, CacheOptions options)
+    public CacheManager(ILockManager lockManager, ICacheStoreProvider cacheStoreProvider,
+        ICacheInvalidator cacheInvalidator, ICacheKeyFactory cacheKeyFactory, CacheOptions options)
     {
         LockManager = lockManager;
         CacheStoreProvider = cacheStoreProvider;

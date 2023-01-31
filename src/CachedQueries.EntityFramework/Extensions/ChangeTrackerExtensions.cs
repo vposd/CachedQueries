@@ -20,7 +20,6 @@ public static class ChangeTrackerExtensions
         var (types, tags) = changeTracker.GetAffectedReferences();
         await cacheManager.CacheInvalidator.InvalidateCacheAsync(tags, cancellationToken);
         return types.ToList();
-
     }
 
     /// <summary>
@@ -28,7 +27,8 @@ public static class ChangeTrackerExtensions
     /// </summary>
     /// <param name="changeTracker"></param>
     /// <returns>Affected types and invalidation tags</returns>
-    public static (IEnumerable<Type> Types, IEnumerable<string> Tags) GetAffectedReferences(this ChangeTracker changeTracker)
+    public static (IEnumerable<Type> Types, IEnumerable<string> Tags) GetAffectedReferences(
+        this ChangeTracker changeTracker)
     {
         var affectedTypes = changeTracker.Entries()
             .Where(e =>

@@ -1,6 +1,7 @@
 ﻿namespace CachedQueries.Core.Interfaces;
 
-public interface ICacheManager {
+public interface ICacheManager
+{
     ILockManager LockManager { get; }
     ICacheStoreProvider CacheStoreProvider { get; }
     ICacheInvalidator CacheInvalidator { get; }

@@ -15,7 +15,7 @@ public class QueryCacheOptions
     public QueryCacheOptions(IServiceCollection services)
     {
         _services = services;
-        //UseKeyFactory<CacheKeyFactory>();
+        UseKeyFactory<CacheKeyFactory>();
         UseCacheStoreProvider<CacheStoreProvider>();
         UseCacheInvalidator<DefaultCacheInvalidator>();
         UseLockManager<DefaultLockManager>();

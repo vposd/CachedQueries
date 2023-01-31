@@ -9,12 +9,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\CachedQueries.Core\CachedQueries.Core.csproj" />
-        <ProjectReference Include="..\CachedQueries.DependencyInjection\CachedQueries.DependencyInjection.csproj" />
+        <ProjectReference Include="..\CachedQueries.Core\CachedQueries.Core.csproj"/>
+        <ProjectReference Include="..\CachedQueries.DependencyInjection\CachedQueries.DependencyInjection.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.0"/>
     </ItemGroup>
 
 </Project>

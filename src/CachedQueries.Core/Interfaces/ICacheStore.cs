@@ -27,7 +27,8 @@ public interface ICacheStore
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T">TEntity type</typeparam>
     /// <returns></returns>
-    Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null, CancellationToken cancellationToken = default);
+    Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Remove item from cache

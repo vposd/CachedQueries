@@ -30,12 +30,12 @@ public static class QueryableExtensions
             return await query.ToListAsync(cancellationToken);
 
         var cacheStore = cacheManager.CacheStoreProvider.GetCacheStore(key, tags, CacheContentType.Collection);
-        var cached = await cacheStore.GetAsync<IEnumerable<T>>(key, useLock: true, cancellationToken);
+        var cached = await cacheStore.GetAsync<IEnumerable<T>>(key, true, cancellationToken);
         if (cached is not null)
             return cached.ToList();
 
         var value = await query.ToListAsync(cancellationToken);
-        await cacheStore.SetAsync(key, value, useLock: true, expire, cancellationToken);
+        await cacheStore.SetAsync(key, value, true, expire, cancellationToken);
         await cacheManager.CacheInvalidator.LinkTagsAsync(key, tags, cancellationToken);
 
         return value;
@@ -70,7 +70,7 @@ public static class QueryableExtensions
         TimeSpan expire,
         CancellationToken cancellationToken = default) where T : class
     {
-        var tags = RetrieveInvalidationTagsFromQuery(query);
+        var tags = RetrieveRawInvalidationTagsFromQuery(query);
         return query.ToCachedListAsync(tags, expire, cancellationToken);
     }
 
@@ -86,7 +86,7 @@ public static class QueryableExtensions
         CancellationToken cancellationToken = default) where T : class
     {
         var cacheManager = CacheManagerContainer.Resolve();
-        var tags = RetrieveInvalidationTagsFromQuery(query);
+        var tags = RetrieveRawInvalidationTagsFromQuery(query);
         return await query.ToCachedListAsync(tags, cacheManager.CacheOptions.DefaultExpiration, cancellationToken);
     }
 
@@ -110,12 +110,12 @@ public static class QueryableExtensions
             return await query.FirstOrDefaultAsync(cancellationToken);
 
         var cacheStore = cacheManager.CacheStoreProvider.GetCacheStore(key, tags, CacheContentType.Object);
-        var cached = await cacheStore.GetAsync<T>(key, useLock: true, cancellationToken);
+        var cached = await cacheStore.GetAsync<T>(key, true, cancellationToken);
         if (cached is not null)
             return cached;
 
         var value = await query.FirstOrDefaultAsync(cancellationToken);
-        await cacheStore.SetAsync(key, value, useLock: true, expire, cancellationToken);
+        await cacheStore.SetAsync(key, value, true, expire, cancellationToken);
         await cacheManager.CacheInvalidator.LinkTagsAsync(key, tags, cancellationToken);
 
         return value;
@@ -134,7 +134,8 @@ public static class QueryableExtensions
         CancellationToken cancellationToken = default) where T : class
     {
         var cacheManager = CacheManagerContainer.Resolve();
-        return await query.CachedFirstOrDefaultAsync(tags, cacheManager.CacheOptions.DefaultExpiration, cancellationToken);
+        return await query.CachedFirstOrDefaultAsync(tags, cacheManager.CacheOptions.DefaultExpiration,
+            cancellationToken);
     }
 
     /// <summary>
@@ -160,12 +161,12 @@ public static class QueryableExtensions
             return await query.FirstOrDefaultAsync(cancellationToken);
 
         var cacheStore = cacheManager.CacheStoreProvider.GetCacheStore(key, tags, CacheContentType.Object);
-        var cached = await cacheStore.GetAsync<T>(key, useLock: true, cancellationToken);
+        var cached = await cacheStore.GetAsync<T>(key, true, cancellationToken);
         if (cached is not null)
             return cached;
 
         var value = await query.FirstOrDefaultAsync(cancellationToken);
-        await cacheStore.SetAsync(key, value, useLock: true, expire, cancellationToken);
+        await cacheStore.SetAsync(key, value, true, expire, cancellationToken);
         await cacheManager.CacheInvalidator.LinkTagsAsync(key, tags, cancellationToken);
 
         return value;
@@ -184,7 +185,7 @@ public static class QueryableExtensions
         TimeSpan expire,
         CancellationToken cancellationToken = default) where T : class
     {
-        var tags = RetrieveInvalidationTagsFromQuery(query);
+        var tags = RetrieveRawInvalidationTagsFromQuery(query);
         return query.CachedFirstOrDefaultAsync(tags, expire, cancellationToken);
     }
 
@@ -200,8 +201,9 @@ public static class QueryableExtensions
         CancellationToken cancellationToken = default) where T : class
     {
         var cacheManager = CacheManagerContainer.Resolve();
-        var tags = RetrieveInvalidationTagsFromQuery(query);
-        return await query.CachedFirstOrDefaultAsync(tags, cacheManager.CacheOptions.DefaultExpiration, cancellationToken);
+        var tags = RetrieveRawInvalidationTagsFromQuery(query);
+        return await query.CachedFirstOrDefaultAsync(tags, cacheManager.CacheOptions.DefaultExpiration,
+            cancellationToken);
     }
 
     /// <summary>
@@ -219,7 +221,7 @@ public static class QueryableExtensions
         TimeSpan expire,
         CancellationToken cancellationToken = default) where T : class
     {
-        var tags = RetrieveInvalidationTagsFromQuery(query);
+        var tags = RetrieveRawInvalidationTagsFromQuery(query);
         return query.CachedFirstOrDefaultAsync(predicate, tags, expire, cancellationToken);
     }
 
@@ -239,7 +241,8 @@ public static class QueryableExtensions
         CancellationToken cancellationToken = default) where T : class
     {
         var cacheManager = CacheManagerContainer.Resolve();
-        return await query.CachedFirstOrDefaultAsync(predicate, tags, cacheManager.CacheOptions.DefaultExpiration, cancellationToken);
+        return await query.CachedFirstOrDefaultAsync(predicate, tags, cacheManager.CacheOptions.DefaultExpiration,
+            cancellationToken);
     }
 
     /// <summary>
@@ -256,11 +259,12 @@ public static class QueryableExtensions
         CancellationToken cancellationToken = default) where T : class
     {
         var cacheManager = CacheManagerContainer.Resolve();
-        var tags = RetrieveInvalidationTagsFromQuery(query);
-        return await query.CachedFirstOrDefaultAsync(predicate, tags, cacheManager.CacheOptions.DefaultExpiration, cancellationToken);
+        var tags = RetrieveRawInvalidationTagsFromQuery(query);
+        return await query.CachedFirstOrDefaultAsync(predicate, tags, cacheManager.CacheOptions.DefaultExpiration,
+            cancellationToken);
     }
 
-    private static List<string> RetrieveInvalidationTagsFromQuery(IQueryable query)
+    private static List<string> RetrieveRawInvalidationTagsFromQuery(IQueryable query)
     {
         var includedTypes = query.GetIncludeTypes();
         var tags = includedTypes
