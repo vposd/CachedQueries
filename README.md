@@ -9,9 +9,6 @@
 
 A library provides IQueryable results caching with smart invalidation.
 
-## Motivation
-Using query caching with query extensions gives the ability to use EF dbSet as a true repository.
-
 For example:
 ```c#
     await context.Customers
@@ -23,7 +20,6 @@ For example:
         .CachedFirstOrDefaultAsync(cancellationToken);
 ```
 `Query` and `FindById` extensions could contain filters, include related entities, etc.
-
 Using these queries in different places still returns cached results until the Customer entity will be modified.
 
 ## Setup

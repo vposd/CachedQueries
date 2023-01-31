@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using AutoFixture;
 using CachedQueries.Core;
 using CachedQueries.Core.Cache;
-using CachedQueries.Core.Interfaces;
 using CachedQueries.DependencyInjection;
 using CachedQueries.EntityFramework.Extensions;
 using CachedQueries.EntityFramework.Tests.Data;
@@ -229,7 +228,6 @@ public sealed class ExtensionsTest
         entitiesFromDb.Should().HaveCount(3);
         entitiesFromCache.Should().HaveCount(3);
     }
-
 
     [Theory]
     [InlineData(typeof(MemoryCache))]
@@ -538,7 +536,6 @@ public sealed class ExtensionsTest
         entityFromDb?.Name.Should().Be("new name");
         entityFromCache?.Name.Should().Be("new name");
     }
-
 
     private static IServiceCollection InitCacheManager(Type? cacheStoreType, bool initEmptyCacheKeyFactory = false)
     {
