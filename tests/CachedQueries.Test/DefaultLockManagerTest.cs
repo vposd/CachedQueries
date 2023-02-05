@@ -56,6 +56,7 @@ namespace CachedQueries.Test;
         var releaseTask = _lockManager.ReleaseLockAsync("key");
         var completedReleaseTask = await Task.WhenAny(releaseTask, timeoutTask);
 
+        // Then
         timeoutTask.Should().BeEquivalentTo(completedTask);
         releaseTask.Should().BeEquivalentTo(completedReleaseTask);
     }
