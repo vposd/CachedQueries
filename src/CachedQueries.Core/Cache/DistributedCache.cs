@@ -70,7 +70,7 @@ public class DistributedCache : ICacheStore
             var response = JsonSerializer.SerializeToUtf8Bytes(value, _settings);
 
             if (useLock)
-                await _lockManager.LockAsync(key, _options.LockTimeout);
+                await _lockManager.LockAsync(key, _options.LockTimeout, cancellationToken);
 
             await _cache.SetAsync(
                 key,
@@ -83,6 +83,9 @@ public class DistributedCache : ICacheStore
         }
         catch (Exception exception)
         {
+            if (useLock)
+                await _lockManager.ReleaseLockAsync(key);
+
             Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
         }
     }
