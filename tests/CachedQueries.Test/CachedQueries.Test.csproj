@@ -36,7 +36,8 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\CachedQueries.Core\CachedQueries.Core.csproj" />
-        <ProjectReference Include="..\..\src\CachedQueries.EntityFramework\CachedQueries.EntityFramework.csproj" />
+        <ProjectReference
+            Include="..\..\src\CachedQueries.EntityFramework\CachedQueries.EntityFramework.csproj" />
     </ItemGroup>
 
 </Project>
