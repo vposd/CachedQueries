@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using CachedQueries.Core;
 using FluentAssertions;
 using Xunit;
 
-namespace CachedQueries.Core.Tests;
+namespace CachedQueries.Test;
 
     public class DefaultLockManagerTests
     {

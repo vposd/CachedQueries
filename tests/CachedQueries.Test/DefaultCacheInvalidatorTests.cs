@@ -1,15 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoFixture;
+using CachedQueries.Core;
 using CachedQueries.Core.Interfaces;
 using FluentAssertions;
 using Moq;
 using Xunit;
 
-namespace CachedQueries.Core.Tests;
+namespace CachedQueries.Test;
 
 public class DefaultCacheInvalidatorTests
 {

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using AutoFixture;
 using CachedQueries.DependencyInjection;
 using CachedQueries.EntityFramework.Extensions;
-using CachedQueries.EntityFramework.Tests.Data;
+using CachedQueries.Test.Data;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +14,7 @@ using Moq;
 using Xunit;
 using MemoryCache = CachedQueries.Core.Cache.MemoryCache;
 
-namespace CachedQueries.EntityFramework.Tests;
+namespace CachedQueries.Test;
 
 public sealed class ReflectExtensionsTest
 {
