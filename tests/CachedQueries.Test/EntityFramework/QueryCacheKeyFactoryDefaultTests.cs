@@ -6,7 +6,7 @@ using CachedQueries.Test.Data;
 using FluentAssertions;
 using Xunit;
 
-namespace CachedQueries.Test;
+namespace CachedQueries.Test.EntityFramework;
 
 public class QueryCacheKeyFactoryDefaultTests
 {

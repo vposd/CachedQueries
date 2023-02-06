@@ -13,8 +13,8 @@ public class DistributedCache : ICacheStore
 {
     private readonly IDistributedCache _cache;
     private readonly ILockManager _lockManager;
-    private readonly CacheOptions _options;
     private readonly ILogger<DistributedCache> _logger;
+    private readonly CacheOptions _options;
 
     private readonly JsonSerializerOptions _settings = new()
     {
@@ -77,16 +77,15 @@ public class DistributedCache : ICacheStore
                 response,
                 new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expire },
                 cancellationToken);
-
-            if (useLock)
-                await _lockManager.ReleaseLockAsync(key);
         }
         catch (Exception exception)
         {
+            Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
+        }
+        finally
+        {
             if (useLock)
                 await _lockManager.ReleaseLockAsync(key);
-
-            Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
         }
     }
 

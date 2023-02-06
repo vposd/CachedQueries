@@ -62,16 +62,15 @@ public class MemoryCache : ICacheStore
                 await _lockManager.LockAsync(key, _options.LockTimeout, cancellationToken);
 
             _cache.Set(key, serialized, new MemoryCacheEntryOptions { SlidingExpiration = expire });
-
-            if (useLock)
-                await _lockManager.ReleaseLockAsync(key);
         }
         catch (Exception exception)
         {
+            Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
+        }
+        finally
+        {
             if (useLock)
                 await _lockManager.ReleaseLockAsync(key);
-
-            Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
         }
     }
 

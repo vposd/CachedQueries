@@ -5,10 +5,10 @@ using CachedQueries.Core;
 using FluentAssertions;
 using Xunit;
 
-namespace CachedQueries.Test;
+namespace CachedQueries.Test.Core;
 
-    public class DefaultLockManagerTests
-    {
+public class DefaultLockManagerTests
+{
     private readonly DefaultLockManager _lockManager = new();
 
     [Fact]

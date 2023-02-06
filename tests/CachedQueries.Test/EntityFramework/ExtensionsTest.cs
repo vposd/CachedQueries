@@ -20,7 +20,7 @@ using Moq;
 using Xunit;
 using MemoryCache = CachedQueries.Core.Cache.MemoryCache;
 
-namespace CachedQueries.Test;
+namespace CachedQueries.Test.EntityFramework;
 
 public sealed class ExtensionsTest
 {

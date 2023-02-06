@@ -1,10 +1,7 @@
 ﻿using System.Linq.Expressions;
-using System.Reflection;
 using CachedQueries.Core.Enums;
-using CachedQueries.Core.Interfaces;
 using CachedQueries.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 
 namespace CachedQueries.EntityFramework.Extensions;
 

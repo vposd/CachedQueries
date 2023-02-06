@@ -8,7 +8,7 @@ using FluentAssertions;
 using Moq;
 using Xunit;
 
-namespace CachedQueries.Test;
+namespace CachedQueries.Test.Core;
 
 public class DefaultCacheInvalidatorTests
 {

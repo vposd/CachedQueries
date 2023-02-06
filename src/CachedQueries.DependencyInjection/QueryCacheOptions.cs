@@ -1,96 +1,96 @@
 ﻿using CachedQueries.Core;
 using CachedQueries.Core.Interfaces;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CachedQueries.DependencyInjection;
 
 /// <summary>
-/// Cache options
+///     Cache options
 /// </summary>
 public class QueryCacheOptions
 {
-    private readonly IServiceCollection _services;
-
-    public QueryCacheOptions(IServiceCollection services)
+    public readonly Dictionary<Type, Type> ServicesMap  = new();
+    public CacheOptions Options { get; internal set; } = new ()
     {
-        _services = services;
-        UseKeyFactory<CacheKeyFactory>();
-        UseCacheStoreProvider<CacheStoreProvider>();
-        UseCacheInvalidator<DefaultCacheInvalidator>();
-        UseLockManager<DefaultLockManager>();
-        UseCacheOptions(new CacheOptions
-        {
-            DefaultExpiration = TimeSpan.FromHours(8),
-            LockTimeout = TimeSpan.FromSeconds(5)
-        });
+        DefaultExpiration = TimeSpan.FromHours(8),
+        LockTimeout = TimeSpan.FromSeconds(5)
+    };
+
+    public QueryCacheOptions()
+    {
+        Set(typeof(ICacheKeyFactory), typeof(CacheKeyFactory));
+        Set(typeof(ICacheStoreProvider), typeof(CacheStoreProvider));
+        Set(typeof(ICacheInvalidator), typeof(DefaultCacheInvalidator));
+        Set(typeof(ILockManager), typeof(DefaultLockManager));
     }
 
     /// <summary>
-    /// Setup a cache store provider
+    ///     Setup a cache options
     /// </summary>
-    /// <typeparam name="T"></typeparam>
     /// <returns></returns>
     public QueryCacheOptions UseCacheOptions(CacheOptions options)
     {
-        _services.AddSingleton(options);
+        Options = options;
         return this;
     }
 
     /// <summary>
-    /// Setup a cache store
+    ///     Setup a cache store
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
     public QueryCacheOptions UseCacheStore<T>() where T : class, ICacheStore
     {
-        _services.AddScoped<ICacheStore, T>();
-
+        Set(typeof(ICacheStore), typeof(T));
         return this;
     }
 
     /// <summary>
-    /// Setup a cache store provider
+    ///     Setup a cache store provider
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
     public QueryCacheOptions UseCacheStoreProvider<T>() where T : class, ICacheStoreProvider
     {
-        _services.AddScoped<ICacheStoreProvider, T>();
-
+        Set(typeof(ICacheStoreProvider), typeof(T));
         return this;
     }
 
     /// <summary>
-    /// Setup a cache invalidator
+    ///     Setup a cache invalidator
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
     public QueryCacheOptions UseCacheInvalidator<T>() where T : class, ICacheInvalidator
     {
-        _services.AddScoped<ICacheInvalidator, T>();
+        Set(typeof(ICacheInvalidator), typeof(T));
         return this;
     }
 
     /// <summary>
-    /// Setup a cache invalidator
+    ///     Setup a cache invalidator
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
     public QueryCacheOptions UseLockManager<T>() where T : class, ILockManager
     {
-        _services.AddScoped<ILockManager, T>();
+        Set(typeof(ILockManager), typeof(T));
         return this;
     }
 
     /// <summary>
-    /// Setup a cache invalidator
+    ///     Setup a cache invalidator
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
     public QueryCacheOptions UseKeyFactory<T>() where T : class, ICacheKeyFactory
     {
-        _services.AddScoped<ICacheKeyFactory, T>();
+        Set(typeof(ICacheKeyFactory), typeof(T));
         return this;
+    }
+
+    private void Set(Type key, Type value)
+    {
+        ServicesMap.Remove(key);
+        ServicesMap.Add(key, value);
     }
 }

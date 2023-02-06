@@ -12,7 +12,7 @@ public class DefaultCacheInvalidator : ICacheInvalidator
     }
 
     /// <summary>
-    /// Async remove all cache entries linked to provided invalidation tags
+    ///     Async remove all cache entries linked to provided invalidation tags
     /// </summary>
     /// <param name="tags">Invalidation tags</param>
     /// <param name="cancellationToken"></param>
