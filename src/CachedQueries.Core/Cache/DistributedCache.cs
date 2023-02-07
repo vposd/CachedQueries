@@ -77,15 +77,16 @@ public class DistributedCache : ICacheStore
                 response,
                 new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expire },
                 cancellationToken);
+
+            if (useLock)
+                await _lockManager.ReleaseLockAsync(key);
         }
         catch (Exception exception)
         {
-            Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
-        }
-        finally
-        {
             if (useLock)
                 await _lockManager.ReleaseLockAsync(key);
+
+            Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
         }
     }
 
