@@ -9,6 +9,8 @@
 
 A library provides IQueryable results caching with smart invalidation.
 
+The main goal is to bring caching to ef queries with flexible invalidation without any abstraction over DbSet.
+
 For example:
 ```c#
     await context.Customers
@@ -35,6 +37,7 @@ services.AddQueriesCaching(options =>
 // app is IApplicationBuilder
 app.UseQueriesCaching();
 ```
+Options also allows to define own implementations of cache key factory, lock manager, cache options, cache invalidator.
 
 ## Usage
 

@@ -5,9 +5,10 @@
     <version>1.0.0</version>
     <authors>Valerii Pozdnyakov</authors>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <readme>docs\README.md</readme>
     <license type="expression">MIT</license>
     <projectUrl>https://github.com/vposd/CachedQueries</projectUrl>
-    <description>CacheableQueries is a query cache extension library for Entity Framework Core. The
+    <description>CachedQueries is a query cache extension library for Entity Framework Core. The
       main goal is to bring caching to ef queries with flexible invalidation without any abstraction
       over DbSet.</description>
     <copyright>Copyright Valerii Pozdnyakov 2023</copyright>
