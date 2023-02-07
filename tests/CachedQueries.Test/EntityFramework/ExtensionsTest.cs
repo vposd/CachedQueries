@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoFixture;
 using CachedQueries.Core;
 using CachedQueries.Core.Cache;
+using CachedQueries.Core.Interfaces;
 using CachedQueries.DependencyInjection;
 using CachedQueries.EntityFramework.Extensions;
 using CachedQueries.Test.Data;
@@ -20,7 +21,7 @@ using Moq;
 using Xunit;
 using MemoryCache = CachedQueries.Core.Cache.MemoryCache;
 
-namespace CachedQueries.Test;
+namespace CachedQueries.Test.EntityFramework;
 
 public sealed class ExtensionsTest
 {

@@ -59,7 +59,7 @@ public class MemoryCache : ICacheStore
             var serialized = JsonSerializer.Serialize(value, _settings);
 
             if (useLock)
-                await _lockManager.LockAsync(key, _options.LockTimeout);
+                await _lockManager.LockAsync(key, _options.LockTimeout, cancellationToken);
 
             _cache.Set(key, serialized, new MemoryCacheEntryOptions { SlidingExpiration = expire });
 
@@ -68,6 +68,9 @@ public class MemoryCache : ICacheStore
         }
         catch (Exception exception)
         {
+            if (useLock)
+                await _lockManager.ReleaseLockAsync(key);
+
             Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
         }
     }

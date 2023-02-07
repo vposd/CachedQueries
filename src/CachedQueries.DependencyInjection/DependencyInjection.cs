@@ -16,9 +16,13 @@ public static class DependencyInjection
     public static IServiceCollection AddQueriesCaching(this IServiceCollection services,
         Action<QueryCacheOptions> configOptions)
     {
-        var options = new QueryCacheOptions(services);
+        var options = new QueryCacheOptions();
         configOptions(options);
 
+        foreach (var (key, value) in options.ServicesMap)
+            services.AddScoped(key, value);
+
+        services.AddSingleton(options.Options);
         services.AddScoped<ICacheManager, CacheManager>();
 
         return services;

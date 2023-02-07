@@ -1,5 +1,4 @@
-﻿using CachedQueries.Core.Interfaces;
-using CachedQueries.DependencyInjection;
+﻿using CachedQueries.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 

@@ -5,7 +5,7 @@ using CachedQueries.Core;
 using FluentAssertions;
 using Xunit;
 
-namespace CachedQueries.Test;
+namespace CachedQueries.Test.Core;
 
 internal class Entity
 {

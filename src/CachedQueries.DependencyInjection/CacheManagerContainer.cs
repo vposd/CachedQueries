@@ -21,4 +21,9 @@ public static class CacheManagerContainer
         var cacheManager = scope.ServiceProvider.GetRequiredService<ICacheManager>();
         return cacheManager;
     }
+
+    public static void Reset()
+    {
+        _serviceProvider = null;
+    }
 }

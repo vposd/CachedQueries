@@ -5,7 +5,7 @@ namespace CachedQueries.EntityFramework.Extensions;
 public static class QueryCacheOptionsExtensions
 {
     /// <summary>
-    /// Use Entity Framework workflow
+    ///     Use Entity Framework workflow
     /// </summary>
     /// <returns></returns>
     public static QueryCacheOptions UseEntityFramework(this QueryCacheOptions options)
