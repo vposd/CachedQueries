@@ -18,7 +18,9 @@ public class MemoryCache : ICacheStore
 
     private readonly JsonSerializerOptions _settings = new()
     {
-        ReferenceHandler = ReferenceHandler.Preserve
+        ReferenceHandler = ReferenceHandler.Preserve,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = false
     };
 
     public MemoryCache(IMemoryCache cache, ILoggerFactory loggerFactory, ILockManager lockManager, CacheOptions options)
