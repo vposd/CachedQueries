@@ -42,7 +42,7 @@ public class DependencyInjectionTests
         cacheManager.CacheInvalidator.Should().BeOfType<DefaultCacheInvalidator>();
         cacheManager.CacheOptions.Should().BeOfType<CacheOptions>();
         cacheManager.CacheKeyFactory.Should().BeOfType<CacheKeyFactory>();
-        cacheManager.LockManager.Should().BeOfType<DefaultLockManager>();
+        cacheManager.LockManager.Should().BeOfType<NullLockManager>();
         cacheManager.CacheStoreProvider.Should().BeOfType<CacheStoreProvider>();
 
         var cacheStore =
@@ -94,7 +94,7 @@ public class DependencyInjectionTests
         cacheManager.CacheInvalidator.Should().BeOfType<DefaultCacheInvalidator>();
         cacheManager.CacheOptions.Should().BeOfType<CacheOptions>();
         cacheManager.CacheKeyFactory.Should().BeOfType<CacheKeyFactory>();
-        cacheManager.LockManager.Should().BeOfType<DefaultLockManager>();
+        cacheManager.LockManager.Should().BeOfType<NullLockManager>();
         cacheManager.CacheStoreProvider.Should().BeOfType<CacheStoreProvider>();
 
         var cacheStore =
@@ -122,7 +122,7 @@ public class DependencyInjectionTests
         cacheManager.CacheInvalidator.Should().BeOfType<DefaultCacheInvalidator>();
         cacheManager.CacheOptions.Should().BeOfType<CacheOptions>();
         cacheManager.CacheKeyFactory.Should().BeOfType<QueryCacheKeyFactory>();
-        cacheManager.LockManager.Should().BeOfType<DefaultLockManager>();
+        cacheManager.LockManager.Should().BeOfType<NullLockManager>();
         cacheManager.CacheStoreProvider.Should().BeOfType<CacheStoreProvider>();
 
         var cacheStore =
@@ -152,7 +152,7 @@ public class DependencyInjectionTests
         cacheManager.CacheInvalidator.Should().BeOfType<DefaultCacheInvalidator>();
         cacheManager.CacheOptions.Should().BeOfType<CacheOptions>();
         cacheManager.CacheKeyFactory.Should().BeOfType<CacheKeyFactory>();
-        cacheManager.LockManager.Should().BeOfType<DefaultLockManager>();
+        cacheManager.LockManager.Should().BeOfType<NullLockManager>();
         cacheManager.CacheStoreProvider.Should().BeOfType<CacheStoreProvider>();
 
         var cacheStore =
@@ -188,7 +188,7 @@ public class DependencyInjectionTests
         cacheManager.CacheInvalidator.Should().BeOfType<DefaultCacheInvalidator>();
         cacheManager.CacheOptions.Should().BeOfType<CacheOptions>();
         cacheManager.CacheKeyFactory.Should().BeOfType<CacheKeyFactory>();
-        cacheManager.LockManager.Should().BeOfType<DefaultLockManager>();
+        cacheManager.LockManager.Should().BeOfType<NullLockManager>();
         cacheManager.CacheStoreProvider.Should().BeOfType<CacheStoreProvider>();
 
         cacheManager.CacheOptions.LockTimeout.Should().Be(TimeSpan.Zero);

@@ -12,15 +12,17 @@ A library provides IQueryable results caching with smart invalidation.
 The main goal is to bring caching to ef queries with flexible invalidation without any abstraction over DbSet.
 
 For example:
+
 ```c#
     await context.Customers
         .Query(request)
         .ToCachedListAsync(cancellationToken);
-        
+
     await context.Customers
         .FindById(id)
         .CachedFirstOrDefaultAsync(cancellationToken);
 ```
+
 `Query` and `FindById` extensions could contain filters, include related entities, etc.
 Using these queries in different places still returns cached results until the Customer entity will be modified.
 
@@ -37,6 +39,7 @@ services.AddQueriesCaching(options =>
 // app is IApplicationBuilder
 app.UseQueriesCaching();
 ```
+
 Options also allows to define own implementations of cache key factory, lock manager, cache options, cache invalidator.
 
 ## Usage
@@ -51,7 +54,7 @@ var results = context.Blogs
 // with expiration
 var results = context.Posts
     .ToCachedListAsync(Timespan.FromHours(8), cancellationToken);
-    
+
 // with custom tags
 var results = context.Posts
     .ToCachedListAsync(Timespan.FromHours(8), new List<string> { "all" }, cancellationToken);
@@ -67,7 +70,7 @@ var result = context.Blogs
 // with expiration
 var result = context.Posts
     .CachedFirstOrDefaultAsync(Timespan.FromHours(8), cancellationToken);
-    
+
 // with custom tags
 var result = context.Posts
     .CachedFirstOrDefaultAsync(Timespan.FromHours(8), new List<string> { "all" }, cancellationToken);

@@ -56,12 +56,16 @@ public class MemoryCache : ICacheStore
     public async Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null,
         CancellationToken cancellationToken = default)
     {
+        bool isLockAcquired = false;
         try
         {
             var serialized = JsonSerializer.Serialize(value, _settings);
 
             if (useLock)
+            {
                 await _lockManager.LockAsync(key, _options.LockTimeout, cancellationToken);
+                isLockAcquired = true;
+            }
 
             _cache.Set(key, serialized, new MemoryCacheEntryOptions { SlidingExpiration = expire });
 
@@ -70,10 +74,14 @@ public class MemoryCache : ICacheStore
         }
         catch (Exception exception)
         {
-            if (useLock)
-                await _lockManager.ReleaseLockAsync(key);
-
             Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
+        }
+        finally
+        {
+            if (useLock && isLockAcquired)
+            {
+                await _lockManager.ReleaseLockAsync(key);
+            }
         }
     }
 

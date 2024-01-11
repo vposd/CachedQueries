@@ -9,6 +9,7 @@ using CachedQueries.Core.Cache;
 using CachedQueries.Core.Interfaces;
 using CachedQueries.DependencyInjection;
 using CachedQueries.EntityFramework.Extensions;
+using CachedQueries.EntityFramework.Extensions.Queryable;
 using CachedQueries.Test.Data;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;

@@ -19,7 +19,7 @@ public static class DependencyInjection
         var options = new QueryCacheOptions();
         configOptions(options);
 
-        foreach (var (key, value) in options.ServicesMap)
+        foreach (var (key, value) in options.GetServicesMap())
             services.AddScoped(key, value);
 
         services.AddSingleton(options.Options);
