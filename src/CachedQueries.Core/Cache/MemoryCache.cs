@@ -81,7 +81,7 @@ public class MemoryCache : ICacheStore
             {
                 if (useLock && isLockAcquired)
                 {
-                    await _lockManager.ReleaseLockAsync(key);
+                    _lockManager.ReleaseLockAsync(key).GetAwaiter().GetResult();
                 }
             }
             catch (Exception ex)
