@@ -1,6 +1,6 @@
 # CachedQueries: Enhancing EF Queries with Flexible Caching
 
-[![License](http://img.shields.io/:license-mit-blue.svg)](https://vposd.mit-license.org/)
+[![License](https://img.shields.io/:license-mit-blue.svg)](https://vposd.mit-license.org/)
 [![NuGet version (CachedQueries)](https://img.shields.io/nuget/v/CachedQueries.svg)](https://www.nuget.org/packages/CachedQueries/)
 [![NuGet downloads (CachedQueries)](https://img.shields.io/nuget/dt/CachedQueries.svg)](https://www.nuget.org/packages/CachedQueries/)
 [![Build status](https://github.com/vposd/CachedQueries/actions/workflows/release.yml/badge.svg)]()
@@ -9,14 +9,9 @@
 
 ## Introduction
 
-CachedQueries is a robust library designed for caching IQueryable results in Entity Framework with intelligent invalidation. It allows for efficient caching directly with EF queries, eliminating the need for additional abstraction over DbSet.
+CachedQueries is an open-source .NET library for adding efficient caching to Entity Framework queries. 
+It simplifies caching IQueryable results by enabling caching directly within EF, thus eliminating the need for extra abstraction layers over DbSet.
 
-## Key Features:
-
-- **Smart Caching**: Automatically caches EF query results, enhancing performance.
-- **Flexible Invalidation**: Cached results are refreshed only when relevant data changes.
-- **Seamless Integration**: Works directly with existing EF queries and DbSet.
-- **Customizable Options**: Supports custom settings for cache keys, invalidation rules, and more.
 
 ## Getting Started
 
@@ -162,11 +157,11 @@ services.AddQueriesCaching(options =>
         LockTimeout = TimeSpan.FromSeconds(10),
         DefaultExpiration = TimeSpan.FromMinutes(30)
     })
-    .UseCacheStore(CustomCacheStore) // Custom ICacheStore implementation
-    .UseCacheStoreProvider(CustomCacheStoreProvider) // Custom ICacheStoreProvider implementation
-    .UseCacheInvalidator(CustomCacheInvalidator) // Custom ICacheInvalidator implementation
-    .UseLockManager(CustomLockManager) // Custom ILockManager implementation
-    .UseKeyFactory(CustomKeyFactory) // Custom ICacheKeyFactory implementation
+    .UseCacheStore(CustomCacheStore) // ICacheStore implementation
+    .UseCacheStoreProvider(CustomCacheStoreProvider) // ICacheStoreProvider implementation
+    .UseCacheInvalidator(CustomCacheInvalidator) // ICacheInvalidator implementation
+    .UseLockManager(CustomLockManager) // ILockManager implementation
+    .UseKeyFactory(CustomKeyFactory) // ICacheKeyFactory implementation
     .UseEntityFramework()); // Integration with Entity Framework
 
 // Activation of CachedQueries in applications
