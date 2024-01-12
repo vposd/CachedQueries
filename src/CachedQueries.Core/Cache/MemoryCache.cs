@@ -36,7 +36,9 @@ public class MemoryCache : ICacheStore
         try
         {
             if (useLock)
+            {
                 await _lockManager.CheckLockAsync(key, cancellationToken);
+            }
 
             _cache.TryGetValue(key, out var value);
             var cachedResponse = value?.ToString();
@@ -56,7 +58,7 @@ public class MemoryCache : ICacheStore
     public async Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null,
         CancellationToken cancellationToken = default)
     {
-        bool isLockAcquired = false;
+        var isLockAcquired = false;
         try
         {
             var serialized = JsonSerializer.Serialize(value, _settings);
@@ -68,9 +70,6 @@ public class MemoryCache : ICacheStore
             }
 
             _cache.Set(key, serialized, new MemoryCacheEntryOptions { SlidingExpiration = expire });
-
-            if (useLock)
-                await _lockManager.ReleaseLockAsync(key);
         }
         catch (Exception exception)
         {
@@ -78,9 +77,16 @@ public class MemoryCache : ICacheStore
         }
         finally
         {
-            if (useLock && isLockAcquired)
+            try
             {
-                await _lockManager.ReleaseLockAsync(key);
+                if (useLock && isLockAcquired)
+                {
+                    await _lockManager.ReleaseLockAsync(key);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(LogLevel.Error, "Error releasing lock: @{Message}", ex.Message);
             }
         }
     }

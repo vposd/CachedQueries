@@ -9,18 +9,22 @@ namespace CachedQueries.DependencyInjection;
 public class QueryCacheOptions
 {
     private readonly Dictionary<Type, Type> _servicesMap = new();
-    public CacheOptions Options { get; internal set; } = new ()
-    {
-        DefaultExpiration = TimeSpan.FromHours(8),
-        LockTimeout = TimeSpan.FromSeconds(5)
-    };
 
     public QueryCacheOptions()
     {
         RegisterDefaultServices();
     }
 
-    public IReadOnlyDictionary<Type, Type> GetServicesMap() => _servicesMap;
+    public CacheOptions Options { get; internal set; } = new()
+    {
+        DefaultExpiration = TimeSpan.FromHours(8),
+        LockTimeout = TimeSpan.FromSeconds(5)
+    };
+
+    public IReadOnlyDictionary<Type, Type> GetServicesMap()
+    {
+        return _servicesMap;
+    }
 
     /// <summary>
     ///     Setup a cache options
@@ -92,7 +96,7 @@ public class QueryCacheOptions
         _servicesMap.Remove(key);
         _servicesMap.Add(key, value);
     }
-    
+
     private void RegisterDefaultServices()
     {
         UseKeyFactory<CacheKeyFactory>();

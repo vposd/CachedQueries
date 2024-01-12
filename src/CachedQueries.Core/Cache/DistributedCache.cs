@@ -49,7 +49,9 @@ public class DistributedCache : ICacheStore
         try
         {
             if (useLock)
+            {
                 await _lockManager.CheckLockAsync(key, cancellationToken);
+            }
 
             var cachedResponse = await _cache.GetAsync(key, cancellationToken);
 
@@ -67,7 +69,7 @@ public class DistributedCache : ICacheStore
     public async Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null,
         CancellationToken cancellationToken = default)
     {
-        bool isLockAcquired = false;
+        var isLockAcquired = false;
         try
         {
             var response = JsonSerializer.SerializeToUtf8Bytes(value, _settings);
@@ -83,9 +85,6 @@ public class DistributedCache : ICacheStore
                 response,
                 new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expire },
                 cancellationToken);
-
-            if (useLock)
-                await _lockManager.ReleaseLockAsync(key);
         }
         catch (Exception exception)
         {
@@ -93,9 +92,16 @@ public class DistributedCache : ICacheStore
         }
         finally
         {
-            if (useLock && isLockAcquired)
+            try
             {
-                await _lockManager.ReleaseLockAsync(key);
+                if (useLock && isLockAcquired)
+                {
+                    await _lockManager.ReleaseLockAsync(key);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(LogLevel.Error, "Error releasing lock: @{Message}", ex.Message);
             }
         }
     }

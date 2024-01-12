@@ -20,7 +20,9 @@ public static class DependencyInjection
         configOptions(options);
 
         foreach (var (key, value) in options.GetServicesMap())
+        {
             services.AddScoped(key, value);
+        }
 
         services.AddSingleton(options.Options);
         services.AddScoped<ICacheManager, CacheManager>();

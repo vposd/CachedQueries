@@ -1,5 +1,4 @@
-﻿using System.Linq.Expressions;
-using CachedQueries.Core.Enums;
+﻿using CachedQueries.Core.Enums;
 using CachedQueries.Core.Interfaces;
 using CachedQueries.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
@@ -25,18 +24,23 @@ public static class QueryCollectionsExtensions
         CancellationToken cancellationToken = default) where T : class
     {
         var cacheManager = CacheManagerContainer.Resolve();
-        
+
         tags ??= query.RetrieveRawInvalidationTagsFromQuery();
         expire ??= cacheManager.CacheOptions.DefaultExpiration;
-        
+
         var key = cacheManager.CacheKeyFactory.GetCacheKey(query, tags);
         if (string.IsNullOrEmpty(key))
+        {
             return await query.ToListAsync(cancellationToken);
+        }
 
-        var cacheStore = explicitCacheStore ?? cacheManager.CacheStoreProvider.GetCacheStore(key, tags, CacheContentType.Collection);
+        var cacheStore = explicitCacheStore ??
+                         cacheManager.CacheStoreProvider.GetCacheStore(key, tags, CacheContentType.Collection);
         var cached = await cacheStore.GetAsync<IEnumerable<T>>(key, true, cancellationToken);
         if (cached is not null)
+        {
             return cached.ToList();
+        }
 
         var value = await query.ToListAsync(cancellationToken);
         await cacheStore.SetAsync(key, value, true, expire, cancellationToken);
@@ -44,7 +48,7 @@ public static class QueryCollectionsExtensions
 
         return value;
     }
-    
+
     /// <summary>
     ///     Cache query results with cache-aside strategy.
     ///     Using tags for invalidation as type names from Include and ThenInclude methods.
@@ -60,7 +64,7 @@ public static class QueryCollectionsExtensions
     {
         return await query.ToCachedListAsync(tags, null, null, cancellationToken);
     }
-    
+
     /// <summary>
     ///     Cache query results with cache-aside strategy.
     ///     Using tags for invalidation as type names from Include and ThenInclude methods.
@@ -76,7 +80,7 @@ public static class QueryCollectionsExtensions
     {
         return await query.ToCachedListAsync(null, expire, null, cancellationToken);
     }
-    
+
     /// <summary>
     ///     Cache query results with cache-aside strategy.
     ///     Using tags for invalidation as type names from Include and ThenInclude methods.

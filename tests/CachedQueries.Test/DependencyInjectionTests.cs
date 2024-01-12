@@ -104,7 +104,7 @@ public class DependencyInjectionTests
     }
 
     [Fact]
-    public void AddLoreCache_Should_Configure_EntityFramework()
+    public void AddQueriesCaching_Should_Configure_EntityFramework()
     {
         // Given
         var services = new ServiceCollection();
@@ -132,7 +132,7 @@ public class DependencyInjectionTests
     }
 
     [Fact]
-    public void UseLoreCache_Should_Set_Cache_To_Cache_Manager()
+    public void AddQueriesCaching_Should_Set_Cache_To_Cache_Manager()
     {
         // Given
         var services = new ServiceCollection();
@@ -162,7 +162,7 @@ public class DependencyInjectionTests
     }
 
     [Fact]
-    public void UseLoreCache_Should_Config_Options()
+    public void AddQueriesCaching_Should_Config_Options()
     {
         // Given
         var services = new ServiceCollection();
@@ -175,7 +175,7 @@ public class DependencyInjectionTests
             .UseCacheStoreProvider<CacheStoreProvider>()
             .UseCacheOptions(new CacheOptions
             {
-                LockTimeout = TimeSpan.Zero,
+                LockTimeout = TimeSpan.Zero
             })
             .UseCacheStore<MemoryCache>()
         );
@@ -231,5 +231,22 @@ public class DependencyInjectionTests
             cacheManager.CacheStoreProvider.GetCacheStore(string.Empty, new List<string>(), CacheContentType.Object);
         cacheStore.Should().BeOfType<DistributedCache>();
         CacheManagerContainer.Reset();
+    }
+
+    [Fact]
+    public void UseCacheOptions_Should_Throw_If_Options_Null()
+    {
+        // Given
+        var services = new ServiceCollection();
+
+        // When
+        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
+
+        var act = () => services.AddQueriesCaching(options => options
+            .UseCacheOptions(null)
+        );
+
+        // Then
+        act.Should().Throw<ArgumentNullException>();
     }
 }

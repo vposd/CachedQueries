@@ -15,7 +15,9 @@ public static class CacheManagerContainer
     public static ICacheManager Resolve()
     {
         if (_serviceProvider is null)
+        {
             throw new ArgumentException("CacheManagerContainer is not initialized");
+        }
 
         using var scope = _serviceProvider.CreateScope();
         var cacheManager = scope.ServiceProvider.GetRequiredService<ICacheManager>();

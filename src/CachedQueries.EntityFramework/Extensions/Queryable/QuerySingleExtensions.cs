@@ -27,19 +27,24 @@ public static class QuerySingleExtensions
         CancellationToken cancellationToken = default) where T : class
     {
         var cacheManager = CacheManagerContainer.Resolve();
-        
+
         query = predicate == null ? query : query.Where(predicate);
         tags ??= query.RetrieveRawInvalidationTagsFromQuery();
         expire ??= cacheManager.CacheOptions.DefaultExpiration;
-        
+
         var key = cacheManager.CacheKeyFactory.GetCacheKey(query, tags);
         if (string.IsNullOrEmpty(key))
+        {
             return await query.FirstOrDefaultAsync(cancellationToken);
+        }
 
-        var cacheStore = explicitCacheStore ?? cacheManager.CacheStoreProvider.GetCacheStore(key, tags, CacheContentType.Object);
+        var cacheStore = explicitCacheStore ??
+                         cacheManager.CacheStoreProvider.GetCacheStore(key, tags, CacheContentType.Object);
         var cached = await cacheStore.GetAsync<T>(key, true, cancellationToken);
         if (cached is not null)
+        {
             return cached;
+        }
 
         var value = await query.FirstOrDefaultAsync(cancellationToken);
         await cacheStore.SetAsync(key, value, true, expire, cancellationToken);
@@ -47,7 +52,7 @@ public static class QuerySingleExtensions
 
         return value;
     }
-    
+
     /// <summary>
     ///     Cache and return query first result with cache-aside strategy.
     ///     Using tags for invalidation as type names from Include and ThenInclude methods.
@@ -61,7 +66,7 @@ public static class QuerySingleExtensions
     {
         return await query.CachedFirstOrDefaultAsync(null, null, null, null, cancellationToken);
     }
-    
+
     /// <summary>
     ///     Cache and return query first result with cache-aside strategy
     /// </summary>
@@ -76,7 +81,7 @@ public static class QuerySingleExtensions
     {
         return await query.CachedFirstOrDefaultAsync(null, tags, null, null, cancellationToken);
     }
-    
+
     /// <summary>
     ///     Cache and return query first result with cache-aside strategy.
     ///     Using tags for invalidation as type names from Include and ThenInclude methods.
@@ -92,7 +97,7 @@ public static class QuerySingleExtensions
     {
         return query.CachedFirstOrDefaultAsync(null, null, expire, null, cancellationToken);
     }
-    
+
     /// <summary>
     ///     Cache and return query first result with cache-aside strategy.
     ///     Using tags for invalidation as type names from Include and ThenInclude methods.

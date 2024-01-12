@@ -20,7 +20,8 @@ public class RedisLockManagerTests
 
         multiplexerMock.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(databaseMock.Object);
 
-        var redisLockManager = new RedisLockManager(multiplexerMock.Object, new CacheOptions { LockTimeout = TimeSpan.FromMilliseconds(1000) });
+        var redisLockManager = new RedisLockManager(multiplexerMock.Object,
+            new CacheOptions { LockTimeout = TimeSpan.FromMilliseconds(1000) });
         var timespan = TimeSpan.FromMilliseconds(1000);
         var cancellationToken = CancellationToken.None;
 
@@ -41,7 +42,8 @@ public class RedisLockManagerTests
         var databaseMock = new Mock<IDatabase>();
 
         multiplexerMock.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(databaseMock.Object);
-        var redisLockManager = new RedisLockManager(multiplexerMock.Object, new CacheOptions { LockTimeout = TimeSpan.FromMilliseconds(1000) });
+        var redisLockManager = new RedisLockManager(multiplexerMock.Object,
+            new CacheOptions { LockTimeout = TimeSpan.FromMilliseconds(1000) });
 
         // When
         await redisLockManager.ReleaseLockAsync("key");
@@ -59,7 +61,8 @@ public class RedisLockManagerTests
 
         multiplexerMock.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(databaseMock.Object);
 
-        var redisLockManager = new RedisLockManager(multiplexerMock.Object, new CacheOptions { LockTimeout = TimeSpan.FromMilliseconds(1000) });
+        var redisLockManager = new RedisLockManager(multiplexerMock.Object,
+            new CacheOptions { LockTimeout = TimeSpan.FromMilliseconds(1000) });
         var cancellationToken = CancellationToken.None;
 
         // When
@@ -152,7 +155,8 @@ public class RedisLockManagerTests
         var cancellationToken = CancellationToken.None;
 
         var lockAchieved = false;
-        database.Setup(x => x.LockTake(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), It.IsAny<CommandFlags>()))
+        database.Setup(x => x.LockTake(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(),
+                It.IsAny<CommandFlags>()))
             .Callback<RedisKey, RedisValue, TimeSpan, CommandFlags>((k, v, e, _) => { lockAchieved = true; });
 
         // Act
