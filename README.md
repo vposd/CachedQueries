@@ -1,4 +1,4 @@
-# CachedQueries: Enhancing EF Queries with Flexible Caching
+# CachedQueries: Efficient Caching for Entity Framework Queries
 
 [![License](https://img.shields.io/:license-mit-blue.svg)](https://vposd.mit-license.org/)
 [![NuGet version (CachedQueries)](https://img.shields.io/nuget/v/CachedQueries.svg)](https://www.nuget.org/packages/CachedQueries/)
