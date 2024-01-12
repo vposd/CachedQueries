@@ -28,7 +28,9 @@ public class DefaultCacheInvalidator : ICacheInvalidator
         await Task.WhenAll(tagsToExpireTasks);
 
         foreach (var list in tagsToExpireTasks.Select(x => x.Result ?? new List<string>()))
+        {
             keysToRemove.AddRange(list);
+        }
 
         var tasks = keysToRemove
             .Distinct()
@@ -47,7 +49,9 @@ public class DefaultCacheInvalidator : ICacheInvalidator
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(key))
+        {
             return;
+        }
 
         var tagsToLink = tags.Distinct().ToList();
 
@@ -56,7 +60,9 @@ public class DefaultCacheInvalidator : ICacheInvalidator
             var list = await _cache.GetAsync<List<string>>(tag, false, cancellationToken) ?? new List<string>();
 
             if (!list.Contains(key))
+            {
                 list.Add(key);
+            }
 
             await _cache.SetAsync(tag, list.Distinct(), false, null, cancellationToken);
         }

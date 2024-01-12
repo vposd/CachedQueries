@@ -6,7 +6,7 @@
 public interface ICacheKeyFactory
 {
     /// <summary>
-    ///     Returns cache key
+    ///     Returns cache key for the query
     /// </summary>
     /// <param name="query">Query param</param>
     /// <param name="tags">Linking tags for further invalidation</param>
