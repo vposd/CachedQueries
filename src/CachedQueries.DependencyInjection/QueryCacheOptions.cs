@@ -8,7 +8,7 @@ namespace CachedQueries.DependencyInjection;
 /// </summary>
 public class QueryCacheOptions
 {
-    private readonly  Dictionary<Type, Type> _servicesMap = new();
+    private readonly Dictionary<Type, Type> _servicesMap = new();
     public CacheOptions Options { get; internal set; } = new ()
     {
         DefaultExpiration = TimeSpan.FromHours(8),
