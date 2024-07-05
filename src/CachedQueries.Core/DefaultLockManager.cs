@@ -10,7 +10,9 @@ public class DefaultLockManager : ILockManager
     public async Task CheckLockAsync(string key, CancellationToken cancellationToken = default)
     {
         if (_locks.TryGetValue(key, out var lockItem))
+        {
             await lockItem.WaitAsync(cancellationToken);
+        }
     }
 
     public async Task LockAsync(string key, TimeSpan timespan, CancellationToken cancellationToken = default)
@@ -22,7 +24,9 @@ public class DefaultLockManager : ILockManager
     public Task ReleaseLockAsync(string key)
     {
         if (_locks.TryRemove(key, out var lockItem))
+        {
             lockItem.Release();
+        }
 
         return Task.CompletedTask;
     }

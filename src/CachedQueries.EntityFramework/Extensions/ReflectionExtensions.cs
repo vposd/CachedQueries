@@ -14,9 +14,11 @@ public static class ReflectionExtensions
     public static IEnumerable<Type> GetIncludeTypes(this IQueryable query)
     {
         if (query.Expression is QueryRootExpression queryRoot)
+        {
             return new List<Type> { queryRoot.ElementType };
+        }
 
-        var expression = (MethodCallExpression) query.Expression;
+        var expression = (MethodCallExpression)query.Expression;
         return expression.GetMemberCallExpressionTypes();
     }
 
@@ -25,24 +27,28 @@ public static class ReflectionExtensions
         var list = GetArgumentTypes(expressionArgument);
 
         if (expressionArgument.Method.Name is not ("Include" or "ThenInclude"))
+        {
             return list.ToHashSet();
+        }
 
         var expression = expressionArgument.Arguments.First(x => x is UnaryExpression);
-        var lambda = (LambdaExpression) ((UnaryExpression) expression).Operand;
+        var lambda = (LambdaExpression)((UnaryExpression)expression).Operand;
 
         var returnType = lambda.ReturnType;
         if (returnType.GetInterface(nameof(IEnumerable)) != null)
         {
             var type = returnType.GetGenericArguments().FirstOrDefault();
             if (type is not null)
+            {
                 list.Add(type);
+            }
 
             return list.ToHashSet();
         }
 
         list.Add(returnType);
 
-        var memberExpression = (MemberExpression) lambda.Body;
+        var memberExpression = (MemberExpression)lambda.Body;
         list.Add(memberExpression.Expression!.Type);
 
         return list.ToHashSet();
@@ -55,10 +61,14 @@ public static class ReflectionExtensions
         foreach (var item in expressionArgument.Arguments.ToList())
         {
             if (item is QueryRootExpression queryRoot)
+            {
                 list.Add(queryRoot.ElementType);
+            }
 
             if (item is not MethodCallExpression itemExpression)
+            {
                 continue;
+            }
 
             list.AddRange(itemExpression.GetMemberCallExpressionTypes());
         }

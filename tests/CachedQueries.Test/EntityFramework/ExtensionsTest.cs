@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using AutoFixture;
 using CachedQueries.Core;
 using CachedQueries.Core.Cache;
-using CachedQueries.Core.Interfaces;
 using CachedQueries.DependencyInjection;
 using CachedQueries.EntityFramework.Extensions;
+using CachedQueries.EntityFramework.Extensions.Queryable;
 using CachedQueries.Test.Data;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -309,11 +309,15 @@ public sealed class ExtensionsTest
 
         // When
         if (usePredicate)
+        {
             await context.Blogs
                 .CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id, new List<string> { nameof(Blog) });
+        }
         else
+        {
             await context.Blogs.Where(x => x.Id == entities[0].Id)
                 .CachedFirstOrDefaultAsync(new List<string> { nameof(Blog) });
+        }
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
@@ -349,15 +353,19 @@ public sealed class ExtensionsTest
 
         // When
         if (usePredicate)
+        {
             await context.Blogs
                 .Include(x => x.Author)
                 .Include(x => x.Posts).ThenInclude(x => x.Comments)
                 .CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id);
+        }
         else
+        {
             await context.Blogs
                 .Include(x => x.Author)
                 .Include(x => x.Posts).ThenInclude(x => x.Comments)
                 .Where(x => x.Id == entities[0].Id).CachedFirstOrDefaultAsync(CancellationToken.None);
+        }
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
@@ -398,11 +406,15 @@ public sealed class ExtensionsTest
 
         // When
         if (usePredicate)
+        {
             await context.Blogs.CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id,
                 new List<string> { nameof(Blog) });
+        }
         else
+        {
             await context.Blogs.Where(x => x.Id == entities[0].Id)
                 .CachedFirstOrDefaultAsync(new List<string> { nameof(Blog) });
+        }
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
@@ -440,9 +452,13 @@ public sealed class ExtensionsTest
 
         // When
         if (usePredicate)
+        {
             await context.Blogs.CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id);
+        }
         else
+        {
             await context.Blogs.Where(x => x.Id == entities[0].Id).CachedFirstOrDefaultAsync();
+        }
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
@@ -477,11 +493,15 @@ public sealed class ExtensionsTest
 
         // When
         if (usePredicate)
+        {
             await context.Blogs.CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id,
                 new List<string> { nameof(Blog) });
+        }
         else
+        {
             await context.Blogs.Where(x => x.Id == entities[0].Id)
                 .CachedFirstOrDefaultAsync(new List<string> { nameof(Blog) });
+        }
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
@@ -517,10 +537,14 @@ public sealed class ExtensionsTest
 
         // When
         if (usePredicate)
+        {
             await context.Blogs.CachedFirstOrDefaultAsync(x => x.Id == entities[0].Id, TimeSpan.FromSeconds(20));
+        }
         else
+        {
             await context.Blogs.Where(x => x.Id == entities[0].Id)
                 .CachedFirstOrDefaultAsync(TimeSpan.FromMinutes(1));
+        }
 
         var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
         changed.Name = "new name";
@@ -538,6 +562,8 @@ public sealed class ExtensionsTest
         entityFromCache?.Name.Should().Be("new name");
     }
 
+    #region Arrange
+
     private static IServiceCollection InitCacheManager(Type? cacheStoreType, bool initEmptyCacheKeyFactory = false)
     {
         var services = new ServiceCollection();
@@ -548,15 +574,23 @@ public sealed class ExtensionsTest
         services.AddQueriesCaching(options =>
         {
             if (cacheStoreType == typeof(MemoryCache))
+            {
                 options.UseCacheStore<MemoryCache>();
+            }
 
             if (cacheStoreType == typeof(DistributedCache))
+            {
                 options.UseCacheStore<DistributedCache>();
+            }
 
             if (initEmptyCacheKeyFactory)
+            {
                 options.UseKeyFactory<EmptyKeyCacheFactory>();
+            }
             else
+            {
                 options.UseEntityFramework();
+            }
         });
 
         var serviceProvider = services.BuildServiceProvider();
@@ -611,6 +645,8 @@ public sealed class ExtensionsTest
 
         return cache;
     }
+
+    #endregion
 }
 
 public class EmptyKeyCacheFactory : CacheKeyFactory

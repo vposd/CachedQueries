@@ -6,8 +6,8 @@ namespace CachedQueries.Redis;
 
 public class RedisLockManager : ILockManager
 {
-    private readonly IDatabase _database;
     private readonly CacheOptions _cacheOptions;
+    private readonly IDatabase _database;
 
     public RedisLockManager(IConnectionMultiplexer multiplexer, CacheOptions cacheOptions)
     {
@@ -27,7 +27,9 @@ public class RedisLockManager : ILockManager
         {
             lockAchieved = _database.LockTake(key, GetLockValue(key), expiration);
             if (lockAchieved)
+            {
                 continue;
+            }
 
             await Task.Delay(sleepTime, cancellationToken);
             totalTime += sleepTime;
@@ -49,13 +51,17 @@ public class RedisLockManager : ILockManager
         while (!lockAchieved && totalTime < maxTime)
         {
             if (cancellationToken.IsCancellationRequested)
+            {
                 return;
+            }
 
             var lockValue = _database.LockQuery(key);
             lockAchieved = !lockValue.HasValue;
 
             if (lockAchieved)
+            {
                 continue;
+            }
 
             await Task.Delay(sleepTime, cancellationToken);
             totalTime += sleepTime;

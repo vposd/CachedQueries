@@ -18,7 +18,9 @@ public class MemoryCache : ICacheStore
 
     private readonly JsonSerializerOptions _settings = new()
     {
-        ReferenceHandler = ReferenceHandler.Preserve
+        ReferenceHandler = ReferenceHandler.Preserve,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = false
     };
 
     public MemoryCache(IMemoryCache cache, ILoggerFactory loggerFactory, ILockManager lockManager, CacheOptions options)
@@ -34,7 +36,9 @@ public class MemoryCache : ICacheStore
         try
         {
             if (useLock)
+            {
                 await _lockManager.CheckLockAsync(key, cancellationToken);
+            }
 
             _cache.TryGetValue(key, out var value);
             var cachedResponse = value?.ToString();
@@ -54,24 +58,36 @@ public class MemoryCache : ICacheStore
     public async Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null,
         CancellationToken cancellationToken = default)
     {
+        var isLockAcquired = false;
         try
         {
             var serialized = JsonSerializer.Serialize(value, _settings);
 
             if (useLock)
+            {
                 await _lockManager.LockAsync(key, _options.LockTimeout, cancellationToken);
+                isLockAcquired = true;
+            }
 
             _cache.Set(key, serialized, new MemoryCacheEntryOptions { SlidingExpiration = expire });
-
-            if (useLock)
-                await _lockManager.ReleaseLockAsync(key);
         }
         catch (Exception exception)
         {
-            if (useLock)
-                await _lockManager.ReleaseLockAsync(key);
-
             Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
+        }
+        finally
+        {
+            try
+            {
+                if (useLock && isLockAcquired)
+                {
+                    _lockManager.ReleaseLockAsync(key).GetAwaiter().GetResult();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(LogLevel.Error, "Error releasing lock: @{Message}", ex.Message);
+            }
         }
     }
 

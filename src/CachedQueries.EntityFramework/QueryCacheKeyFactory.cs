@@ -17,7 +17,7 @@ public class QueryCacheKeyFactory : CacheKeyFactory
     /// <returns>The cache key</returns>
     public override string GetCacheKey<T>(IQueryable<T> query, IEnumerable<string> tags) where T : class
     {
-        var sqlString = query.ToQueryString();
+        var sqlString = query.AsSingleQuery().ToQueryString();
         var expressionString = query.Expression.ToString();
 
         var command = sqlString + expressionString + string.Join('_', tags.ToList());

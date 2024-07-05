@@ -18,7 +18,9 @@ public class DistributedCache : ICacheStore
 
     private readonly JsonSerializerOptions _settings = new()
     {
-        ReferenceHandler = ReferenceHandler.Preserve
+        ReferenceHandler = ReferenceHandler.Preserve,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        WriteIndented = false
     };
 
     public DistributedCache(IDistributedCache cache, ILoggerFactory loggerFactory, ILockManager lockManager,
@@ -47,7 +49,9 @@ public class DistributedCache : ICacheStore
         try
         {
             if (useLock)
+            {
                 await _lockManager.CheckLockAsync(key, cancellationToken);
+            }
 
             var cachedResponse = await _cache.GetAsync(key, cancellationToken);
 
@@ -65,28 +69,40 @@ public class DistributedCache : ICacheStore
     public async Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null,
         CancellationToken cancellationToken = default)
     {
+        var isLockAcquired = false;
         try
         {
             var response = JsonSerializer.SerializeToUtf8Bytes(value, _settings);
 
             if (useLock)
+            {
                 await _lockManager.LockAsync(key, _options.LockTimeout, cancellationToken);
+                isLockAcquired = true;
+            }
 
             await _cache.SetAsync(
                 key,
                 response,
                 new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expire },
                 cancellationToken);
-
-            if (useLock)
-                await _lockManager.ReleaseLockAsync(key);
         }
         catch (Exception exception)
         {
-            if (useLock)
-                await _lockManager.ReleaseLockAsync(key);
-
             Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
+        }
+        finally
+        {
+            try
+            {
+                if (useLock && isLockAcquired)
+                {
+                    _lockManager.ReleaseLockAsync(key).GetAwaiter().GetResult();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(LogLevel.Error, "Error releasing lock: @{Message}", ex.Message);
+            }
         }
     }
 
