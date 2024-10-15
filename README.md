@@ -60,11 +60,11 @@ Easily cache collections, including related data:
 // Standard caching
 var results = await context.Blogs
     .Include(x => x.Posts)
-    .ToCachedListAsync(cancellationToken);
+    .ToListCachedAsync(cancellationToken);
 
 // Caching with expiration
 var results = await context.Posts
-    .ToCachedListAsync(TimeSpan.FromHours(8), cancellationToken);
+    .ToListCachedAsync(new() { CachedDuration = TimeSpan.FromHours(4) }, cancellationToken);
 
 // Caching with custom tags
 var results = await context.Posts
@@ -158,9 +158,7 @@ services.AddQueriesCaching(options =>
         DefaultExpiration = TimeSpan.FromMinutes(30)
     })
     .UseCacheStore(CustomCacheStore) // ICacheStore implementation
-    .UseCacheStoreProvider(CustomCacheStoreProvider) // ICacheStoreProvider implementation
     .UseCacheInvalidator(CustomCacheInvalidator) // ICacheInvalidator implementation
-    .UseLockManager(CustomLockManager) // ILockManager implementation
     .UseKeyFactory(CustomKeyFactory) // ICacheKeyFactory implementation
     .UseEntityFramework()); // Integration with Entity Framework
 

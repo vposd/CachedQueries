@@ -1,4 +1,5 @@
 ﻿using CachedQueries.DependencyInjection;
+using CachedQueries.EntityFramework.Strategies;
 
 namespace CachedQueries.EntityFramework.Extensions;
 
@@ -8,9 +9,11 @@ public static class QueryCacheOptionsExtensions
     ///     Use Entity Framework workflow
     /// </summary>
     /// <returns></returns>
-    public static QueryCacheOptions UseEntityFramework(this QueryCacheOptions options)
+    public static CachedQueriesOptions UseEntityFramework(this CachedQueriesOptions options)
     {
-        options.UseKeyFactory<QueryCacheKeyFactory>();
+        options.UseCacheKeyFactory<QueryCacheKeyFactory>();
+        options.UseCacheCollectionStrategy<CacheCollectionStrategy>();
+        options.UseCacheEntryStrategy<CacheEntryStrategy>();
         return options;
     }
 }

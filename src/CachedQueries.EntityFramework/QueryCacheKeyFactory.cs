@@ -6,7 +6,7 @@ namespace CachedQueries.EntityFramework;
 /// <summary>
 ///     Default cache query factory for EF workflow.
 /// </summary>
-public class QueryCacheKeyFactory : CacheKeyFactory
+public class QueryCacheKeyFactory : DefaultCacheKeyFactory
 {
     /// <summary>
     ///     Returns cache key as hash of query string plus joined tags
@@ -15,9 +15,9 @@ public class QueryCacheKeyFactory : CacheKeyFactory
     /// <param name="tags">Invalidation tags</param>
     /// <typeparam name="T"></typeparam>
     /// <returns>The cache key</returns>
-    public override string GetCacheKey<T>(IQueryable<T> query, IEnumerable<string> tags) where T : class
+    public override string GetCacheKey<T>(IQueryable<T> query, string[] tags)
     {
-        var sqlString = query.AsSingleQuery().ToQueryString();
+        var sqlString = query.ToQueryString();
         var expressionString = query.Expression.ToString();
 
         var command = sqlString + expressionString + string.Join('_', tags.ToList());

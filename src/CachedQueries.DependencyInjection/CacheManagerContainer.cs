@@ -1,5 +1,4 @@
-﻿using CachedQueries.Core.Interfaces;
-using Microsoft.Extensions.DependencyInjection;
+﻿using CachedQueries.Core.Abstractions;
 
 namespace CachedQueries.DependencyInjection;
 

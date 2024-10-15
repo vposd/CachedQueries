@@ -1,7 +1,5 @@
 ﻿using CachedQueries.Core;
-using CachedQueries.Core.Interfaces;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
+using CachedQueries.Core.Abstractions;
 
 namespace CachedQueries.DependencyInjection;
 
@@ -13,10 +11,10 @@ public static class DependencyInjection
     /// <param name="services"></param>
     /// <param name="configOptions"></param>
     /// <returns></returns>
-    public static IServiceCollection AddQueriesCaching(this IServiceCollection services,
-        Action<QueryCacheOptions> configOptions)
+    public static IServiceCollection AddCachedQueries(this IServiceCollection services,
+        Action<CachedQueriesOptions> configOptions)
     {
-        var options = new QueryCacheOptions();
+        var options = new CachedQueriesOptions();
         configOptions(options);
 
         foreach (var (key, value) in options.GetServicesMap())
