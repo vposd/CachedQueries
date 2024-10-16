@@ -20,7 +20,7 @@ public static class ToListExtensions
         var cacheManager = CacheManagerContainer.Resolve();
         var defaultOption = new CachingOptions
         {
-            CacheDuration = cacheManager.DefaultCachingOptions.CacheDuration
+            CacheDuration = cacheManager.Config.DefaultCacheDuration
         };
 
         return await query.ToListCachedAsync(defaultOption, cancellationToken);

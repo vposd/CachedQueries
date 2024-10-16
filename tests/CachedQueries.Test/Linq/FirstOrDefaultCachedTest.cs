@@ -48,40 +48,40 @@ public class FirstOrDefaultCachedTest
         bool usePredicate)
     {
         // Given
-        InitCacheManager(cacheStore);
+        CacheManagerTestBed.InitCacheManager(cacheStore);
 
         await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(2).ToList();
-        var firstEntityName = entities[0].Name;
-        context.Blogs.AddRange(entities);
+        var entities = _fixture.CreateMany<Order>(2).ToList();
+        var firstEntityName = entities[0].Number;
+        context.Orders.AddRange(entities);
         await context.SaveChangesAsync();
 
         // When
         if (usePredicate)
         {
-            await context.Blogs
+            await context.Orders
                 .FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id, new CachingOptions(["blogs"]));
         }
         else
         {
-            await context.Blogs.Where(x => x.Id == entities[0].Id)
+            await context.Orders.Where(x => x.Id == entities[0].Id)
                 .FirstOrDefaultCachedAsync(new CachingOptions(["blogs"]), CancellationToken.None);
         }
 
-        var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
-        changed.Name = "new name";
+        var changed = await context.Orders.FirstAsync(x => x.Id == entities[0].Id);
+        changed.Number = "new name";
         await context.SaveChangesAsync();
 
-        var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
+        var entityFromDb = await context.Orders.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
-            ? await context.Blogs
+            ? await context.Orders
                 .FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id, new CachingOptions(["blogs"]))
-            : await context.Blogs.Where(x => x.Id == entities[0].Id)
+            : await context.Orders.Where(x => x.Id == entities[0].Id)
                 .FirstOrDefaultCachedAsync(new CachingOptions(["blogs"]), CancellationToken.None);
 
         // Then
-        entityFromDb?.Name.Should().Be("new name");
-        entityFromCache?.Name.Should().Be(firstEntityName);
+        entityFromDb?.Number.Should().Be("new name");
+        entityFromCache?.Number.Should().Be(firstEntityName);
     }
 
     [Theory]
@@ -92,48 +92,48 @@ public class FirstOrDefaultCachedTest
     public async Task FirstOrDefaultCachedAsync_Should_Cache_Single_Result(Type cacheStore, bool usePredicate)
     {
         // Given
-        InitCacheManager(cacheStore);
+        CacheManagerTestBed.InitCacheManager(cacheStore);
 
         await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(2).ToList();
-        var firstEntityName = entities[0].Name;
-        context.Blogs.AddRange(entities);
+        var entities = _fixture.CreateMany<Order>(2).ToList();
+        var firstEntityName = entities[0].Number;
+        context.Orders.AddRange(entities);
         await context.SaveChangesAsync();
 
         // When
         if (usePredicate)
         {
-            await context.Blogs
-                .Include(x => x.Author)
-                .Include(x => x.Posts).ThenInclude(x => x.Comments)
+            await context.Orders
+                .Include(x => x.Customer)
+                .Include(x => x.Products).ThenInclude(x => x.Attributes)
                 .FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id, CancellationToken.None);
         }
         else
         {
-            await context.Blogs
-                .Include(x => x.Author)
-                .Include(x => x.Posts).ThenInclude(x => x.Comments)
+            await context.Orders
+                .Include(x => x.Customer)
+                .Include(x => x.Products).ThenInclude(x => x.Attributes)
                 .Where(x => x.Id == entities[0].Id).FirstOrDefaultCachedAsync(CancellationToken.None);
         }
 
-        var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
-        changed.Name = "new name";
+        var changed = await context.Orders.FirstAsync(x => x.Id == entities[0].Id);
+        changed.Number = "new name";
         await context.SaveChangesAsync();
 
-        var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
+        var entityFromDb = await context.Orders.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
-            ? await context.Blogs
-                .Include(x => x.Author)
-                .Include(x => x.Posts).ThenInclude(x => x.Comments)
+            ? await context.Orders
+                .Include(x => x.Customer)
+                .Include(x => x.Products).ThenInclude(x => x.Attributes)
                 .FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id)
-            : await context.Blogs
-                .Include(x => x.Author)
-                .Include(x => x.Posts).ThenInclude(x => x.Comments)
+            : await context.Orders
+                .Include(x => x.Customer)
+                .Include(x => x.Products).ThenInclude(x => x.Attributes)
                 .Where(x => x.Id == entities[0].Id).FirstOrDefaultCachedAsync();
 
         // Then
-        entityFromDb?.Name.Should().Be("new name");
-        entityFromCache?.Name.Should().Be(firstEntityName);
+        entityFromDb?.Number.Should().Be("new name");
+        entityFromCache?.Number.Should().Be(firstEntityName);
     }
 
     [Theory]
@@ -145,41 +145,41 @@ public class FirstOrDefaultCachedTest
         Type cacheStore, bool usePredicate)
     {
         // Given
-        InitCacheManager(cacheStore);
+        CacheManagerTestBed.InitCacheManager(cacheStore);
 
         await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(2).ToList();
-        context.Blogs.AddRange(entities);
+        var entities = _fixture.CreateMany<Order>(2).ToList();
+        context.Orders.AddRange(entities);
         await context.SaveChangesAsync();
         var cacheManager = CacheManagerContainer.Resolve();
 
         // When
         if (usePredicate)
         {
-            await context.Blogs.FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id,
+            await context.Orders.FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id,
                 new CachingOptions(["blogs"]), CancellationToken.None);
         }
         else
         {
-            await context.Blogs.Where(x => x.Id == entities[0].Id)
+            await context.Orders.Where(x => x.Id == entities[0].Id)
                 .FirstOrDefaultCachedAsync( new CachingOptions(["blogs"]), CancellationToken.None);
         }
 
-        var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
-        changed.Name = "new name";
+        var changed = await context.Orders.FirstAsync(x => x.Id == entities[0].Id);
+        changed.Number = "new name";
         await context.SaveChangesAsync();
         await cacheManager.CacheInvalidator.InvalidateCacheAsync(["blogs"], CancellationToken.None);
 
-        var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
+        var entityFromDb = await context.Orders.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
-            ? await context.Blogs
+            ? await context.Orders
                 .FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id,  new CachingOptions(["blogs"]), CancellationToken.None)
-            : await context.Blogs.Where(x => x.Id == entities[0].Id)
+            : await context.Orders.Where(x => x.Id == entities[0].Id)
                 .FirstOrDefaultCachedAsync( new CachingOptions(["blogs"]), CancellationToken.None);
 
         // Then
-        entityFromDb?.Name.Should().Be("new name");
-        entityFromCache?.Name.Should().Be("new name");
+        entityFromDb?.Number.Should().Be("new name");
+        entityFromCache?.Number.Should().Be("new name");
     }
 
     [Theory]
@@ -191,36 +191,36 @@ public class FirstOrDefaultCachedTest
         bool usePredicate)
     {
         // Given
-        InitCacheManager(cacheStore);
+        CacheManagerTestBed.InitCacheManager(cacheStore);
 
         await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(2).ToList();
-        context.Blogs.AddRange(entities);
+        var entities = _fixture.CreateMany<Order>(2).ToList();
+        context.Orders.AddRange(entities);
         await context.SaveChangesAsync();
 
         // When
         if (usePredicate)
         {
-            await context.Blogs.FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id);
+            await context.Orders.FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id);
         }
         else
         {
-            await context.Blogs.Where(x => x.Id == entities[0].Id).FirstOrDefaultCachedAsync();
+            await context.Orders.Where(x => x.Id == entities[0].Id).FirstOrDefaultCachedAsync();
         }
 
-        var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
-        changed.Name = "new name";
+        var changed = await context.Orders.FirstAsync(x => x.Id == entities[0].Id);
+        changed.Number = "new name";
         await context.ChangeTracker.ExpireEntitiesCacheAsync(CancellationToken.None);
         await context.SaveChangesAsync();
 
-        var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
+        var entityFromDb = await context.Orders.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
-            ? await context.Blogs.FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id)
-            : await context.Blogs.Where(x => x.Id == entities[0].Id).FirstOrDefaultCachedAsync();
+            ? await context.Orders.FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id)
+            : await context.Orders.Where(x => x.Id == entities[0].Id).FirstOrDefaultCachedAsync();
 
         // Then
-        entityFromDb?.Name.Should().Be("new name");
-        entityFromCache?.Name.Should().Be("new name");
+        entityFromDb?.Number.Should().Be("new name");
+        entityFromCache?.Number.Should().Be("new name");
     }
 
     [Theory]
@@ -232,39 +232,39 @@ public class FirstOrDefaultCachedTest
         bool usePredicate)
     {
         // Given
-        InitCacheManager(cacheStore, true);
+        CacheManagerTestBed.InitCacheManager(cacheStore, true);
 
         await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(2).ToList();
-        context.Blogs.AddRange(entities);
+        var entities = _fixture.CreateMany<Order>(2).ToList();
+        context.Orders.AddRange(entities);
         await context.SaveChangesAsync();
 
         // When
         if (usePredicate)
         {
-            await context.Blogs.FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id,
+            await context.Orders.FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id,
                 new CachingOptions(["blogs"]));
         }
         else
         {
-            await context.Blogs.Where(x => x.Id == entities[0].Id)
+            await context.Orders.Where(x => x.Id == entities[0].Id)
                 .FirstOrDefaultCachedAsync( new CachingOptions(["blogs"]));
         }
 
-        var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
-        changed.Name = "new name";
+        var changed = await context.Orders.FirstAsync(x => x.Id == entities[0].Id);
+        changed.Number = "new name";
         await context.SaveChangesAsync();
 
-        var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
+        var entityFromDb = await context.Orders.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
-            ? await context.Blogs
+            ? await context.Orders
                 .FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id,  new CachingOptions(["blogs"]))
-            : await context.Blogs.Where(x => x.Id == entities[0].Id)
+            : await context.Orders.Where(x => x.Id == entities[0].Id)
                 .FirstOrDefaultCachedAsync( new CachingOptions(["blogs"]));
 
         // Then
-        entityFromDb?.Name.Should().Be("new name");
-        entityFromCache?.Name.Should().Be("new name");
+        entityFromDb?.Number.Should().Be("new name");
+        entityFromCache?.Number.Should().Be("new name");
     }
 
     [Theory]
@@ -276,123 +276,37 @@ public class FirstOrDefaultCachedTest
         bool usePredicate)
     {
         // Given
-        InitCacheManager(cacheStore, true);
+        CacheManagerTestBed.InitCacheManager(cacheStore, true);
 
         await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(2).ToList();
-        context.Blogs.AddRange(entities);
+        var entities = _fixture.CreateMany<Order>(2).ToList();
+        context.Orders.AddRange(entities);
         await context.SaveChangesAsync();
 
         // When
         if (usePredicate)
         {
-            await context.Blogs.FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id, new CachingOptions(TimeSpan.FromSeconds(20)));
+            await context.Orders.FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id, new CachingOptions(TimeSpan.FromSeconds(20)));
         }
         else
         {
-            await context.Blogs.Where(x => x.Id == entities[0].Id)
+            await context.Orders.Where(x => x.Id == entities[0].Id)
                 .FirstOrDefaultCachedAsync(new CachingOptions(TimeSpan.FromMinutes(1)));
         }
 
-        var changed = await context.Blogs.FirstAsync(x => x.Id == entities[0].Id);
-        changed.Name = "new name";
+        var changed = await context.Orders.FirstAsync(x => x.Id == entities[0].Id);
+        changed.Number = "new name";
         await context.SaveChangesAsync();
 
-        var entityFromDb = await context.Blogs.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
+        var entityFromDb = await context.Orders.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
-            ? await context.Blogs
+            ? await context.Orders
                 .FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id, new CachingOptions(["blogs"]))
-            : await context.Blogs.Where(x => x.Id == entities[0].Id)
+            : await context.Orders.Where(x => x.Id == entities[0].Id)
                 .FirstOrDefaultCachedAsync(new CachingOptions(["blogs"]));
 
         // Then
-        entityFromDb?.Name.Should().Be("new name");
-        entityFromCache?.Name.Should().Be("new name");
+        entityFromDb?.Number.Should().Be("new name");
+        entityFromCache?.Number.Should().Be("new name");
     }
-    
-    #region Arrange
-
-    private static IServiceCollection InitCacheManager(Type? cacheStoreType, bool initEmptyCacheKeyFactory = false)
-    {
-        var services = new ServiceCollection();
-        services.AddMemoryCache();
-        services.AddDistributedMemoryCache();
-        services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
-
-        services.AddCachedQueries(options =>
-        {
-            if (cacheStoreType == typeof(MemoryCache))
-            {
-                options.UseCacheStore<MemoryCache>();
-            }
-
-            if (cacheStoreType == typeof(DistributedCache))
-            {
-                options.UseCacheStore<DistributedCache>();
-            }
-
-            if (initEmptyCacheKeyFactory)
-            {
-                options.UseCacheKeyFactory<EmptyKeyCacheFactory>();
-            }
-            else
-            {
-                options.UseEntityFramework();
-            }
-        });
-
-        var serviceProvider = services.BuildServiceProvider();
-        CacheManagerContainer.Initialize(serviceProvider);
-
-        return services;
-    }
-
-    private static Mock<IDistributedCache> ConfigureFailingDistributedCache(string method)
-    {
-        var cache = new Mock<IDistributedCache>();
-
-        switch (method)
-        {
-            case "Get":
-                cache.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                    .ThrowsAsync(new Exception(""));
-                break;
-            case "Remove":
-                cache.Setup(x => x.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                    .ThrowsAsync(new Exception(""));
-                break;
-            case "Set":
-                cache.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<byte[]>(),
-                        It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()))
-                    .ThrowsAsync(new Exception(""));
-                break;
-        }
-
-        return cache;
-    }
-
-    private static Mock<IMemoryCache> ConfigureFailingMemoryCache(string method)
-    {
-        var cache = new Mock<IMemoryCache>();
-        object expectedValue;
-        switch (method)
-        {
-            case "Get":
-                cache.Setup(x => x.TryGetValue(It.IsAny<object>(), out expectedValue))
-                    .Throws(new Exception(""));
-                break;
-            case "Remove":
-                cache.Setup(x => x.Remove(It.IsAny<object>()))
-                    .Throws(new Exception(""));
-                break;
-            case "Set":
-                cache.Setup(x => x.CreateEntry(It.IsAny<object>()))
-                    .Throws(new Exception(""));
-                break;
-        }
-
-        return cache;
-    }
-
-    #endregion
 }

@@ -2,18 +2,18 @@
 using CachedQueries.EntityFramework.Extensions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
 namespace CachedQueries.Test.EntityFramework;
 
-public class QueryableExtensionsTest
+public class ChangeTrackerExtensionsTest
 {
+    
     private readonly Mock<Func<TestDbContext>> _contextFactoryMock;
     private readonly Fixture _fixture;
 
-    public QueryableExtensionsTest()
+    public ChangeTrackerExtensionsTest()
     {
         _fixture = new Fixture();
         _contextFactoryMock = new Mock<Func<TestDbContext>>();
@@ -32,19 +32,26 @@ public class QueryableExtensionsTest
     }
     
     [Fact]
-    public async Task RetrieveRawInvalidationTagsFromQuery_ShouldReturnTags_WhenIncludeTypesArePresent()
+    public async Task GetAffectedReferences_Should_Return_Types()
     {
         // Given
         await using var context = _contextFactoryMock.Object();
-        var query = context.Orders
-            .Include(x => x.Products)
-            .Include(x => x.Customer);
-
+        var entities = _fixture.CreateMany<Order>(20).ToList();
+        context.Orders.AddRange(entities);
+        
         // When
-        var tags = query.RetrieveRawInvalidationTagsFromQuery();
-
+        var (affectedTypes, affectedTags) = context.ChangeTracker.GetAffectedReferences();
+        
         // Then
-        tags.Should()
-            .BeEquivalentTo(["CachedQueries.Test.Order", "CachedQueries.Test.Product", "CachedQueries.Test.Customer"]);
+        affectedTypes.Should().HaveCount(affectedTags.Length);
+        affectedTypes.Should().Contain(typeof(Order));
+        affectedTypes.Should().Contain(typeof(Customer));
+        affectedTypes.Should().Contain(typeof(Product));
+        affectedTypes.Should().Contain(typeof(Attribute));
+
+        affectedTags.Should().Contain("CachedQueries.Test.Order");
+        affectedTags.Should().Contain("CachedQueries.Test.Customer");
+        affectedTags.Should().Contain("CachedQueries.Test.Product");
+        affectedTags.Should().Contain("CachedQueries.Test.Attribute");
     }
 }

@@ -33,10 +33,8 @@ public class DependencyInjectionTest
         var cacheManager = CacheManagerContainer.Resolve();
 
         cacheManager.CacheInvalidator.Should().BeOfType<DefaultCacheInvalidator>();
-        cacheManager.DefaultCachingOptions.Should().BeOfType<CachingOptions>();
-        //cacheManager.CacheKeyFactory.Should().BeOfType<DefaultCacheKeyFactory>();
+        cacheManager.Config.Should().BeOfType<CachedQueriesConfig>();
 
-        var strategy = cacheManager.CacheEntryStrategy;
         CacheManagerContainer.Reset();
     }
 
@@ -77,7 +75,7 @@ public class DependencyInjectionTest
 
         // Then
         cacheManager.CacheInvalidator.Should().BeOfType<DefaultCacheInvalidator>();
-        cacheManager.DefaultCachingOptions.Should().BeOfType<CachingOptions>();
+        cacheManager.Config.Should().BeOfType<CachedQueriesConfig>();
         cacheManager.CacheKeyFactory.Should().BeOfType<DefaultCacheKeyFactory>();
 
         var cacheStore = app.ApplicationServices.GetService<ICacheStore>();
@@ -104,7 +102,7 @@ public class DependencyInjectionTest
         var cacheManager = CacheManagerContainer.Resolve();
 
         cacheManager.CacheInvalidator.Should().BeOfType<DefaultCacheInvalidator>();
-        cacheManager.DefaultCachingOptions.Should().BeOfType<CachingOptions>();
+        cacheManager.Config.Should().BeOfType<CachedQueriesConfig>();
         cacheManager.CacheKeyFactory.Should().BeOfType<QueryCacheKeyFactory>();
 
         var cacheStore = provider.GetService<ICacheStore>();
@@ -132,7 +130,7 @@ public class DependencyInjectionTest
         var cacheManager = CacheManagerContainer.Resolve();
 
         cacheManager.CacheInvalidator.Should().BeOfType<DefaultCacheInvalidator>();
-        cacheManager.DefaultCachingOptions.Should().BeOfType<CachingOptions>();
+        cacheManager.Config.Should().BeOfType<CachedQueriesConfig>();
         cacheManager.CacheKeyFactory.Should().BeOfType<DefaultCacheKeyFactory>();
 
         var cacheStore = provider.GetService<ICacheStore>();
@@ -151,9 +149,9 @@ public class DependencyInjectionTest
         services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
         services.AddCachedQueries(options => options
             .UseCacheInvalidator<DefaultCacheInvalidator>()
-            .UseCachingOptions(new CachingOptions
+            .UseCachingOptions(new CachedQueriesConfig
             {
-                CacheDuration = TimeSpan.FromHours(1)
+                DefaultCacheDuration = TimeSpan.FromHours(1)
             })
             .UseCacheStore<MemoryCache>()
         );
@@ -164,10 +162,10 @@ public class DependencyInjectionTest
         var cacheManager = CacheManagerContainer.Resolve();
 
         cacheManager.CacheInvalidator.Should().BeOfType<DefaultCacheInvalidator>();
-        cacheManager.DefaultCachingOptions.Should().BeOfType<CachingOptions>();
+        cacheManager.Config.Should().BeOfType<CachedQueriesConfig>();
         cacheManager.CacheKeyFactory.Should().BeOfType<DefaultCacheKeyFactory>();
 
-        cacheManager.DefaultCachingOptions.CacheDuration.Should().Be(TimeSpan.FromHours(1));
+        cacheManager.Config.DefaultCacheDuration.Should().Be(TimeSpan.FromHours(1));
 
         var cacheStore = provider.GetService<ICacheStore>();
         cacheStore.Should().BeOfType<MemoryCache>();
@@ -184,7 +182,7 @@ public class DependencyInjectionTest
         services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
 
         var act = () => services.AddCachedQueries(options => options
-            .UseCachingOptions(null)
+            .UseCachingOptions(null!)
         );
 
         // Then

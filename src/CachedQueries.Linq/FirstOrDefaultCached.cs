@@ -23,7 +23,7 @@ public static class FirstOrDefaultExtensions
         var cacheManager = CacheManagerContainer.Resolve();
         var defaultOptions = new CachingOptions
         {
-            CacheDuration = cacheManager.DefaultCachingOptions.CacheDuration
+            CacheDuration = cacheManager.Config.DefaultCacheDuration
         };
        
         return await query.FirstOrDefaultCachedAsync(predicate, defaultOptions, cancellationToken);
@@ -43,7 +43,7 @@ public static class FirstOrDefaultExtensions
         var cacheManager = CacheManagerContainer.Resolve();
         var defaultOptions = new CachingOptions
         {
-            CacheDuration = cacheManager.DefaultCachingOptions.CacheDuration
+            CacheDuration = cacheManager.Config.DefaultCacheDuration
         };
 
         return await query.FirstOrDefaultCachedAsync(defaultOptions, cancellationToken);

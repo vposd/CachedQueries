@@ -26,18 +26,17 @@ public static class ChangeTrackerExtensions
     /// </summary>
     /// <param name="changeTracker"></param>
     /// <returns>Affected types and invalidation tags</returns>
-    public static (IEnumerable<Type> Types, string[] Tags) GetAffectedReferences(
+    public static (Type[] Types, string[] Tags) GetAffectedReferences(
         this ChangeTracker changeTracker)
     {
         var affectedTypes = changeTracker.Entries()
             .Where(e =>
                 e.State is EntityState.Modified or EntityState.Deleted or EntityState.Added)
             .Select(x => x.Entity.GetType())
-            .ToHashSet();
+            .Distinct()
+            .ToArray();
 
         var tags = affectedTypes
-            .Concat(affectedTypes.Select(af => af.BaseType).Where(x => x != null))
-            .Cast<Type>()
             .Select(e => e.FullName)
             .Cast<string>()
             .Distinct()

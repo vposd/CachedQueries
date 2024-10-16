@@ -37,23 +37,23 @@ public sealed class ReflectExtensionsTest
     {
         // Given
         await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(20).ToList();
-        context.Blogs.AddRange(entities);
+        var entities = _fixture.CreateMany<Order>(20).ToList();
+        context.Orders.AddRange(entities);
         await context.SaveChangesAsync();
 
         // When
-        var queryLinq = context.Blogs
-            .Include(x => x.Posts)
-            .Include(x => x.Author)
+        var queryLinq = context.Orders
+            .Include(x => x.Products)
+            .Include(x => x.Customer)
             .Where(x => x.Id > 0);
 
-        var querySyntax = from blog in context.Blogs
-            join author in context.Authors on blog.AuthorId equals author.Id
-            join post in context.Posts on blog.Id equals post.Id
-            where blog.Id > 0
+        var querySyntax = from order in context.Orders
+            join customer in context.Customers on order.CustomerId equals customer.Id
+            join product in context.Products on order.Id equals product.Id
+            where order.Id > 0
             select new
             {
-                blog, author
+                order, customer
             };
 
         var typesFromLinq = queryLinq.GetIncludeTypes().ToList();
@@ -61,14 +61,14 @@ public sealed class ReflectExtensionsTest
 
         // Then
         typesFromLinq.Should().HaveCount(3);
-        typesFromLinq.Should().Contain(typeof(Blog));
-        typesFromLinq.Should().Contain(typeof(Author));
-        typesFromLinq.Should().Contain(typeof(Post));
+        typesFromLinq.Should().Contain(typeof(Order));
+        typesFromLinq.Should().Contain(typeof(Customer));
+        typesFromLinq.Should().Contain(typeof(Product));
 
         typesFromQuerySyntax.Should().HaveCount(3);
-        typesFromQuerySyntax.Should().Contain(typeof(Blog));
-        typesFromQuerySyntax.Should().Contain(typeof(Author));
-        typesFromQuerySyntax.Should().Contain(typeof(Post));
+        typesFromQuerySyntax.Should().Contain(typeof(Order));
+        typesFromQuerySyntax.Should().Contain(typeof(Customer));
+        typesFromQuerySyntax.Should().Contain(typeof(Product));
     }
 
     [Fact]
@@ -76,26 +76,26 @@ public sealed class ReflectExtensionsTest
     {
         // Given
         await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(20).ToList();
-        context.Blogs.AddRange(entities);
+        var entities = _fixture.CreateMany<Order>(20).ToList();
+        context.Orders.AddRange(entities);
         await context.SaveChangesAsync();
 
         // When
-        var queryLinq = context.Blogs
-            .Include(x => x.Posts)
-            .ThenInclude(x => x.Comments)
-            .Include(x => x.Author)
+        var queryLinq = context.Orders
+            .Include(x => x.Products)
+            .ThenInclude(x => x.Attributes)
+            .Include(x => x.Customer)
             .IgnoreQueryFilters()
             .Where(x => x.Id > 0);
 
-        var querySyntax = from blog in context.Blogs
-            join author in context.Authors on blog.AuthorId equals author.Id
-            join post in context.Posts on blog.Id equals post.Id
-            join comment in context.Comments on post.Id equals comment.Id
-            where blog.Id > 0
+        var querySyntax = from order in context.Orders
+            join customer in context.Customers on order.CustomerId equals customer.Id
+            join product in context.Products on order.Id equals product.Id
+            join attribute in context.Attributes on product.Id equals attribute.ProductId
+            where order.Id > 0
             select new
             {
-                blog, author
+                order, customer
             };
 
         var typesFromLinq = queryLinq.GetIncludeTypes().ToList();
@@ -103,16 +103,16 @@ public sealed class ReflectExtensionsTest
 
         // Then
         typesFromLinq.Should().HaveCount(4);
-        typesFromLinq.Should().Contain(typeof(Blog));
-        typesFromLinq.Should().Contain(typeof(Author));
-        typesFromLinq.Should().Contain(typeof(Comment));
-        typesFromLinq.Should().Contain(typeof(Post));
+        typesFromLinq.Should().Contain(typeof(Order));
+        typesFromLinq.Should().Contain(typeof(Customer));
+        typesFromLinq.Should().Contain(typeof(Attribute));
+        typesFromLinq.Should().Contain(typeof(Product));
 
         typesFromQuerySyntax.Should().HaveCount(4);
-        typesFromQuerySyntax.Should().Contain(typeof(Blog));
-        typesFromQuerySyntax.Should().Contain(typeof(Author));
-        typesFromQuerySyntax.Should().Contain(typeof(Comment));
-        typesFromQuerySyntax.Should().Contain(typeof(Post));
+        typesFromQuerySyntax.Should().Contain(typeof(Order));
+        typesFromQuerySyntax.Should().Contain(typeof(Customer));
+        typesFromQuerySyntax.Should().Contain(typeof(Attribute));
+        typesFromQuerySyntax.Should().Contain(typeof(Product));
     }
 
     [Fact]
@@ -120,27 +120,27 @@ public sealed class ReflectExtensionsTest
     {
         // Given
         await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(20).ToList();
-        context.Blogs.AddRange(entities);
+        var entities = _fixture.CreateMany<Order>(20).ToList();
+        context.Orders.AddRange(entities);
         await context.SaveChangesAsync();
 
         // When
-        var query = context.Blogs
-            .Include(x => x.Posts.Where(p => !string.IsNullOrEmpty(p.Text)))
-            .ThenInclude(x => x.Comments.Where(p => !string.IsNullOrEmpty(p.Text)))
-            .Include(x => x.Author)
+        var query = context.Orders
+            .Include(x => x.Products.Where(p => !string.IsNullOrEmpty(p.Name)))
+            .ThenInclude(x => x.Attributes.Where(p => !string.IsNullOrEmpty(p.Text)))
+            .Include(x => x.Customer)
             .IgnoreQueryFilters()
             .Where(x => x.Id > 0)
-            .Select(x => x.Name);
+            .Select(x => x.Number);
 
         var types = query.GetIncludeTypes().ToList();
 
         // Then
         types.Should().HaveCount(4);
-        types.Should().Contain(typeof(Blog));
-        types.Should().Contain(typeof(Author));
-        types.Should().Contain(typeof(Comment));
-        types.Should().Contain(typeof(Post));
+        types.Should().Contain(typeof(Order));
+        types.Should().Contain(typeof(Customer));
+        types.Should().Contain(typeof(Attribute));
+        types.Should().Contain(typeof(Product));
     }
 
     [Fact]
@@ -148,16 +148,16 @@ public sealed class ReflectExtensionsTest
     {
         // Given
         await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(20).ToList();
-        context.Blogs.AddRange(entities);
+        var entities = _fixture.CreateMany<Order>(20).ToList();
+        context.Orders.AddRange(entities);
         await context.SaveChangesAsync();
 
         // When
-        var types = context.Blogs.GetIncludeTypes().ToList();
+        var types = context.Orders.GetIncludeTypes().ToList();
 
         // Then
         types.Should().HaveCount(1);
-        types.Should().Contain(typeof(Blog));
+        types.Should().Contain(typeof(Order));
     }
 
     [Fact]
@@ -166,15 +166,15 @@ public sealed class ReflectExtensionsTest
     {
         // Given
         await using var context = _contextFactoryMock.Object();
-        var entities = _fixture.CreateMany<Blog>(20).ToList();
-        context.Blogs.AddRange(entities);
+        var entities = _fixture.CreateMany<Order>(20).ToList();
+        context.Orders.AddRange(entities);
         await context.SaveChangesAsync();
 
         // When
-        var types = context.Blogs.Where(x => x.Id > 0).Select(x => x.Name).GetIncludeTypes().ToList();
+        var types = context.Orders.Where(x => x.Id > 0).Select(x => x.Number).GetIncludeTypes().ToList();
 
         // Then
         types.Should().HaveCount(1);
-        types.Should().Contain(typeof(Blog));
+        types.Should().Contain(typeof(Order));
     }
 }

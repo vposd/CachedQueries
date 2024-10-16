@@ -17,9 +17,9 @@ public class CachedQueriesOptions
         RegisterDefaultServices();
     }
 
-    public CachingOptions Options { get; private set; } = new()
+    public CachedQueriesConfig Options { get; private set; } = new()
     {
-        CacheDuration = TimeSpan.FromHours(8)
+        DefaultCacheDuration = TimeSpan.FromHours(8)
     };
 
     public IReadOnlyDictionary<Type, Type> GetServicesMap()
@@ -31,7 +31,7 @@ public class CachedQueriesOptions
     ///     Setup a cache options
     /// </summary>
     /// <returns></returns>
-    public CachedQueriesOptions UseCachingOptions(CachingOptions options)
+    public CachedQueriesOptions UseCachingOptions(CachedQueriesConfig options)
     {
         Options = options ?? throw new ArgumentNullException(nameof(options));
         return this;
