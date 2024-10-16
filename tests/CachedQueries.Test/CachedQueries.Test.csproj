@@ -31,10 +31,13 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\CachedQueries.EntityFramework\CachedQueries.EntityFramework.csproj"/>
+        <ProjectReference Include="..\..\src\CachedQueries.Linq\CachedQueries.Linq.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Linq\" />
+        <None Update="xunit.runner.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
 </Project>

@@ -18,8 +18,11 @@ public static class ToListExtensions
         CancellationToken cancellationToken = default)
     {
         var cacheManager = CacheManagerContainer.Resolve();
-        var defaultOption = new CachingOptions();
-        var result = await cacheManager.CacheCollectionStrategy.ExecuteAsync(query, defaultOption, cancellationToken);
-        return result;
+        var defaultOption = new CachingOptions
+        {
+            CacheDuration = cacheManager.DefaultCachingOptions.CacheDuration
+        };
+
+        return await query.ToListCachedAsync(defaultOption, cancellationToken);
     }
 }
