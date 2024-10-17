@@ -60,14 +60,17 @@ Cache collections or individual entities with optional expiration:
 
 ```csharp
 // Cache collections
-var blogs = await context.Blogs.Include(b => b.Posts)
-                               .ToListCachedAsync(cancellationToken);
+var orders = await context.Orders
+    .Include(b => b.Items)
+    .ToListCachedAsync(cancellationToken);
 
 // Set custom expiration (e.g., 4 hours)
-var posts = await context.Posts.ToListCachedAsync(new CachingOptions { CachedDuration = TimeSpan.FromHours(4) }, cancellationToken);
+var customers = await context.Customers
+    .ToListCachedAsync(new CachingOptions(TimeSpan.FromHours(4)), cancellationToken);
 
 // Cache single entity
-var blog = await context.Blogs.CachedFirstOrDefaultAsync(b => b.Id == request.Id, cancellationToken);
+var product = await context.Products
+    .FirstOrDefaultCachedAsync(b => b.Id == request.Id, cancellationToken);
 
 ```
 
@@ -110,8 +113,8 @@ CachedQueries offers flexible configuration options, allowing you to customize v
  // Custom cache store implementation
 services.AddQueriesCaching(options =>
     options
-    .UseCacheStore<CustomCacheStore>() // Custom ICacheStore implementation
-    .UseEntityFramework());
+        .UseCacheStore<CustomCacheStore>() // Custom ICacheStore implementation
+        .UseEntityFramework());
 ```
 
 ### Custom Cache Invalidators
@@ -121,8 +124,8 @@ To control when and how cached data is invalidated, you can implement a custom c
 // Custom cache invalidator setup
 services.AddQueriesCaching(options =>
     options
-    .UseCacheInvalidator<CustomCacheInvalidator>() // Custom ICacheInvalidator implementation
-    .UseEntityFramework());
+        .UseCacheInvalidator<CustomCacheInvalidator>() // Custom ICacheInvalidator implementation
+        .UseEntityFramework());
 ```
 
 ### Cache Strategies
@@ -136,9 +139,9 @@ To implement custom strategies, provide classes that inherit from `ICacheCollect
 // Custom cache strategies setup
 services.AddQueriesCaching(options =>
     options
-    .UseCacheCollectionStrategy<CustomCollectionStrategy>() // Custom ICacheCollectionStrategy implementation
-    .UseCacheEntryStrategy<CustomEntryStrategy>() // Custom ICacheEntryStrategy implementation
-    .UseEntityFramework());
+        .UseCacheCollectionStrategy<CustomCollectionStrategy>() // Custom ICacheCollectionStrategy implementation
+        .UseCacheEntryStrategy<CustomEntryStrategy>() // Custom ICacheEntryStrategy implementation
+        .UseEntityFramework());
 
 ```
 
@@ -149,8 +152,8 @@ The cache key factory determines how cache keys are generated. CachedQueries all
 // Custom cache key factory setup
 services.AddQueriesCaching(options =>
     options
-    .UseKeyFactory<CustomKeyFactory>() // Custom ICacheKeyFactory implementation
-    .UseEntityFramework());
+        .UseKeyFactory<CustomKeyFactory>() // Custom ICacheKeyFactory implementation
+        .UseEntityFramework());
 ```
 
 ### Custom Cache Context Provider
@@ -180,8 +183,8 @@ Setup a custom cache context provider:
 // Custom cache key factory setup
 services.AddQueriesCaching(options =>
     options
-    .UseCacheContextProvider<TenantCacheContextProvider>()
-    .UseEntityFramework());
+        .UseCacheContextProvider<TenantCacheContextProvider>()
+        .UseEntityFramework());
 ```
 
 ## Custom Dependency Injection Example
@@ -190,17 +193,17 @@ Here's an example of how you can configure CachedQueries with various custom str
 ```csharp
 services.AddQueriesCaching(options =>
     options
-    .UseCacheStore<CustomCacheStore>() // Custom cache store
-    .UseCacheInvalidator<CustomCacheInvalidator>() // Custom invalidator
-    .UseCacheCollectionStrategy<CustomCollectionStrategy>() // Custom collection strategy
-    .UseCacheEntryStrategy<CustomEntryStrategy>() // Custom entry strategy
-    .UseKeyFactory<CustomKeyFactory>() // Custom key factory
-    .UseCacheContextProvider<CustomContextProvider>()
-    .UseOptions(new CacheOptions
-    {
-        DefaultExpiration = TimeSpan.FromMinutes(30),
-    })
-    .UseEntityFramework());
+        .UseCacheStore<CustomCacheStore>() // Custom cache store
+        .UseCacheInvalidator<CustomCacheInvalidator>() // Custom invalidator
+        .UseCacheCollectionStrategy<CustomCollectionStrategy>() // Custom collection strategy
+        .UseCacheEntryStrategy<CustomEntryStrategy>() // Custom entry strategy
+        .UseKeyFactory<CustomKeyFactory>() // Custom key factory
+        .UseCacheContextProvider<CustomContextProvider>()
+        .UseOptions(new CacheOptions
+        {
+            DefaultExpiration = TimeSpan.FromMinutes(30),
+        })
+        .UseEntityFramework());
 ```
 
 ## Conclusion
