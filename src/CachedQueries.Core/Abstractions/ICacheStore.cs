@@ -1,36 +1,37 @@
 ﻿namespace CachedQueries.Core.Abstractions;
 
 /// <summary>
-///     Cache service interface
+/// Represents a cache service for storing and retrieving data in an asynchronous manner.
 /// </summary>
 public interface ICacheStore
 {
     /// <summary>
-    ///     Get results from cache
+    /// Asynchronously retrieves a cached value by its key.
     /// </summary>
-    /// <param name="key">Cache key</param>
-    /// <param name="cancellationToken"></param>
-    /// <typeparam name="T">TEntity type</typeparam>
-    /// <returns></returns>
+    /// <typeparam name="T">The type of the value to be retrieved.</typeparam>
+    /// <param name="key">The cache key used to identify the value.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains the cached value, or <c>null</c> if the key does not exist in the cache.
+    /// </returns>
     Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///     Set value to cache
+    /// Asynchronously stores a value in the cache with an optional expiration time.
     /// </summary>
-    /// <param name="key">Cache key</param>
-    /// <param name="value">Value</param>
-    /// <param name="expire">Expiration timespan</param>
-    /// <param name="cancellationToken"></param>
-    /// <typeparam name="T">TEntity type</typeparam>
-    /// <returns></returns>
-    Task SetAsync<T>(string key, T value, TimeSpan? expire = null,
-        CancellationToken cancellationToken = default);
+    /// <typeparam name="T">The type of the value to be stored.</typeparam>
+    /// <param name="key">The cache key used to store the value.</param>
+    /// <param name="value">The value to be cached.</param>
+    /// <param name="expire">An optional expiration timespan after which the cached value will be invalidated. If not provided, the default cache duration will be used.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    Task SetAsync<T>(string key, T value, TimeSpan? expire = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///     Remove item from cache
+    /// Asynchronously removes an entry from the cache based on the provided key.
     /// </summary>
-    /// <param name="key">Cache key</param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
+    /// <param name="key">The cache key identifying the entry to be removed.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task DeleteAsync(string key, CancellationToken cancellationToken = default);
 }

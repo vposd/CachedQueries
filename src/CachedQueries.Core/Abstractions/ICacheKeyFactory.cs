@@ -1,16 +1,18 @@
 ﻿namespace CachedQueries.Core.Abstractions;
 
 /// <summary>
-///     Cache key factory service interface
+/// Provides an interface for a service responsible for generating cache keys for queries.
 /// </summary>
 public interface ICacheKeyFactory
 {
     /// <summary>
-    ///     Returns cache key for the query
+    /// Generates a unique cache key for the specified query, incorporating optional tags for cache invalidation.
     /// </summary>
-    /// <param name="query">Query param</param>
-    /// <param name="tags">Linking tags for further invalidation</param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns>The cache key</returns>
+    /// <typeparam name="T">The type of entities being queried.</typeparam>
+    /// <param name="query">The query parameter used to generate the cache key. This should be an IQueryable representing the data source.</param>
+    /// <param name="tags">An array of strings representing linking tags that can be used for further cache invalidation.</param>
+    /// <returns>
+    /// A string representing the unique cache key for the provided query and tags. This key will be used to store and retrieve cached results.
+    /// </returns>
     string GetCacheKey<T>(IQueryable<T> query, string[] tags);
 }
