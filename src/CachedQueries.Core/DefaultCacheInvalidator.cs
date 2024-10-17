@@ -2,7 +2,7 @@
 
 namespace CachedQueries.Core;
 
-public class DefaultCacheInvalidator(ICacheStore cache) : ICacheInvalidator
+public class DefaultCacheInvalidator(ICacheStore cache, ICacheContextProvider cacheContext) : ICacheInvalidator
 {
     /// <summary>
     ///     Async remove all cache entries linked to provided invalidation tags
@@ -11,7 +11,7 @@ public class DefaultCacheInvalidator(ICacheStore cache) : ICacheInvalidator
     /// <param name="cancellationToken"></param>
     public async Task InvalidateCacheAsync(string[] tags, CancellationToken cancellationToken = default)
     {
-        var tagsList = tags.ToList();
+        var tagsList = tags.Select(x => string.Join(cacheContext.GetContextKey(), x)).ToList();
         var keysToRemove = new List<string>(tagsList);
 
         var tagsToExpireTasks = tagsList.Distinct()
@@ -46,7 +46,7 @@ public class DefaultCacheInvalidator(ICacheStore cache) : ICacheInvalidator
             return;
         }
 
-        var tagsToLink = tags.Distinct().ToList();
+        var tagsToLink = tags.Select(x => string.Join(cacheContext.GetContextKey(), x)).Distinct().ToList();
         await Task.WhenAll(tagsToLink.Select(tag => LinkTagAsync(key, tag, cancellationToken)));
     }
 

@@ -7,11 +7,12 @@ namespace CachedQueries.Core;
 /// <summary>
 ///     Base class for cache key factory.
 /// </summary>
-public class DefaultCacheKeyFactory : ICacheKeyFactory
+public class DefaultCacheKeyFactory(ICacheContextProvider cacheContext) : ICacheKeyFactory
 {
     public virtual string GetCacheKey<T>(IQueryable<T> query, string[] tags)
     {
-        var command = string.Join('_', tags.ToList());
+        var tagList = tags.Select(tag => string.Join(cacheContext.GetContextKey(), tag));
+        var command = string.Join('_', tagList.Distinct().ToList());
         return GetStringSha256Hash(command);
     }
 

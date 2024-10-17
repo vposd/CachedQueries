@@ -17,7 +17,8 @@ public class DefaultCacheInvalidatorTest
     {
         // Given
         var cacheStore = new Mock<ICacheStore>();
-        var invalidator = new DefaultCacheInvalidator(cacheStore.Object);
+        var cacheContext = new Mock<ICacheContextProvider>();
+        var invalidator = new DefaultCacheInvalidator(cacheStore.Object, cacheContext.Object);
 
         // When
         var action = async () => await invalidator.LinkTagsAsync(key, [], CancellationToken.None);

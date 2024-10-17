@@ -8,6 +8,7 @@ public class CacheManager(
     ICacheCollectionStrategy cacheCollectionStrategy,
     ICacheInvalidator cacheInvalidator,
     ICacheKeyFactory cacheKeyFactory,
+    ICacheContextProvider cacheContextProvider,
     CachedQueriesConfig config)
     : ICacheManager
 {
@@ -15,5 +16,6 @@ public class CacheManager(
     public ICacheEntryStrategy CacheEntryStrategy { get; } = cacheEntryStrategy;
     public ICacheInvalidator CacheInvalidator { get; } = cacheInvalidator;
     public ICacheKeyFactory CacheKeyFactory { get; } = cacheKeyFactory;
+    public ICacheContextProvider CacheContextProvider { get; } = cacheContextProvider;
     public CachedQueriesConfig Config { get; } = config;
 }

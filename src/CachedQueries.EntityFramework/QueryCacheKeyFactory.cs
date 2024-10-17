@@ -1,4 +1,5 @@
 ﻿using CachedQueries.Core;
+using CachedQueries.Core.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
 namespace CachedQueries.EntityFramework;
@@ -6,7 +7,7 @@ namespace CachedQueries.EntityFramework;
 /// <summary>
 ///     Default cache query factory for EF workflow.
 /// </summary>
-public class QueryCacheKeyFactory : DefaultCacheKeyFactory
+public class QueryCacheKeyFactory(ICacheContextProvider cacheContext) : DefaultCacheKeyFactory(cacheContext)
 {
     /// <summary>
     ///     Returns cache key as hash of query string plus joined tags
@@ -20,7 +21,8 @@ public class QueryCacheKeyFactory : DefaultCacheKeyFactory
         var sqlString = query.ToQueryString();
         var expressionString = query.Expression.ToString();
 
-        var command = sqlString + expressionString + string.Join('_', tags.ToList());
+        var tagList = tags.Select(tag => string.Join(cacheContext.GetContextKey(), tag));
+        var command = sqlString + expressionString + string.Join('_', tagList.Distinct().ToList());
         return GetStringSha256Hash(command);
     }
 }

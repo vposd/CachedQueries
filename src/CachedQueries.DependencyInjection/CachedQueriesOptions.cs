@@ -91,6 +91,17 @@ public class CachedQueriesOptions
         SetService(typeof(ICacheEntryStrategy), typeof(T));
         return this;
     }
+    
+    /// <summary>
+    ///     Set a cache context provider
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public CachedQueriesOptions UseCacheContextProvider<T>() where T : class, ICacheContextProvider
+    {
+        SetService(typeof(ICacheContextProvider), typeof(T));
+        return this;
+    }
 
     private void SetService(Type key, Type value)
     {
@@ -104,5 +115,6 @@ public class CachedQueriesOptions
         UseCacheInvalidator<DefaultCacheInvalidator>();
         UseCacheCollectionStrategy<DefaultCacheCollectionStrategy>();
         UseCacheEntryStrategy<DefaultCacheEntryStrategy>();
+        UseCacheContextProvider<DefaultCacheContextProvider>();
     }
 }

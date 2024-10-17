@@ -8,5 +8,6 @@ public interface ICacheManager
     public ICacheEntryStrategy CacheEntryStrategy { get; }
     public ICacheInvalidator CacheInvalidator { get; }
     public ICacheKeyFactory CacheKeyFactory { get; }
+    public ICacheContextProvider CacheContextProvider { get; }
     public CachedQueriesConfig Config { get; }
 }

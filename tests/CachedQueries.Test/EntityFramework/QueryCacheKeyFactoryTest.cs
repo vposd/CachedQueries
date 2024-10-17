@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using AutoFixture;
+using CachedQueries.Core.Abstractions;
 using CachedQueries.EntityFramework;
 using FluentAssertions;
+using Moq;
 using Xunit;
 
 namespace CachedQueries.Test.EntityFramework;
@@ -15,7 +17,9 @@ public class QueryCacheKeyFactoryTest
     public void Should_Generate_Key()
     {
         // Given
-        var keyFactory = new QueryCacheKeyFactory();
+        var cacheContext = new Mock<ICacheContextProvider>();
+
+        var keyFactory = new QueryCacheKeyFactory(cacheContext.Object);
         var list = _fixture.CreateMany<Order>(10);
         var query = list.Where(x => x.Id > 0).AsQueryable();
 
