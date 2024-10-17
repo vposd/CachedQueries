@@ -1,4 +1,6 @@
-﻿using MediatR;
+﻿using CachedQueries.Core.Models;
+using CachedQueries.Linq;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Ordering.Application.Common.Contracts;
 using Ordering.Infrastructure;
@@ -27,8 +29,8 @@ public class GetOrdersQueryHandler(OrderingContext context) : IRequestHandler<Ge
                     Discount = i.Discount
                 }).ToList()
             })
-            .ToArrayAsync(cancellationToken);
+            .ToListCachedAsync(cancellationToken);
 
-        return orders;
+        return orders.ToArray();
     }
 }

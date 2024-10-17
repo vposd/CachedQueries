@@ -23,6 +23,8 @@ public class CreateOrderCommandHandler(OrderingContext context) : IRequestHandle
         };
 
         context.Orders.Add(eo);
-        return await context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+
+        return eo.Id;
     }
 }

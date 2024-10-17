@@ -26,5 +26,8 @@
     <file
       src="src/CachedQueries.EntityFramework/bin/Release/net8.0/CachedQueries.EntityFramework.dll"
       target="lib\net8.0" />
+    <file
+      src="src/CachedQueries.Linq/bin/Release/net8.0/CachedQueries.Linq.dll"
+      target="lib\net8.0" />
   </files>
 </package>
