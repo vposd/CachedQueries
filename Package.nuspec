@@ -2,17 +2,19 @@
 <package>
   <metadata>
     <id>CachedQueries</id>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <authors>Valerii Pozdnyakov</authors>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <readme>docs\README.md</readme>
     <license type="expression">MIT</license>
     <projectUrl>https://github.com/vposd/CachedQueries</projectUrl>
-    <description>CachedQueries is a query cache extension library for Entity Framework Core. The
-      main goal is to bring caching to ef queries with flexible invalidation without any abstraction
-      over DbSet.</description>
+    <description>CachedQueries is a .NET library designed to seamlessly integrate caching into
+      Entity Framework (EF) queries. It simplifies caching IQueryable results directly within EF,
+      removing the need for additional layers, while ensuring efficient data retrieval and cache
+      invalidation.</description>
     <copyright>Copyright Valerii Pozdnyakov 2022-2024</copyright>
-    <tags>entity-framework ef-core cache query caching</tags>
+    <tags>caching, entity-framework, ef-core, query-caching, performance, data-retrieval,
+      cache-invalidation, distributed-cache, redis, memory-cache, dotnet, .net-library</tags>
     <dependencies>
       <group targetFramework=".NET8" />
     </dependencies>
@@ -25,6 +27,9 @@
       target="lib\net8.0" />
     <file
       src="src/CachedQueries.EntityFramework/bin/Release/net8.0/CachedQueries.EntityFramework.dll"
+      target="lib\net8.0" />
+    <file
+      src="src/CachedQueries.Linq/bin/Release/net8.0/CachedQueries.Linq.dll"
       target="lib\net8.0" />
   </files>
 </package>

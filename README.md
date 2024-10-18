@@ -9,166 +9,205 @@
 
 ## Introduction
 
-CachedQueries is an open-source .NET library for adding efficient caching to Entity Framework queries. 
-It simplifies caching IQueryable results by enabling caching directly within EF, thus eliminating the need for extra abstraction layers over DbSet.
+CachedQueries is a .NET library designed to seamlessly integrate caching into Entity Framework (EF) queries. It simplifies caching IQueryable results directly within EF, removing the need for additional layers, while ensuring efficient data retrieval and cache invalidation.
 
 
-## Getting Started
+## Installation
 
-1. Install package
+To install CachedQueries, run the following command:
 
 ```
 dotnet add package CachedQueries
 ```
 
-2. Dependency Injection Setup (example using memory cache):
+## Setup and Configuration
 
-```c#
-// Setup system cache
+1. Configure Dependency Injection:
+
+```csharp
+// Add system cache
 services.AddMemoryCache();
 
-// Add CachedQueries to your services
+// Add CachedQueries
 services.AddQueriesCaching(options =>
     options
-        .UseCacheStore(MemoryCache)
-        .UseEntityFramework());
+        .UseCacheStore<MemoryCache>()   // Configure cache store
+        .UseEntityFramework()           // Integrate with EF
+);
 
-// Use CachedQueries in your application
+// Activate caching in your application
 app.UseQueriesCaching();
 
 ```
 
-3. Cache Invalidation Integration
+2. Cache Invalidation in EF Context:
 
-```c#
-// Extend SaveChanges and SaveChangesAsync methods in EF context
+To automatically invalidate cache entries when data changes, extend your EF context:
+```csharp
+// Override SaveChanges and SaveChangesAsync methods in EF context
 public override async Task<int> SaveChangesAsync(CancellationToken token = default)
 {
-    // Invoke cache expiration
-    await ChangeTracker.ExpireEntitiesCacheAsync(token);
+    await ChangeTracker.ExpireEntitiesCacheAsync(token);   // Trigger cache invalidation
     return await base.SaveChangesAsync(token);
 }
 ```
 
 ## Basic Usage
 
-### Cache collection
+### Caching Queries
 
-Easily cache collections, including related data:
+Cache collections or individual entities with optional expiration:
 
-```c#
-// Standard caching
-var results = await context.Blogs
-    .Include(x => x.Posts)
-    .ToCachedListAsync(cancellationToken);
+```csharp
+// Cache collections
+var orders = await context.Orders
+    .Include(b => b.Items)
+    .ToListCachedAsync(cancellationToken);
 
-// Caching with expiration
-var results = await context.Posts
-    .ToCachedListAsync(TimeSpan.FromHours(8), cancellationToken);
+// Set custom expiration (e.g., 4 hours)
+var customers = await context.Customers
+    .ToListCachedAsync(new CachingOptions(TimeSpan.FromHours(4)), cancellationToken);
 
-// Caching with custom tags
-var results = await context.Posts
-    .ToCachedListAsync(TimeSpan.FromHours(8), new List<string> { "custom_tag" }, cancellationToken);
+// Cache single entity
+var product = await context.Products
+    .FirstOrDefaultCachedAsync(b => b.Id == request.Id, cancellationToken);
+
 ```
 
-### Caching Individual Items
+## Manual Cache Invalidation
 
-Cache single entities:
+Manually control cache invalidation with custom tags:
+```csharp
+// Initialize cache invalidator
+private ICacheInvalidator _cacheInvalidator;
 
-```c#
-// Cache a single entity based on a condition
-var result = await context.Blogs
-    .Include(x => x.Posts)
-    .CachedFirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
+// Invalidate cache with tags
+await _cacheInvalidator.InvalidateCacheAsync(new List<string> { "custom_tag" });
 
-// Cache an entity with a predetermined expiration time
-var result = await context.Posts
-    .CachedFirstOrDefaultAsync(TimeSpan.FromHours(8), cancellationToken);
-
-// Cache using custom tags for nuanced control
-var result = await context.Posts
-    .CachedFirstOrDefaultAsync(TimeSpan.FromHours(8), new List<string> { "custom_tag" }, cancellationToken);
 ```
 
-## Invalidating Cache
+## Distributed Caching with Redis
 
-CachedQueries efficiently handles cache invalidation, maintaining data accuracy and relevance.
+For distributed environments, you can use Redis as your caching solution:
 
-### Auto Invalidation
+```csharp
+// Add Redis distributed cache
+services.AddStackExchangeRedisCache(config);
 
-To integrate automatic cache invalidation within CachedQueries, it is efficient to override the EF context `SaveChanges` and `SaveChangesAsync` methods.
+// Configure CachedQueries with Redis
+services.AddQueriesCaching(options =>
+    options
+        .UseCacheStore<DistributedCache>()         // Use distributed cache
+        .UseEntityFramework()                      // Integrate with EF
+);
+```
 
-```c#
-public override async Task<int> SaveChangesAsync(CancellationToken token = default)
+## Advanced Configuration
+
+CachedQueries offers flexible configuration options, allowing you to customize various components:
+
+### Custom Cache Stores
+ You can implement your own cache store by providing a class that implements the ICacheStore interface. This allows you to manage caching according to your custom rules, including data storage and retrieval.
+
+ ```csharp
+ // Custom cache store implementation
+services.AddQueriesCaching(options =>
+    options
+        .UseCacheStore<CustomCacheStore>() // Custom ICacheStore implementation
+        .UseEntityFramework());
+```
+
+### Custom Cache Invalidators
+To control when and how cached data is invalidated, you can implement a custom cache invalidator. This is useful for scenarios where invalidation needs to follow specific business rules or depend on external conditions.
+
+ ```csharp
+// Custom cache invalidator setup
+services.AddQueriesCaching(options =>
+    options
+        .UseCacheInvalidator<CustomCacheInvalidator>() // Custom ICacheInvalidator implementation
+        .UseEntityFramework());
+```
+
+### Cache Strategies
+You can define custom strategies for both caching collections and individual entries. CachedQueries enables you to specify how data is stored, retrieved, and expired.
+
+Cache Collection Strategy: Manages the caching behavior for collections, such as lists or arrays of entities.
+Cache Entry Strategy: Manages the caching behavior for individual entities.
+To implement custom strategies, provide classes that inherit from `ICacheCollectionStrategy` and `ICacheEntryStrategy`.
+
+```csharp
+// Custom cache strategies setup
+services.AddQueriesCaching(options =>
+    options
+        .UseCacheCollectionStrategy<CustomCollectionStrategy>() // Custom ICacheCollectionStrategy implementation
+        .UseCacheEntryStrategy<CustomEntryStrategy>() // Custom ICacheEntryStrategy implementation
+        .UseEntityFramework());
+
+```
+
+### Cache Key Factory
+The cache key factory determines how cache keys are generated. CachedQueries allows you to define custom key generation logic, which can be useful if your application has unique keying requirements for different types of queries.
+
+```csharp
+// Custom cache key factory setup
+services.AddQueriesCaching(options =>
+    options
+        .UseKeyFactory<CustomKeyFactory>() // Custom ICacheKeyFactory implementation
+        .UseEntityFramework());
+```
+
+### Custom Cache Context Provider
+CachedQueries allows for the use of a custom `ICacheContextProvider` to manage context-specific caching. This is useful when cache keys need to be unique across different contexts, such as tenants, users, or environments.
+
+```csharp
+// Example of a custom cache context provider
+public class TenantCacheContextProvider : ICacheContextProvider
 {
-    await ChangeTracker.ExpireEntitiesCacheAsync(token);
-    return base.SaveChangesAsync(token);
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public TenantCacheContextProvider(IHttpContextAccessor httpContextAccessor)
+    {
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    public string GetContextKey()
+    {
+        // Example: Use tenant ID from the HTTP context
+        return _httpContextAccessor.HttpContext?.User?.FindFirst("tenant_id")?.Value ?? "default_tenant";
+    }
 }
 ```
 
-### Manual Invalidation Using Custom Tags
-
-Control cache updates in case using custom tags:
-
-```c#
-// Setup the cache invalidator (typically done during initialization)
-private ICacheInvalidator _cacheInvalidator;
-...
-// Invalidate specific cache segments by custom tag
-_cacheInvalidator.InvalidateCacheAsync(new List<string> { "custom_tag" })
-```
-
-## Use Redis distributed Cache
-
-Use Redis for scalable, distributed caching:
-
-```c#
-// Setup distributed cache
-services.AddDistributedCache();
-// Setup Redis
-services.AddStackExchangeRedisCache(config);
-
-// Add CachedQueries to your services
+Setup a custom cache context provider:
+```csharp
+// Custom cache key factory setup
 services.AddQueriesCaching(options =>
     options
-        .UseCacheStore(DistributedCache)
-        .UseLockManager<RedisLockManager>()
+        .UseCacheContextProvider<TenantCacheContextProvider>()
         .UseEntityFramework());
-
-// Use CachedQueries in your application
-app.UseQueriesCaching();
 ```
 
-## More Customization Options
+## Custom Dependency Injection Example
+Here's an example of how you can configure CachedQueries with various custom strategies and services:
 
-Customize key aspects for specific needs:
-
-- **Cache Key Factory**: Allows for the implementation of unique logic in generating cache keys.
-- **Lock Manager**: Customization of concurrent access and locking strategies for cache entries.
-- **Cache Options**: Enables the setting and adjustment of global cache settings.
-- **Cache Invalidator**: Provides the capability to devise specific rules for invalidating cache entries.
-
-Custom Dependency Injection example:
-
-```c#
+```csharp
 services.AddQueriesCaching(options =>
     options
-    .UseOptions(new CacheOptions {
-        LockTimeout = TimeSpan.FromSeconds(10),
-        DefaultExpiration = TimeSpan.FromMinutes(30)
-    })
-    .UseCacheStore(CustomCacheStore) // ICacheStore implementation
-    .UseCacheStoreProvider(CustomCacheStoreProvider) // ICacheStoreProvider implementation
-    .UseCacheInvalidator(CustomCacheInvalidator) // ICacheInvalidator implementation
-    .UseLockManager(CustomLockManager) // ILockManager implementation
-    .UseKeyFactory(CustomKeyFactory) // ICacheKeyFactory implementation
-    .UseEntityFramework()); // Integration with Entity Framework
-
-// Activation of CachedQueries in applications
-app.UseQueriesCaching();
-
+        .UseCacheStore<CustomCacheStore>() // Custom cache store
+        .UseCacheInvalidator<CustomCacheInvalidator>() // Custom invalidator
+        .UseCacheCollectionStrategy<CustomCollectionStrategy>() // Custom collection strategy
+        .UseCacheEntryStrategy<CustomEntryStrategy>() // Custom entry strategy
+        .UseKeyFactory<CustomKeyFactory>() // Custom key factory
+        .UseCacheContextProvider<CustomContextProvider>()
+        .UseOptions(new CacheOptions
+        {
+            DefaultExpiration = TimeSpan.FromMinutes(30),
+        })
+        .UseEntityFramework());
 ```
 
 ## Conclusion
 
-Discover more about CachedQueries through the library's test cases, offering insights into detailed functionalities and advanced usage examples.
+CachedQueries is designed to streamline caching within your Entity Framework queries, offering a highly customizable framework for optimizing data access. With support for custom stores, strategies, key factories, and invalidators, it can be extended to meet complex caching requirements.
+
+To dive deeper into the functionality and explore more advanced examples, check the library’s test cases and example project in `./examples`.
