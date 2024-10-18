@@ -1,6 +1,7 @@
 ﻿using AutoFixture;
 using CachedQueries.Core.Abstractions;
 using CachedQueries.EntityFramework;
+using CachedQueries.Test.TestHelpers;
 using FluentAssertions;
 using Moq;
 using Xunit;

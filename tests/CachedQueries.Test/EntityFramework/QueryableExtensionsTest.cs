@@ -1,5 +1,6 @@
 ﻿using AutoFixture;
 using CachedQueries.EntityFramework.Extensions;
+using CachedQueries.Test.TestHelpers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Moq;

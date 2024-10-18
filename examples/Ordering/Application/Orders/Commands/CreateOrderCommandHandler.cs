@@ -18,7 +18,8 @@ public class CreateOrderCommandHandler(OrderingContext context) : IRequestHandle
                 ProductId = x.ProductId,
                 Quantity = x.Quantity,
                 UnitPrice = x.UnitPrice,
-                Discount = x.Discount
+                Discount = x.Discount,
+                Total = x.Quantity * x.UnitPrice - x.Discount
             }).ToHashSet()
         };
 

@@ -1,16 +1,12 @@
 using AutoFixture;
 using CachedQueries.Core;
 using CachedQueries.Core.Abstractions;
+using CachedQueries.Test.TestHelpers;
 using FluentAssertions;
 using Moq;
 using Xunit;
 
 namespace CachedQueries.Test.Core;
-
-internal class Entity
-{
-    public long Id { get; set; }
-}
 
 public class DefaultCacheKeyFactoryTest
 {
@@ -23,7 +19,7 @@ public class DefaultCacheKeyFactoryTest
         var cacheContext = new Mock<ICacheContextProvider>();
 
         var keyFactory = new DefaultCacheKeyFactory(cacheContext.Object);
-        var list = _fixture.CreateMany<Entity>(10);
+        var list = _fixture.CreateMany<Root>(10);
         var query = list.Where(x => x.Id > 0).AsQueryable();
 
         // When

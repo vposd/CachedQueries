@@ -1,5 +1,4 @@
-﻿using System.Transactions;
-using CachedQueries.EntityFramework.Extensions;
+﻿using CachedQueries.EntityFramework.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Ordering.Domain;
 
@@ -12,7 +11,7 @@ public class OrderingContext(DbContextOptions<OrderingContext> options) : DbCont
     public DbSet<Product> Products { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
 
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
     {
         await ChangeTracker.ExpireEntitiesCacheAsync(cancellationToken);
         return await base.SaveChangesAsync(cancellationToken);

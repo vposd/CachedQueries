@@ -1,10 +1,12 @@
 ﻿using AutoFixture;
 using CachedQueries.EntityFramework.Extensions;
+using CachedQueries.Test.TestHelpers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using Attribute = CachedQueries.Test.TestHelpers.Attribute;
 
 namespace CachedQueries.Test.EntityFramework;
 

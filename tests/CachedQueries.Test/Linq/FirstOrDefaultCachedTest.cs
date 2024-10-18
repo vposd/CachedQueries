@@ -5,6 +5,7 @@ using CachedQueries.DependencyInjection;
 using CachedQueries.EntityFramework.Extensions;
 using CachedQueries.Linq;
 using CachedQueries.Test.Linq.Helpers;
+using CachedQueries.Test.TestHelpers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Moq;

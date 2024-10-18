@@ -11,13 +11,13 @@ builder.Services.AddLogging(b => b.AddConsole());
 builder.Services.AddMemoryCache();
 builder.Services.AddCachedQueries(
     options => options
-            .UseCacheStore<MemoryCache>()
-            .UseEntityFramework());
+        .UseCacheStore<MemoryCache>()
+        .UseEntityFramework());
 
 var app = builder.Build();
 
 app.Services.MigrateDatabase();
-app.UseQueriesCaching();
+app.UseCachedQueries();
 
 app.MapOrders();
 app.MapCustomers();

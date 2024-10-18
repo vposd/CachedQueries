@@ -1,5 +1,4 @@
 ﻿using CachedQueries.Core.Models;
-using CachedQueries.Linq;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Ordering.Application.Common.Contracts;
