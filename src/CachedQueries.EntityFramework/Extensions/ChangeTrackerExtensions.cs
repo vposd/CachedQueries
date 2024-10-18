@@ -4,15 +4,24 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace CachedQueries.EntityFramework.Extensions;
 
+/// <summary>
+///     Provides extension methods for the <see cref="ChangeTracker" /> class to facilitate cache invalidation
+///     based on entity state changes in Entity Framework.
+/// </summary>
 public static class ChangeTrackerExtensions
 {
     /// <summary>
-    ///     Invalidate cache for implicit tags approach.
+    ///     Invalidates the cache for entities affected by the current change tracker state.
+    ///     Utilizes implicit tags for cache management.
     /// </summary>
-    /// <param name="changeTracker"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns>Affected entities types</returns>
-    public static async Task<IEnumerable<Type>> ExpireEntitiesCacheAsync(this ChangeTracker changeTracker,
+    /// <param name="changeTracker">The <see cref="ChangeTracker" /> instance.</param>
+    /// <param name="cancellationToken">The cancellation token to monitor for cancellation requests.</param>
+    /// <returns>
+    ///     A task that represents the asynchronous operation. The task result contains
+    ///     the types of entities that were affected.
+    /// </returns>
+    public static async Task<IEnumerable<Type>> ExpireEntitiesCacheAsync(
+        this ChangeTracker changeTracker,
         CancellationToken cancellationToken)
     {
         var cacheManager = CacheManagerContainer.Resolve();
@@ -22,25 +31,27 @@ public static class ChangeTrackerExtensions
     }
 
     /// <summary>
-    ///     Returns affected types and invalidation tags
+    ///     Retrieves the types of entities affected by the current change tracker state and the associated
+    ///     invalidation tags based on their type names.
     /// </summary>
-    /// <param name="changeTracker"></param>
-    /// <returns>Affected types and invalidation tags</returns>
-    public static (IEnumerable<Type> Types, IEnumerable<string> Tags) GetAffectedReferences(
-        this ChangeTracker changeTracker)
+    /// <param name="changeTracker">The <see cref="ChangeTracker" /> instance.</param>
+    /// <returns>
+    ///     A tuple containing an array of affected entity types and an array of associated
+    ///     invalidation tags.
+    /// </returns>
+    public static (Type[] Types, string[] Tags) GetAffectedReferences(this ChangeTracker changeTracker)
     {
         var affectedTypes = changeTracker.Entries()
-            .Where(e =>
-                e.State is EntityState.Modified or EntityState.Deleted or EntityState.Added)
+            .Where(e => e.State is EntityState.Modified or EntityState.Deleted or EntityState.Added)
             .Select(x => x.Entity.GetType())
-            .ToHashSet();
+            .Distinct()
+            .ToArray();
 
         var tags = affectedTypes
-            .Concat(affectedTypes.Select(af => af.BaseType).Where(x => x != null))
-            .Cast<Type>()
             .Select(e => e.FullName)
             .Cast<string>()
-            .ToHashSet();
+            .Distinct()
+            .ToArray();
 
         return (affectedTypes, tags);
     }

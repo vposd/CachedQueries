@@ -4,13 +4,17 @@ using Microsoft.EntityFrameworkCore.Query;
 
 namespace CachedQueries.EntityFramework.Extensions;
 
+/// <summary>
+///     Provides extension methods for querying types from IQueryable expressions,
+///     specifically for Include and ThenInclude methods in Entity Framework.
+/// </summary>
 public static class ReflectionExtensions
 {
     /// <summary>
-    ///     Returns list of types extracted from Include and ThenInclude methods.
+    ///     Extracts a list of types from the Include and ThenInclude methods in the query expression.
     /// </summary>
-    /// <param name="query">Query param</param>
-    /// <returns></returns>
+    /// <param name="query">The IQueryable query to analyze.</param>
+    /// <returns>An enumerable of types extracted from the Include and ThenInclude methods.</returns>
     public static IEnumerable<Type> GetIncludeTypes(this IQueryable query)
     {
         if (query.Expression is QueryRootExpression queryRoot)
@@ -22,6 +26,11 @@ public static class ReflectionExtensions
         return expression.GetMemberCallExpressionTypes();
     }
 
+    /// <summary>
+    ///     Recursively retrieves the types involved in member calls for Include and ThenInclude methods.
+    /// </summary>
+    /// <param name="expressionArgument">The MethodCallExpression representing the Include or ThenInclude call.</param>
+    /// <returns>A set of types extracted from the member call expressions.</returns>
     private static IEnumerable<Type> GetMemberCallExpressionTypes(this MethodCallExpression expressionArgument)
     {
         var list = GetArgumentTypes(expressionArgument);
@@ -54,6 +63,11 @@ public static class ReflectionExtensions
         return list.ToHashSet();
     }
 
+    /// <summary>
+    ///     Retrieves argument types from a MethodCallExpression.
+    /// </summary>
+    /// <param name="expressionArgument">The MethodCallExpression to analyze.</param>
+    /// <returns>A list of types from the arguments of the MethodCallExpression.</returns>
     private static List<Type> GetArgumentTypes(MethodCallExpression expressionArgument)
     {
         var list = new List<Type>();

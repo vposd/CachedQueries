@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using CachedQueries.Core.Interfaces;
+using CachedQueries.Core.Abstractions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -9,12 +9,10 @@ namespace CachedQueries.Core.Cache;
 /// <summary>
 ///     Cache service using IMemoryCache implementation.
 /// </summary>
-public class MemoryCache : ICacheStore
+public class MemoryCache(IMemoryCache cache, ILoggerFactory loggerFactory)
+    : ICacheStore
 {
-    private readonly IMemoryCache _cache;
-    private readonly ILockManager _lockManager;
-    private readonly ILogger<MemoryCache> _logger;
-    private readonly CacheOptions _options;
+    private readonly ILogger<MemoryCache> _logger = loggerFactory.CreateLogger<MemoryCache>();
 
     private readonly JsonSerializerOptions _settings = new()
     {
@@ -23,88 +21,52 @@ public class MemoryCache : ICacheStore
         WriteIndented = false
     };
 
-    public MemoryCache(IMemoryCache cache, ILoggerFactory loggerFactory, ILockManager lockManager, CacheOptions options)
-    {
-        _cache = cache;
-        _lockManager = lockManager;
-        _options = options;
-        _logger = loggerFactory.CreateLogger<MemoryCache>();
-    }
-
-    public async Task<T?> GetAsync<T>(string key, bool useLock = true, CancellationToken cancellationToken = default)
+    public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
     {
         try
         {
-            if (useLock)
-            {
-                await _lockManager.CheckLockAsync(key, cancellationToken);
-            }
-
-            _cache.TryGetValue(key, out var value);
+            cache.TryGetValue(key, out var value);
             var cachedResponse = value?.ToString();
 
             var result = cachedResponse is not null
                 ? JsonSerializer.Deserialize<T>(cachedResponse, _settings)
                 : default;
-            return result;
+            return Task.FromResult(result);
         }
         catch (Exception exception)
         {
-            Log(LogLevel.Error, "Error loading cached data: @{Message}", exception.Message);
-            return default;
+            _logger.LogError("Error loading cached data: @{Message}", exception.Message);
+            return Task.FromResult(default(T));
         }
     }
 
-    public async Task SetAsync<T>(string key, T value, bool useLock = true, TimeSpan? expire = null,
+    public Task SetAsync<T>(string key, T value, TimeSpan? expire = null,
         CancellationToken cancellationToken = default)
     {
-        var isLockAcquired = false;
         try
         {
             var serialized = JsonSerializer.Serialize(value, _settings);
-
-            if (useLock)
-            {
-                await _lockManager.LockAsync(key, _options.LockTimeout, cancellationToken);
-                isLockAcquired = true;
-            }
-
-            _cache.Set(key, serialized, new MemoryCacheEntryOptions { SlidingExpiration = expire });
+            cache.Set(key, serialized, new MemoryCacheEntryOptions { SlidingExpiration = expire });
         }
         catch (Exception exception)
         {
-            Log(LogLevel.Error, "Error setting cached data: @{Message}", exception.Message);
+            _logger.LogError("Error setting cached data: @{Message}", exception.Message);
         }
-        finally
-        {
-            try
-            {
-                if (useLock && isLockAcquired)
-                {
-                    _lockManager.ReleaseLockAsync(key).GetAwaiter().GetResult();
-                }
-            }
-            catch (Exception ex)
-            {
-                Log(LogLevel.Error, "Error releasing lock: @{Message}", ex.Message);
-            }
-        }
+
+        return Task.CompletedTask;
     }
 
-    public async Task DeleteAsync(string key, bool useLock = true, CancellationToken cancellationToken = default)
+    public Task DeleteAsync(string key, CancellationToken cancellationToken = default)
     {
         try
         {
-            _cache.Remove(key);
+            cache.Remove(key);
         }
         catch (Exception exception)
         {
-            Log(LogLevel.Error, "Error delete cached data: @{Message}", exception.Message);
+            _logger.LogError("Error delete cached data: @{Message}", exception.Message);
         }
-    }
 
-    public void Log(LogLevel logLevel, string? message, params object?[] args)
-    {
-        _logger.Log(logLevel, message, args);
+        return Task.CompletedTask;
     }
 }
