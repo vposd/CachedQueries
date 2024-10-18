@@ -7,9 +7,6 @@ using CachedQueries.Linq;
 using CachedQueries.Test.Linq.Helpers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 using MemoryCache = CachedQueries.Core.Cache.MemoryCache;
@@ -38,8 +35,8 @@ public class FirstOrDefaultCachedTest
 
         services.AddMemoryCache();
     }
-    
-     [Theory]
+
+    [Theory]
     [InlineData(typeof(MemoryCache), true)]
     [InlineData(typeof(DistributedCache), true)]
     [InlineData(typeof(MemoryCache), false)]
@@ -162,7 +159,7 @@ public class FirstOrDefaultCachedTest
         else
         {
             await context.Orders.Where(x => x.Id == entities[0].Id)
-                .FirstOrDefaultCachedAsync( new CachingOptions(["blogs"]), CancellationToken.None);
+                .FirstOrDefaultCachedAsync(new CachingOptions(["blogs"]), CancellationToken.None);
         }
 
         var changed = await context.Orders.FirstAsync(x => x.Id == entities[0].Id);
@@ -173,9 +170,10 @@ public class FirstOrDefaultCachedTest
         var entityFromDb = await context.Orders.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
             ? await context.Orders
-                .FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id,  new CachingOptions(["blogs"]), CancellationToken.None)
+                .FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id, new CachingOptions(["blogs"]),
+                    CancellationToken.None)
             : await context.Orders.Where(x => x.Id == entities[0].Id)
-                .FirstOrDefaultCachedAsync( new CachingOptions(["blogs"]), CancellationToken.None);
+                .FirstOrDefaultCachedAsync(new CachingOptions(["blogs"]), CancellationToken.None);
 
         // Then
         entityFromDb?.Number.Should().Be("new name");
@@ -248,7 +246,7 @@ public class FirstOrDefaultCachedTest
         else
         {
             await context.Orders.Where(x => x.Id == entities[0].Id)
-                .FirstOrDefaultCachedAsync( new CachingOptions(["blogs"]));
+                .FirstOrDefaultCachedAsync(new CachingOptions(["blogs"]));
         }
 
         var changed = await context.Orders.FirstAsync(x => x.Id == entities[0].Id);
@@ -258,9 +256,9 @@ public class FirstOrDefaultCachedTest
         var entityFromDb = await context.Orders.FirstOrDefaultAsync(x => x.Id == entities[0].Id);
         var entityFromCache = usePredicate
             ? await context.Orders
-                .FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id,  new CachingOptions(["blogs"]))
+                .FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id, new CachingOptions(["blogs"]))
             : await context.Orders.Where(x => x.Id == entities[0].Id)
-                .FirstOrDefaultCachedAsync( new CachingOptions(["blogs"]));
+                .FirstOrDefaultCachedAsync(new CachingOptions(["blogs"]));
 
         // Then
         entityFromDb?.Number.Should().Be("new name");
@@ -286,7 +284,8 @@ public class FirstOrDefaultCachedTest
         // When
         if (usePredicate)
         {
-            await context.Orders.FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id, new CachingOptions(TimeSpan.FromSeconds(20)));
+            await context.Orders.FirstOrDefaultCachedAsync(x => x.Id == entities[0].Id,
+                new CachingOptions(TimeSpan.FromSeconds(20)));
         }
         else
         {

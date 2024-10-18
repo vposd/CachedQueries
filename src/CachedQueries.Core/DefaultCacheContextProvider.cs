@@ -2,7 +2,7 @@
 
 namespace CachedQueries.Core;
 
-public class DefaultCacheContextProvider: ICacheContextProvider
+public class DefaultCacheContextProvider : ICacheContextProvider
 {
     public string GetContextKey()
     {

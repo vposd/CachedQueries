@@ -9,10 +9,10 @@ namespace CachedQueries.Test.Core.Strategies;
 
 public class DefaultCacheEntryStrategyTests
 {
-    private readonly Mock<ICacheKeyFactory> _cacheKeyFactoryMock;
-    private readonly Mock<ICacheInvalidator> _cacheInvalidatorMock;
-    private readonly Mock<ICacheStore> _cacheStoreMock;
     private readonly DefaultCacheEntryStrategy _cacheEntryStrategy;
+    private readonly Mock<ICacheInvalidator> _cacheInvalidatorMock;
+    private readonly Mock<ICacheKeyFactory> _cacheKeyFactoryMock;
+    private readonly Mock<ICacheStore> _cacheStoreMock;
 
     public DefaultCacheEntryStrategyTests()
     {
@@ -40,7 +40,9 @@ public class DefaultCacheEntryStrategyTests
         // Then
         result.Should().Be(query.FirstOrDefault());
         _cacheStoreMock.Verify(x => x.GetAsync<string>(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-        _cacheStoreMock.Verify(x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Never);
+        _cacheStoreMock.Verify(
+            x => x.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>(),
+                It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -51,7 +53,7 @@ public class DefaultCacheEntryStrategyTests
         var cachedValue = "cachedItem";
         var options = new CachingOptions { Tags = new[] { "tag1" }, CacheDuration = TimeSpan.FromMinutes(5) };
         var cacheKey = "valid-cache-key";
-        
+
         _cacheKeyFactoryMock.Setup(f => f.GetCacheKey(query, options.Tags)).Returns(cacheKey);
         _cacheStoreMock.Setup(s => s.GetAsync<string>(cacheKey, It.IsAny<CancellationToken>()))
             .ReturnsAsync(cachedValue);
@@ -61,8 +63,11 @@ public class DefaultCacheEntryStrategyTests
 
         // Then
         result.Should().Be(cachedValue);
-        _cacheStoreMock.Verify(s => s.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Never);
-        _cacheInvalidatorMock.Verify(x => x.LinkTagsAsync(It.IsAny<string>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()), Times.Never);
+        _cacheStoreMock.Verify(
+            s => s.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        _cacheInvalidatorMock.Verify(
+            x => x.LinkTagsAsync(It.IsAny<string>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -72,7 +77,7 @@ public class DefaultCacheEntryStrategyTests
         var query = new List<string> { "item1", "item2" }.AsQueryable();
         var options = new CachingOptions { Tags = new[] { "tag1" }, CacheDuration = TimeSpan.FromMinutes(5) };
         var cacheKey = "valid-cache-key";
-        
+
         _cacheKeyFactoryMock.Setup(f => f.GetCacheKey(query, options.Tags)).Returns(cacheKey);
         _cacheStoreMock.Setup(s => s.GetAsync<string>(cacheKey, It.IsAny<CancellationToken>()))
             .ReturnsAsync((string)null!);
@@ -82,8 +87,11 @@ public class DefaultCacheEntryStrategyTests
 
         // Then
         result.Should().Be(query.FirstOrDefault());
-        _cacheStoreMock.Verify(s => s.SetAsync(cacheKey, query.FirstOrDefault(), options.CacheDuration, It.IsAny<CancellationToken>()), Times.Once);
-        _cacheInvalidatorMock.Verify(x => x.LinkTagsAsync(cacheKey, options.Tags, It.IsAny<CancellationToken>()), Times.Once);
+        _cacheStoreMock.Verify(
+            s => s.SetAsync(cacheKey, query.FirstOrDefault(), options.CacheDuration, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _cacheInvalidatorMock.Verify(x => x.LinkTagsAsync(cacheKey, options.Tags, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -103,7 +111,10 @@ public class DefaultCacheEntryStrategyTests
 
         // Then
         result.Should().BeNull();
-        _cacheStoreMock.Verify(s => s.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Never);
-        _cacheInvalidatorMock.Verify(x => x.LinkTagsAsync(It.IsAny<string>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()), Times.Never);
+        _cacheStoreMock.Verify(
+            s => s.SetAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        _cacheInvalidatorMock.Verify(
+            x => x.LinkTagsAsync(It.IsAny<string>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

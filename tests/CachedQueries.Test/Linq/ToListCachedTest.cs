@@ -1,5 +1,4 @@
 ﻿using AutoFixture;
-using CachedQueries.Core;
 using CachedQueries.Core.Cache;
 using CachedQueries.Core.Models;
 using CachedQueries.DependencyInjection;
@@ -10,7 +9,6 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 using MemoryCache = CachedQueries.Core.Cache.MemoryCache;
@@ -39,7 +37,7 @@ public class ToListCachedTest
 
         services.AddMemoryCache();
     }
-    
+
     [Theory]
     [InlineData(typeof(MemoryCache))]
     [InlineData(typeof(DistributedCache))]
@@ -74,7 +72,7 @@ public class ToListCachedTest
         entitiesFromDb.Should().HaveCount(3);
         entitiesFromCache.Should().HaveCount(2);
     }
-    
+
     [Theory]
     [InlineData(typeof(MemoryCache))]
     [InlineData(typeof(DistributedCache))]
@@ -109,7 +107,7 @@ public class ToListCachedTest
         entitiesFromDb.Should().HaveCount(3);
         entitiesFromCache.Should().HaveCount(2);
     }
-    
+
     [Theory]
     [InlineData(typeof(MemoryCache))]
     [InlineData(typeof(DistributedCache))]
@@ -144,7 +142,7 @@ public class ToListCachedTest
         entitiesFromDb.Should().HaveCount(3);
         entitiesFromCache.Should().HaveCount(2);
     }
-    
+
     [Theory]
     [InlineData(typeof(MemoryCache))]
     [InlineData(typeof(DistributedCache))]
@@ -168,14 +166,15 @@ public class ToListCachedTest
         await cacheManager.CacheInvalidator.InvalidateCacheAsync(["blogs"], CancellationToken.None);
 
         var entitiesFromDb = await context.Orders.ToListAsync();
-        var entitiesFromCache = await context.Orders.ToListCachedAsync(new CachingOptions(["blogs"]), CancellationToken.None);
+        var entitiesFromCache =
+            await context.Orders.ToListCachedAsync(new CachingOptions(["blogs"]), CancellationToken.None);
 
         // Then
         entitiesFromDb.Should().HaveCount(3);
         entitiesFromCache.Should().HaveCount(3);
     }
-    
-       [Theory]
+
+    [Theory]
     [InlineData("Get", typeof(DistributedCache))]
     [InlineData("Remove", typeof(DistributedCache))]
     [InlineData("Set", typeof(DistributedCache))]
@@ -218,14 +217,15 @@ public class ToListCachedTest
         await cacheManager.CacheInvalidator.InvalidateCacheAsync(["blogs"], CancellationToken.None);
 
         var entitiesFromDb = await context.Orders.ToListAsync();
-        var entitiesFromCache = await context.Orders.ToListCachedAsync(new CachingOptions(["blogs"]), CancellationToken.None);
+        var entitiesFromCache =
+            await context.Orders.ToListCachedAsync(new CachingOptions(["blogs"]), CancellationToken.None);
 
         // Then
         entitiesFromDb.Should().HaveCount(3);
         entitiesFromCache.Should().HaveCount(3);
     }
-    
-        [Theory]
+
+    [Theory]
     [InlineData(typeof(MemoryCache))]
     [InlineData(typeof(DistributedCache))]
     public async Task ToListCachedAsync_Should_Update_Cache_List_Results_After_Expiration(Type cacheStore)

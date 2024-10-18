@@ -29,7 +29,7 @@ public class GetOrdersQueryHandler(OrderingContext context) : IRequestHandler<Ge
                     Discount = i.Discount
                 }).ToList()
             })
-            .ToListCachedAsync(cancellationToken);
+            .ToListCachedAsync(new CachingOptions(["1"]), cancellationToken);
 
         return orders.ToArray();
     }

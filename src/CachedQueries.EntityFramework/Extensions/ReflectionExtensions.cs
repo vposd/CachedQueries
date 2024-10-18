@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore.Query;
 namespace CachedQueries.EntityFramework.Extensions;
 
 /// <summary>
-/// Provides extension methods for querying types from IQueryable expressions, 
-/// specifically for Include and ThenInclude methods in Entity Framework.
+///     Provides extension methods for querying types from IQueryable expressions,
+///     specifically for Include and ThenInclude methods in Entity Framework.
 /// </summary>
 public static class ReflectionExtensions
 {
     /// <summary>
-    /// Extracts a list of types from the Include and ThenInclude methods in the query expression.
+    ///     Extracts a list of types from the Include and ThenInclude methods in the query expression.
     /// </summary>
     /// <param name="query">The IQueryable query to analyze.</param>
     /// <returns>An enumerable of types extracted from the Include and ThenInclude methods.</returns>
@@ -27,7 +27,7 @@ public static class ReflectionExtensions
     }
 
     /// <summary>
-    /// Recursively retrieves the types involved in member calls for Include and ThenInclude methods.
+    ///     Recursively retrieves the types involved in member calls for Include and ThenInclude methods.
     /// </summary>
     /// <param name="expressionArgument">The MethodCallExpression representing the Include or ThenInclude call.</param>
     /// <returns>A set of types extracted from the member call expressions.</returns>
@@ -64,7 +64,7 @@ public static class ReflectionExtensions
     }
 
     /// <summary>
-    /// Retrieves argument types from a MethodCallExpression.
+    ///     Retrieves argument types from a MethodCallExpression.
     /// </summary>
     /// <param name="expressionArgument">The MethodCallExpression to analyze.</param>
     /// <returns>A list of types from the arguments of the MethodCallExpression.</returns>

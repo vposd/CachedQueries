@@ -9,7 +9,6 @@ namespace CachedQueries.Test.EntityFramework;
 
 public class ChangeTrackerExtensionsTest
 {
-    
     private readonly Mock<Func<TestDbContext>> _contextFactoryMock;
     private readonly Fixture _fixture;
 
@@ -30,7 +29,7 @@ public class ChangeTrackerExtensionsTest
 
         services.AddMemoryCache();
     }
-    
+
     [Fact]
     public async Task GetAffectedReferences_Should_Return_Types()
     {
@@ -38,10 +37,10 @@ public class ChangeTrackerExtensionsTest
         await using var context = _contextFactoryMock.Object();
         var entities = _fixture.CreateMany<Order>(20).ToList();
         context.Orders.AddRange(entities);
-        
+
         // When
         var (affectedTypes, affectedTags) = context.ChangeTracker.GetAffectedReferences();
-        
+
         // Then
         affectedTypes.Should().HaveCount(affectedTags.Length);
         affectedTypes.Should().Contain(typeof(Order));

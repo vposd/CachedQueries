@@ -28,7 +28,7 @@ public class DefaultCacheEntryStrategy(
         {
             return default;
         }
-        
+
         await cacheStore.SetAsync(key, value, options.CacheDuration, cancellationToken);
         await cacheInvalidator.LinkTagsAsync(key, options.Tags, cancellationToken);
 

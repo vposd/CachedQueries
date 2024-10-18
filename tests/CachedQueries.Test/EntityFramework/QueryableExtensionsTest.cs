@@ -2,7 +2,6 @@
 using CachedQueries.EntityFramework.Extensions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -30,7 +29,7 @@ public class QueryableExtensionsTest
 
         services.AddMemoryCache();
     }
-    
+
     [Fact]
     public async Task RetrieveRawInvalidationTagsFromQuery_ShouldReturnTags_WhenIncludeTypesArePresent()
     {
@@ -45,6 +44,6 @@ public class QueryableExtensionsTest
 
         // Then
         tags.Should()
-            .BeEquivalentTo(["CachedQueries.Test.Order", "CachedQueries.Test.Product", "CachedQueries.Test.Customer"]);
+            .BeEquivalentTo("CachedQueries.Test.Order", "CachedQueries.Test.Product", "CachedQueries.Test.Customer");
     }
 }

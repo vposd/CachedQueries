@@ -89,5 +89,4 @@ public static class CacheManagerTestBed
 
         return cache;
     }
-
 }

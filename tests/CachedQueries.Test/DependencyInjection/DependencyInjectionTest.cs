@@ -70,7 +70,7 @@ public class DependencyInjectionTest
 
         var provider = services.BuildServiceProvider();
         var app = new ApplicationBuilder(provider);
-        app.UseQueriesCaching();
+        app.UseCachedQueries();
         var cacheManager = CacheManagerContainer.Resolve();
 
         // Then
