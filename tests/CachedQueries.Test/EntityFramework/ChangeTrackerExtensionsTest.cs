@@ -50,9 +50,9 @@ public class ChangeTrackerExtensionsTest
         affectedTypes.Should().Contain(typeof(Product));
         affectedTypes.Should().Contain(typeof(Attribute));
 
-        affectedTags.Should().Contain("CachedQueries.Test.Order");
-        affectedTags.Should().Contain("CachedQueries.Test.Customer");
-        affectedTags.Should().Contain("CachedQueries.Test.Product");
-        affectedTags.Should().Contain("CachedQueries.Test.Attribute");
+        affectedTags.Should().Contain("CachedQueries.Test.TestHelpers.Order");
+        affectedTags.Should().Contain("CachedQueries.Test.TestHelpers.Customer");
+        affectedTags.Should().Contain("CachedQueries.Test.TestHelpers.Product");
+        affectedTags.Should().Contain("CachedQueries.Test.TestHelpers.Attribute");
     }
 }

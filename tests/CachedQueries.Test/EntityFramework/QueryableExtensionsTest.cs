@@ -45,6 +45,6 @@ public class QueryableExtensionsTest
 
         // Then
         tags.Should()
-            .BeEquivalentTo("CachedQueries.Test.Order", "CachedQueries.Test.Product", "CachedQueries.Test.Customer");
+            .BeEquivalentTo("CachedQueries.Test.TestHelpers.Order", "CachedQueries.Test.TestHelpers.Product", "CachedQueries.Test.TestHelpers.Customer");
     }
 }

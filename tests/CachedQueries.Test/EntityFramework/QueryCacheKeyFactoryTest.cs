@@ -26,7 +26,7 @@ public class QueryCacheKeyFactoryTest
         var result = keyFactory.GetCacheKey(query, ["tag_1"]);
 
         // Then
-        result.Should().Be("E26EBC3F26C17A74C6298DB3F5B730536577B9D8329969C28AA6913B14227585");
+        result.Should().Be("EF8D643A5660385756EBC4254D0C45BFE9BA8B5442E9E4A2BB1E465DEF5892E2");
     }
 
     [Fact]
@@ -43,6 +43,6 @@ public class QueryCacheKeyFactoryTest
         var result = keyFactory.GetCacheKey(query, ["tag_1"]);
 
         // Then
-        result.Should().Be("D9F9BBA43AA7E37941444BE9E46E6D633F0CFFB9B8370054757E5196065118F5");
+        result.Should().Be("C8A85815307727503F8306926120D19E28C9754E1E15981FF4EE481410FC529C");
     }
 }
