@@ -6,7 +6,7 @@ public class DefaultCacheInvalidator(ICacheStore cache, ICacheContextProvider ca
 {
     public async Task InvalidateCacheAsync(string[] tags, CancellationToken cancellationToken = default)
     {
-        var tagsList = tags.Select(x => string.Join(cacheContext.GetContextKey(), x)).ToList();
+        var tagsList = tags.Select(x => string.Concat(cacheContext.GetContextKey(), x)).ToList();
         var keysToRemove = new List<string>(tagsList);
 
         var tagsToExpireTasks = tagsList.Distinct()
@@ -35,7 +35,7 @@ public class DefaultCacheInvalidator(ICacheStore cache, ICacheContextProvider ca
             return;
         }
 
-        var tagsToLink = tags.Select(x => string.Join(cacheContext.GetContextKey(), x)).Distinct().ToList();
+        var tagsToLink = tags.Select(x => string.Concat(cacheContext.GetContextKey(), x)).Distinct().ToList();
         await Task.WhenAll(tagsToLink.Select(tag => LinkTagAsync(key, tag, cancellationToken)));
     }
 

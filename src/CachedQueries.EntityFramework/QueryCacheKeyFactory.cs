@@ -29,7 +29,7 @@ public class QueryCacheKeyFactory(ICacheContextProvider cacheContext) : DefaultC
         var expressionString = query.Expression.ToString();
 
         // Join tags with the context key to form a unique identifier
-        var tagList = tags.Select(tag => string.Join(cacheContext.GetContextKey(), tag));
+        var tagList = tags.Select(tag => string.Concat(cacheContext.GetContextKey(), tag));
 
         // Combine SQL string, expression string, and tags into a command
         var command = sqlString + expressionString + string.Join('_', tagList.Distinct().ToList());
