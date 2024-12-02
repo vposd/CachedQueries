@@ -7,13 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <_ContentIncludedByDefault Remove="wwwroot\app.css"/>
-        <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css"/>
-        <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css.map"/>
-        <_ContentIncludedByDefault Remove="wwwroot\favicon.png"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="CachedQueries" Version="2.0.0"/>
         <PackageReference Include="MediatR" Version="12.4.1"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10"/>

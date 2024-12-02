@@ -11,7 +11,7 @@ public class DefaultCacheKeyFactory(ICacheContextProvider cacheContext) : ICache
 {
     public virtual string GetCacheKey<T>(IQueryable<T> query, string[] tags)
     {
-        var tagList = tags.Select(tag => string.Join(cacheContext.GetContextKey(), tag));
+        var tagList = tags.Select(tag => string.Concat(cacheContext.GetContextKey(), tag));
         var command = string.Join('_', tagList.Distinct().ToList());
         return GetStringSha256Hash(command);
     }
