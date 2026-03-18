@@ -1,0 +1,58 @@
+<Project>
+  <PropertyGroup>
+    <!-- Build settings -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- CS1591: Missing XML comment - suppress until all public API is documented -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TargetFramework>net8.0</TargetFramework>
+
+    <!-- Library multi-targeting: net8.0+net9.0 on CI (both SDKs installed), net8.0 locally.
+         Override: dotnet build -p:LibTargetFrameworks="net8.0;net9.0" -->
+    <LibTargetFrameworks Condition="'$(LibTargetFrameworks)' == '' And '$(GITHUB_ACTIONS)' == 'true'">net8.0;net9.0</LibTargetFrameworks>
+    <LibTargetFrameworks Condition="'$(LibTargetFrameworks)' == ''">net8.0</LibTargetFrameworks>
+
+    <!-- Version - can be overridden by CI/CD -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+
+    <!-- NuGet package metadata -->
+    <Authors>Valery Pozdnyakov</Authors>
+    <Company>Valery Pozdnyakov</Company>
+    <Copyright>Copyright © 2022-$([System.DateTime]::Now.Year) Valery Pozdnyakov</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/valery-pozdnyakov/CachedQueries</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/valery-pozdnyakov/CachedQueries</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon Condition="Exists('$(MSBuildThisFileDirectory)icon.png')">icon.png</PackageIcon>
+    <PackageReleaseNotes>See https://github.com/valery-pozdnyakov/CachedQueries/releases</PackageReleaseNotes>
+
+    <!-- Build configuration -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!-- Deterministic builds for reproducibility -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!-- Package validation to catch accidental breaking changes -->
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\"
+      Condition="Exists('$(MSBuildThisFileDirectory)icon.png')" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+</Project>
