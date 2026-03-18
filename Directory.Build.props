@@ -9,9 +9,8 @@
     <LangVersion>latest</LangVersion>
     <TargetFramework>net8.0</TargetFramework>
 
-    <!-- Library multi-targeting: net8.0+net9.0 on CI (both SDKs installed), net8.0 locally.
+    <!-- Library multi-targeting: net8.0+net9.0 on CI via -p:LibTargetFrameworks="net8.0;net9.0", net8.0 locally.
          Override: dotnet build -p:LibTargetFrameworks="net8.0;net9.0" -->
-    <LibTargetFrameworks Condition="'$(LibTargetFrameworks)' == '' And '$(GITHUB_ACTIONS)' == 'true'">net8.0;net9.0</LibTargetFrameworks>
     <LibTargetFrameworks Condition="'$(LibTargetFrameworks)' == ''">net8.0</LibTargetFrameworks>
 
     <!-- Version - can be overridden by CI/CD -->
