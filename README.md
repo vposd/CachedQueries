@@ -2,7 +2,8 @@
 
 [![NuGet](https://img.shields.io/nuget/v/CachedQueries.svg)](https://www.nuget.org/packages/CachedQueries/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/CachedQueries.svg)](https://www.nuget.org/packages/CachedQueries/)
-[![CI](https://github.com/valery-pozdnyakov/CachedQueries/actions/workflows/ci.yml/badge.svg)](https://github.com/valery-pozdnyakov/CachedQueries/actions/workflows/ci.yml)
+[![CI](https://github.com/vposd/CachedQueries/actions/workflows/ci.yml/badge.svg)](https://github.com/vposd/CachedQueries/actions/workflows/ci.yml)
+[![Coverage Status](https://coveralls.io/repos/github/vposd/CachedQueries/badge.svg?branch=main)](https://coveralls.io/github/vposd/CachedQueries?branch=main)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A .NET library for seamless caching of Entity Framework Core queries. Cache `IQueryable` results directly within EF with automatic invalidation on `SaveChanges`, transaction-aware invalidation, multi-tenant isolation, and pluggable cache providers.

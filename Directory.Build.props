@@ -15,21 +15,21 @@
     <LibTargetFrameworks Condition="'$(LibTargetFrameworks)' == ''">net8.0</LibTargetFrameworks>
 
     <!-- Version - can be overridden by CI/CD -->
-    <Version>1.0.0</Version>
+    <Version>3.0.0</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
 
     <!-- NuGet package metadata -->
-    <Authors>Valery Pozdnyakov</Authors>
-    <Company>Valery Pozdnyakov</Company>
-    <Copyright>Copyright © 2022-$([System.DateTime]::Now.Year) Valery Pozdnyakov</Copyright>
+    <Authors>Valerii Pozdnyakov</Authors>
+    <Company>Valerii Pozdnyakov</Company>
+    <Copyright>Copyright © 2022-$([System.DateTime]::Now.Year) Valerii Pozdnyakov</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/valery-pozdnyakov/CachedQueries</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/valery-pozdnyakov/CachedQueries</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/vposd/CachedQueries</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/vposd/CachedQueries</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon Condition="Exists('$(MSBuildThisFileDirectory)icon.png')">icon.png</PackageIcon>
-    <PackageReleaseNotes>See https://github.com/valery-pozdnyakov/CachedQueries/releases</PackageReleaseNotes>
+    <PackageReleaseNotes>See https://github.com/vposd/CachedQueries/releases</PackageReleaseNotes>
 
     <!-- Build configuration -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

@@ -87,8 +87,8 @@ Releases are automated via GitHub Actions:
 
 1. Update version in `Directory.Build.props` if needed
 2. Update `CHANGELOG.md`
-3. Create a git tag: `git tag v1.x.x`
-4. Push the tag: `git push origin v1.x.x`
+3. Create a git tag: `git tag v3.x.x`
+4. Push the tag: `git push origin v3.x.x`
 5. GitHub Actions will build, test, and publish to NuGet
 
 ## Questions?

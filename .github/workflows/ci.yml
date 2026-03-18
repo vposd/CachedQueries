@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [main, develop]
   pull_request:
-    branches: [main, master]
+    branches: [main]
 
 env:
   DOTNET_NOLOGO: true
@@ -35,13 +35,13 @@ jobs:
       - name: Test (unit)
         run: dotnet test src/CachedQueries.Tests/CachedQueries.Tests.csproj -c Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Publish coverage report
+        uses: coverallsapp/github-action@v2
         with:
-          directory: ./coverage
-          fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./coverage/**/coverage.cobertura.xml
+          format: cobertura
+          fail-on-error: false
 
   pack:
     runs-on: ubuntu-latest
