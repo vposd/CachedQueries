@@ -35,6 +35,9 @@ jobs:
             8.0.x
             9.0.x
 
+      - name: Pin .NET 9 SDK
+        run: echo '{"sdk":{"version":"9.0.100","rollForward":"latestFeature"}}' > global.json
+
       - name: Determine version
         id: version
         run: |
