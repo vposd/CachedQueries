@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework />
+    <TargetFrameworks>$(LibTargetFrameworks)</TargetFrameworks>
+    <PackageId>CachedQueries</PackageId>
+    <Description>High-performance EF Core query caching with automatic invalidation. Cache IQueryable results with a single .Cacheable() call, automatic cache invalidation on SaveChanges, transaction-aware invalidation, multi-tenant support, custom tags, and pluggable cache providers (memory, Redis, custom).</Description>
+    <PackageTags>ef-core;efcore;entity-framework;entity-framework-core;cache;caching;query-cache;performance;dotnet;second-level-cache;invalidation;multi-tenant</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CachedQueries.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+
+  <!-- .NET 8 dependencies -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="[8.0.0,9.0.0)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="[8.0.0,9.0.0)" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="[8.0.0,9.0.0)" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="[8.0.1,9.0.0)" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="[8.0.0,9.0.0)" />
+  </ItemGroup>
+
+  <!-- .NET 9 dependencies -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="[9.0.0,10.0.0)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="[9.0.0,10.0.0)" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="[9.0.0,10.0.0)" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="[9.0.0,10.0.0)" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="[9.0.0,10.0.0)" />
+  </ItemGroup>
+
+</Project>
