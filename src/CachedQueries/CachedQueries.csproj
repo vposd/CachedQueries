@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFramework />
     <TargetFrameworks>$(LibTargetFrameworks)</TargetFrameworks>
     <PackageId>CachedQueries</PackageId>
     <Description>High-performance EF Core query caching with automatic invalidation. Cache IQueryable results with a single .Cacheable() call, automatic cache invalidation on SaveChanges, transaction-aware invalidation, multi-tenant support, custom tags, and pluggable cache providers (memory, Redis, custom).</Description>

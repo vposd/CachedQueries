@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFramework />
     <TargetFrameworks>$(LibTargetFrameworks)</TargetFrameworks>
     <PackageId>CachedQueries.Redis</PackageId>
     <Description>Redis distributed cache provider for CachedQueries. Provides high-performance distributed caching with atomic tag-based invalidation using StackExchange.Redis. Drop-in replacement for the built-in memory cache provider.</Description>
