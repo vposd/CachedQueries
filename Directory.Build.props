@@ -15,8 +15,9 @@
 
     <!-- Version - can be overridden by CI/CD -->
     <Version>3.0.0</Version>
-    <AssemblyVersion>$(Version)</AssemblyVersion>
-    <FileVersion>$(Version)</FileVersion>
+    <VersionPrefix>$(Version.Split('-')[0])</VersionPrefix>
+    <AssemblyVersion>$(VersionPrefix)</AssemblyVersion>
+    <FileVersion>$(VersionPrefix)</FileVersion>
 
     <!-- NuGet package metadata -->
     <Authors>Valerii Pozdnyakov</Authors>
