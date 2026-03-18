@@ -17,11 +17,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="[9.0.0,10.0.0)" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="StackExchange.Redis" Version="[2.7.4,)" />
-  </ItemGroup>
-
-  <ItemGroup>
+<ItemGroup>
     <ProjectReference Include="..\CachedQueries\CachedQueries.csproj" />
   </ItemGroup>
 
