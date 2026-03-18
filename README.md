@@ -141,9 +141,9 @@ builder.Services.AddStackExchangeRedisCache(o => o.Configuration = "localhost:63
 builder.Services.AddCachedQueriesWithRedis();
 ```
 
-## Multi-Tenant Caching
+## Multi-Context Caching
 
-Implement `ICacheContextProvider` to isolate cache per tenant:
+For example, implement `ICacheContextProvider` to isolate cache per tenant:
 
 ```csharp
 public class TenantCacheContextProvider(IHttpContextAccessor http) : ICacheContextProvider
