@@ -44,10 +44,12 @@ public interface ICacheInvalidator
     void RegisterCacheEntry(string cacheKey, IEnumerable<string> tags, string? contextKey = null);
 
     /// <summary>
-    /// Invalidates cache entries by their exact keys.
-    /// Removes entries directly from all cache providers without requiring tag or entity type registration.
+    /// Invalidates cache entries by the keys specified via WithKey().
+    /// Automatically handles context prefixes (works for entries cached with or without IgnoreContext())
+    /// and suffix variants (:count, :any) produced by scalar terminal methods.
+    /// Also cleans up tracking dictionaries for the invalidated keys.
     /// </summary>
-    /// <param name="keys">The cache keys to invalidate.</param>
+    /// <param name="keys">The cache keys as specified in WithKey() calls.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task InvalidateByKeysAsync(IEnumerable<string> keys, CancellationToken cancellationToken = default);
 

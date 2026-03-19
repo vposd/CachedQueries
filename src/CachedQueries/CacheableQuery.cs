@@ -29,6 +29,11 @@ public sealed class CacheableQuery<T> where T : class
     }
 
     /// <summary>
+    /// Gets the underlying IQueryable, useful for operations not covered by the cached terminal methods.
+    /// </summary>
+    public IQueryable<T> Query => _source;
+
+    /// <summary>
     /// Executes the query and caches the result as a list.
     /// </summary>
     public async Task<List<T>> ToListAsync(CancellationToken cancellationToken = default)
@@ -138,7 +143,7 @@ public sealed class CacheableQuery<T> where T : class
         var (cacheProvider, keyGenerator, invalidator, contextKey) = ResolveServices();
         var provider = GetProvider(ResolveTarget(CacheTarget.Scalar), cacheProvider);
 
-        var baseCacheKey = (_options.CacheKey ?? keyGenerator.GenerateKey(_source)) + ":count";
+        var baseCacheKey = (_options.CacheKey ?? keyGenerator.GenerateKey(_source)) + CacheKeySuffixes.Count;
         var cacheKey = ApplyContextPrefix(baseCacheKey, contextKey);
         var cached = await provider.GetAsync<int?>(cacheKey, cancellationToken);
         if (cached.HasValue) return cached.Value;
@@ -171,7 +176,7 @@ public sealed class CacheableQuery<T> where T : class
         var (cacheProvider, keyGenerator, invalidator, contextKey) = ResolveServices();
         var provider = GetProvider(ResolveTarget(CacheTarget.Scalar), cacheProvider);
 
-        var baseCacheKey = (_options.CacheKey ?? keyGenerator.GenerateKey(_source, predicate)) + ":any";
+        var baseCacheKey = (_options.CacheKey ?? keyGenerator.GenerateKey(_source, predicate)) + CacheKeySuffixes.Any;
         var cacheKey = ApplyContextPrefix(baseCacheKey, contextKey);
         var cached = await provider.GetAsync<bool?>(cacheKey, cancellationToken);
         if (cached.HasValue) return cached.Value;

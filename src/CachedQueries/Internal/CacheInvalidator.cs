@@ -151,10 +151,53 @@ internal sealed class CacheInvalidator : ICacheInvalidator
         }
     }
 
+    /// <summary>
+    /// Invalidates cache entries by user-supplied keys.
+    /// Automatically expands each key to include :count and :any suffix variants,
+    /// and tries both context-prefixed and global (unprefixed) versions to handle
+    /// entries cached with or without IgnoreContext().
+    /// Also cleans up tracking dictionaries to prevent stale entry accumulation.
+    /// </summary>
     public async Task InvalidateByKeysAsync(IEnumerable<string> keys, CancellationToken cancellationToken = default)
     {
-        var keySet = new HashSet<string>(keys);
+        var contextKey = GetCurrentContextKey();
+        var keySet = new HashSet<string>();
+
+        foreach (var key in keys)
+        {
+            // Always try the unprefixed key (handles IgnoreContext or no context configured)
+            keySet.Add(key);
+            foreach (var suffix in CacheKeySuffixes.All)
+                keySet.Add($"{key}{suffix}");
+
+            // Also try the context-prefixed key if a context is active
+            if (!string.IsNullOrEmpty(contextKey))
+            {
+                keySet.Add($"{contextKey}:{key}");
+                foreach (var suffix in CacheKeySuffixes.All)
+                    keySet.Add($"{contextKey}:{key}{suffix}");
+            }
+        }
+
+        // Clean up tracking dictionaries
+        RemoveFromTracking(_entityTypeToKeys, keySet);
+        RemoveFromTracking(_tagToKeys, keySet);
+
         await InvalidateKeysAsync(keySet, cancellationToken);
+    }
+
+    private static void RemoveFromTracking<TKey>(
+        ConcurrentDictionary<TKey, ConcurrentDictionary<string, string?>> tracking,
+        HashSet<string> keysToRemove) where TKey : notnull
+    {
+        foreach (var (trackingKey, entries) in tracking)
+        {
+            foreach (var cacheKey in keysToRemove)
+                entries.TryRemove(cacheKey, out _);
+
+            if (entries.IsEmpty)
+                tracking.TryRemove(trackingKey, out _);
+        }
     }
 
     public async Task ClearAllAsync(CancellationToken cancellationToken = default)

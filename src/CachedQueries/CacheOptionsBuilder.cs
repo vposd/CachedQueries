@@ -48,6 +48,7 @@ public sealed class CacheOptionsBuilder
     /// </summary>
     public CacheOptionsBuilder WithKey(string key)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
         _cacheKey = key;
         return this;
     }
