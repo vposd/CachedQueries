@@ -62,6 +62,27 @@ public static class CacheExtensions
         => InvalidateAsync([typeof(TEntity)], cancellationToken);
 
     /// <summary>
+    /// Invalidates cache entries by their exact keys.
+    /// Use this when you cached with a custom key via WithKey() and want to invalidate directly.
+    /// </summary>
+    public static async Task InvalidateByKeysAsync(IEnumerable<string> keys, CancellationToken cancellationToken = default)
+    {
+        if (!CacheServiceAccessor.IsConfigured)
+        {
+            throw new InvalidOperationException("CachedQueries is not configured. Call UseCachedQueries() first.");
+        }
+
+        await CacheServiceAccessor.Invalidator!.InvalidateByKeysAsync(keys, cancellationToken);
+    }
+
+    /// <summary>
+    /// Invalidates a cache entry by its exact key.
+    /// Use this when you cached with a custom key via WithKey() and want to invalidate directly.
+    /// </summary>
+    public static Task InvalidateByKeyAsync(string key, CancellationToken cancellationToken = default)
+        => InvalidateByKeysAsync([key], cancellationToken);
+
+    /// <summary>
     /// Invalidates cache entries by tags.
     /// </summary>
     public static async Task InvalidateByTagsAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default)
@@ -104,6 +125,18 @@ public static class Cache
     /// </summary>
     public static Task InvalidateAsync<TEntity>(CancellationToken cancellationToken = default)
         => CacheExtensions.InvalidateAsync<TEntity>(cancellationToken);
+
+    /// <summary>
+    /// Invalidates a cache entry by its exact key.
+    /// </summary>
+    public static Task InvalidateByKeyAsync(string key, CancellationToken cancellationToken = default)
+        => CacheExtensions.InvalidateByKeyAsync(key, cancellationToken);
+
+    /// <summary>
+    /// Invalidates cache entries by their exact keys.
+    /// </summary>
+    public static Task InvalidateByKeysAsync(IEnumerable<string> keys, CancellationToken cancellationToken = default)
+        => CacheExtensions.InvalidateByKeysAsync(keys, cancellationToken);
 
     /// <summary>
     /// Invalidates cache entries by tags.

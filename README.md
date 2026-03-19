@@ -6,7 +6,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/vposd/CachedQueries/badge.svg?branch=main)](https://coveralls.io/github/vposd/CachedQueries?branch=main)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A .NET library for seamless caching of Entity Framework Core queries. Cache `IQueryable` results directly within EF with automatic invalidation on `SaveChanges`, transaction-aware invalidation, multi-tenant isolation, and pluggable cache providers.
+A .NET library for seamless caching of Entity Framework Core queries. Cache `IQueryable` results directly within EF with automatic invalidation on `SaveChanges`, transaction-aware invalidation, multi-context isolation, and pluggable cache providers.
 
 ## Installation
 
@@ -123,11 +123,26 @@ await tx.CommitAsync();       // Invalidation fires NOW
 ```csharp
 using CachedQueries.Extensions;
 
+await Cache.InvalidateByKeyAsync("my-key");            // By exact cache key
+await Cache.InvalidateByKeysAsync(["key1", "key2"]);   // By multiple keys
 await Cache.InvalidateAsync<Order>();                  // By entity type
 await Cache.InvalidateByTagAsync("reports");           // By single tag
 await Cache.InvalidateByTagsAsync(["orders", "reports"]); // By multiple tags
-await Cache.ClearContextAsync();                       // Current tenant only
+await Cache.ClearContextAsync();                       // Current context only (e.g. for app user or tenant)
 await Cache.ClearAllAsync();                           // Everything
+```
+
+Key-based invalidation is useful when you cache with a custom key via `WithKey()`:
+
+```csharp
+// Cache with a custom key
+var order = await db.Orders
+    .Where(o => o.Id == id)
+    .Cacheable(o => o.WithKey($"order:{id}"))
+    .FirstOrDefaultAsync();
+
+// Later, invalidate by that same key — no tags or entity tracking needed
+await Cache.InvalidateByKeyAsync($"order:{id}");
 ```
 
 ## Redis Support
@@ -226,7 +241,7 @@ await db.Orders.AnyCachedAsync(o => o.Status == OrderStatus.Pending, ct);
 
 ## Demo Project
 
-See [`examples/`](examples/) for a full working demo with Docker Compose, PostgreSQL, Redis, multi-tenant isolation, and 73 integration tests.
+See [`examples/`](examples/) for a full working demo with Docker Compose, PostgreSQL, Redis, multi-context isolation, and 73 integration tests.
 
 ```bash
 cd examples
