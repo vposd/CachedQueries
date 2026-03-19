@@ -299,6 +299,46 @@ public class CacheInvalidatorTests
     }
 
     [Fact]
+    public async Task InvalidateByKeysAsync_ShouldRemoveKeysFromProvider()
+    {
+        // Arrange & Act
+        await _invalidator.InvalidateByKeysAsync(new[] { "key1", "key2" });
+
+        // Assert
+        await _cacheProvider.Received(1).RemoveAsync("key1", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("key2", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvalidateByKeysAsync_WithProviderFactory_ShouldRemoveFromAllProviders()
+    {
+        // Arrange
+        var defaultProvider = Substitute.For<ICacheProvider>();
+        var secondProvider = Substitute.For<ICacheProvider>();
+        var providerFactory = Substitute.For<ICacheProviderFactory>();
+        providerFactory.GetAllProviders().Returns([defaultProvider, secondProvider]);
+
+        var invalidator = new CacheInvalidator(defaultProvider, providerFactory, _logger);
+
+        // Act
+        await invalidator.InvalidateByKeysAsync(new[] { "key1" });
+
+        // Assert
+        await defaultProvider.Received(1).RemoveAsync("key1", Arg.Any<CancellationToken>());
+        await secondProvider.Received(1).RemoveAsync("key1", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvalidateByKeysAsync_WithEmptyKeys_ShouldNotCallProvider()
+    {
+        // Act
+        await _invalidator.InvalidateByKeysAsync(Array.Empty<string>());
+
+        // Assert
+        await _cacheProvider.DidNotReceive().RemoveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public void GetCurrentContextKey_WhenNoScopeFactory_ShouldReturnNull()
     {
         // The default constructor doesn't set _scopeFactory

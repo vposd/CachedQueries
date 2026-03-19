@@ -151,6 +151,12 @@ internal sealed class CacheInvalidator : ICacheInvalidator
         }
     }
 
+    public async Task InvalidateByKeysAsync(IEnumerable<string> keys, CancellationToken cancellationToken = default)
+    {
+        var keySet = new HashSet<string>(keys);
+        await InvalidateKeysAsync(keySet, cancellationToken);
+    }
+
     public async Task ClearAllAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogWarning("Clearing all cache entries");

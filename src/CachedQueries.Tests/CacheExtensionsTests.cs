@@ -114,6 +114,32 @@ public class CacheExtensionsTests : IDisposable
             Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task InvalidateByKeysAsync_WhenNotConfigured_ShouldThrow()
+    {
+        var act = () => CacheExtensions.InvalidateByKeysAsync(new[] { "key1" });
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task InvalidateByKeysAsync_WhenConfigured_ShouldDelegate()
+    {
+        ConfigureAccessor();
+        var keys = new[] { "key1", "key2" };
+        await CacheExtensions.InvalidateByKeysAsync(keys);
+        await _invalidator.Received(1).InvalidateByKeysAsync(keys, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvalidateByKeyAsync_ShouldDelegateToInvalidateByKeysAsync()
+    {
+        ConfigureAccessor();
+        await CacheExtensions.InvalidateByKeyAsync("my-key");
+        await _invalidator.Received(1).InvalidateByKeysAsync(
+            Arg.Is<IEnumerable<string>>(k => k.Contains("my-key")),
+            Arg.Any<CancellationToken>());
+    }
+
     // --- Cache static helper class ---
 
     [Fact]
@@ -159,6 +185,25 @@ public class CacheExtensionsTests : IDisposable
         var tags = new[] { "a", "b" };
         await Cache.InvalidateByTagsAsync(tags);
         await _invalidator.Received(1).InvalidateByTagsAsync(tags, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Cache_InvalidateByKeyAsync_ShouldDelegate()
+    {
+        ConfigureAccessor();
+        await Cache.InvalidateByKeyAsync("key");
+        await _invalidator.Received(1).InvalidateByKeysAsync(
+            Arg.Is<IEnumerable<string>>(k => k.Contains("key")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Cache_InvalidateByKeysAsync_ShouldDelegate()
+    {
+        ConfigureAccessor();
+        var keys = new[] { "a", "b" };
+        await Cache.InvalidateByKeysAsync(keys);
+        await _invalidator.Received(1).InvalidateByKeysAsync(keys, Arg.Any<CancellationToken>());
     }
 
     [Fact]
