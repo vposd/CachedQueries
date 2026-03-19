@@ -58,6 +58,17 @@ public class CacheableQueryTests : IDisposable
         CacheServiceAccessor.Reset();
     }
 
+    // --- Query property ---
+
+    [Fact]
+    public void Cacheable_Query_ShouldExposeUnderlyingQueryable()
+    {
+        var source = _context.Orders.Where(o => o.Total > 100);
+        var cacheable = source.Cacheable();
+
+        cacheable.Query.Should().BeSameAs(source);
+    }
+
     // --- ToListAsync ---
 
     [Fact]

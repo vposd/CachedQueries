@@ -144,6 +144,17 @@ public class CacheOptionsBuilderTests
         options.IgnoreContext.Should().BeFalse();
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void WithKey_NullOrWhitespace_ShouldThrowArgumentException(string? key)
+    {
+        var builder = new CacheOptionsBuilder();
+        var act = () => builder.WithKey(key!);
+        act.Should().Throw<ArgumentException>();
+    }
+
     [Fact]
     public void FluentChaining_ShouldWorkWithAllOptions()
     {
