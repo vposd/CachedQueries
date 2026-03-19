@@ -25,15 +25,24 @@ public static class CustomersEndpoints
             return Results.Ok(customers);
         });
 
-        // GET /api/customers/{id} — cached single item lookup
+        // GET /api/customers/{id} — cached with custom key for direct key-based invalidation
         group.MapGet("/{id:guid}", async (Guid id, AppDbContext db) =>
         {
             var customer = await db.Customers
                 .Where(c => c.Id == id)
-                .Cacheable(o => o.Expire(TimeSpan.FromMinutes(10)))
+                .Cacheable(o => o
+                    .WithKey($"customer:{id}")
+                    .Expire(TimeSpan.FromMinutes(10)))
                 .FirstOrDefaultAsync();
 
             return customer is null ? Results.NotFound() : Results.Ok(customer);
+        });
+
+        // POST /api/customers/{id}/invalidate — invalidate a single customer's cache by key
+        group.MapPost("/{id:guid}/invalidate", async (Guid id) =>
+        {
+            await Cache.InvalidateByKeyAsync($"customer:{id}");
+            return Results.Ok(new { message = $"Cache invalidated for customer {id}" });
         });
 
         // GET /api/customers/exists?email=... — cached boolean check

@@ -116,6 +116,83 @@ public class CustomersTests
     }
 
     [Fact]
+    public async Task InvalidateByKey_InvalidatesCachedCustomer()
+    {
+        await _factory.ResetCacheAsync();
+        var client = _factory.CreateClientForTenant("tenant-a");
+
+        // Get all customers to find one with a known ID
+        var customers = await client.GetFromJsonAsync<JsonElement[]>("/api/customers", JsonOptions);
+        var id = customers![0].GetProperty("id").GetString();
+        var originalName = customers[0].GetProperty("name").GetString();
+
+        // Warm the single-customer cache (uses WithKey("customer:{id}"))
+        var cached = await client.GetFromJsonAsync<JsonElement>($"/api/customers/{id}", JsonOptions);
+        cached.GetProperty("name").GetString().Should().Be(originalName);
+
+        // Invalidate by key
+        var invalidateResponse = await client.PostAsync($"/api/customers/{id}/invalidate", null);
+        invalidateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Should still return data (cache miss → fresh from DB)
+        var afterInvalidation = await client.GetAsync($"/api/customers/{id}");
+        afterInvalidation.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task InvalidateByKey_DoesNotAffectOtherCustomerCaches()
+    {
+        await _factory.ResetCacheAsync();
+        var client = _factory.CreateClientForTenant("tenant-a");
+
+        // Get two distinct customer IDs
+        var customers = await client.GetFromJsonAsync<JsonElement[]>("/api/customers", JsonOptions);
+        customers!.Length.Should().BeGreaterOrEqualTo(2);
+        var id1 = customers[0].GetProperty("id").GetString();
+        var id2 = customers[1].GetProperty("id").GetString();
+
+        // Warm cache for both
+        await client.GetAsync($"/api/customers/{id1}");
+        await client.GetAsync($"/api/customers/{id2}");
+
+        // Invalidate only the first
+        await client.PostAsync($"/api/customers/{id1}/invalidate", null);
+
+        // Second customer should still be accessible
+        var response = await client.GetAsync($"/api/customers/{id2}");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var customer2 = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        customer2.GetProperty("id").GetString().Should().Be(id2);
+    }
+
+    [Fact]
+    public async Task InvalidateByKey_TenantIsolation_DoesNotAffectOtherTenant()
+    {
+        await _factory.ResetCacheAsync();
+        var clientA = _factory.CreateClientForTenant("tenant-a");
+        var clientB = _factory.CreateClientForTenant("tenant-b");
+
+        // Get a customer from each tenant
+        var customersA = await clientA.GetFromJsonAsync<JsonElement[]>("/api/customers", JsonOptions);
+        var customersB = await clientB.GetFromJsonAsync<JsonElement[]>("/api/customers", JsonOptions);
+        var idA = customersA![0].GetProperty("id").GetString();
+        var idB = customersB![0].GetProperty("id").GetString();
+
+        // Warm cache for both tenants
+        await clientA.GetAsync($"/api/customers/{idA}");
+        await clientB.GetAsync($"/api/customers/{idB}");
+
+        // Invalidate tenant-a's customer
+        await clientA.PostAsync($"/api/customers/{idA}/invalidate", null);
+
+        // Tenant-b's customer should still be cached and accessible
+        var response = await clientB.GetAsync($"/api/customers/{idB}");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var customerB = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        customerB.GetProperty("id").GetString().Should().Be(idB);
+    }
+
+    [Fact]
     public async Task ClearTenantCache_ReturnsOk()
     {
         var client = _factory.CreateClientForTenant("tenant-a");

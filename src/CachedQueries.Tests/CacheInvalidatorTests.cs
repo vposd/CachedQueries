@@ -339,6 +339,28 @@ public class CacheInvalidatorTests
     }
 
     [Fact]
+    public async Task InvalidateByKeysAsync_WithContext_ShouldPrefixKeysWithContext()
+    {
+        // Arrange
+        var contextProvider = Substitute.For<ICacheContextProvider>();
+        contextProvider.GetContextKey().Returns("tenant-a");
+        var providerFactory = Substitute.For<ICacheProviderFactory>();
+        providerFactory.GetAllProviders().Returns([_cacheProvider]);
+        var services = new ServiceCollection();
+        services.AddScoped<ICacheContextProvider>(_ => contextProvider);
+        var sp = services.BuildServiceProvider();
+
+        var invalidator = new CacheInvalidator(_cacheProvider, providerFactory, sp, _logger);
+
+        // Act
+        await invalidator.InvalidateByKeysAsync(new[] { "order-1" });
+
+        // Assert — should remove "tenant-a:order-1", not "order-1"
+        await _cacheProvider.Received(1).RemoveAsync("tenant-a:order-1", Arg.Any<CancellationToken>());
+        await _cacheProvider.DidNotReceive().RemoveAsync("order-1", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public void GetCurrentContextKey_WhenNoScopeFactory_ShouldReturnNull()
     {
         // The default constructor doesn't set _scopeFactory

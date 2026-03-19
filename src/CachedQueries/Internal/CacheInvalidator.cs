@@ -153,7 +153,9 @@ internal sealed class CacheInvalidator : ICacheInvalidator
 
     public async Task InvalidateByKeysAsync(IEnumerable<string> keys, CancellationToken cancellationToken = default)
     {
-        var keySet = new HashSet<string>(keys);
+        var contextKey = GetCurrentContextKey();
+        var keySet = new HashSet<string>(
+            keys.Select(k => string.IsNullOrEmpty(contextKey) ? k : $"{contextKey}:{k}"));
         await InvalidateKeysAsync(keySet, cancellationToken);
     }
 
