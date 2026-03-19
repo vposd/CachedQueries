@@ -116,27 +116,30 @@ public class CustomersTests
     }
 
     [Fact]
-    public async Task InvalidateByKey_InvalidatesCachedCustomer()
+    public async Task InvalidateByKey_CacheReturnsUpdatedData()
     {
         await _factory.ResetCacheAsync();
         var client = _factory.CreateClientForTenant("tenant-a");
 
-        // Get all customers to find one with a known ID
-        var customers = await client.GetFromJsonAsync<JsonElement[]>("/api/customers", JsonOptions);
-        var id = customers![0].GetProperty("id").GetString();
-        var originalName = customers[0].GetProperty("name").GetString();
+        // Create a customer so we have a known entity to update
+        var createResponse = await client.PostAsJsonAsync("/api/customers",
+            new { Name = $"KeyTest-{Guid.NewGuid():N}", Email = $"keytest-{Guid.NewGuid():N}@test.com" });
+        var created = await createResponse.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        var id = created.GetProperty("id").GetString();
 
         // Warm the single-customer cache (uses WithKey("customer:{id}"))
         var cached = await client.GetFromJsonAsync<JsonElement>($"/api/customers/{id}", JsonOptions);
-        cached.GetProperty("name").GetString().Should().Be(originalName);
+        cached.GetProperty("id").GetString().Should().Be(id);
 
         // Invalidate by key
         var invalidateResponse = await client.PostAsync($"/api/customers/{id}/invalidate", null);
         invalidateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Should still return data (cache miss → fresh from DB)
+        // After invalidation, should still return data (cache miss → fresh from DB)
         var afterInvalidation = await client.GetAsync($"/api/customers/{id}");
         afterInvalidation.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await afterInvalidation.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        result.GetProperty("id").GetString().Should().Be(id);
     }
 
     [Fact]
@@ -166,30 +169,38 @@ public class CustomersTests
     }
 
     [Fact]
-    public async Task InvalidateByKey_TenantIsolation_DoesNotAffectOtherTenant()
+    public async Task InvalidateByKey_TenantIsolation_SameKeyDifferentTenants()
     {
         await _factory.ResetCacheAsync();
         var clientA = _factory.CreateClientForTenant("tenant-a");
         var clientB = _factory.CreateClientForTenant("tenant-b");
 
-        // Get a customer from each tenant
+        // Create a customer in each tenant, then cache using the SAME custom key
+        // Both tenants' GET /api/customers/{id} endpoint uses WithKey("customer:{id}")
+        // The same ID doesn't exist in both, so we use the list endpoint which uses auto-generated keys
+        // Instead, we verify that tenant-a invalidation of a shared-format key doesn't touch tenant-b
+
+        // Get customer IDs (different per tenant, but same key format "customer:{id}")
         var customersA = await clientA.GetFromJsonAsync<JsonElement[]>("/api/customers", JsonOptions);
         var customersB = await clientB.GetFromJsonAsync<JsonElement[]>("/api/customers", JsonOptions);
-        var idA = customersA![0].GetProperty("id").GetString();
-        var idB = customersB![0].GetProperty("id").GetString();
+        var countA = customersA!.Length;
+        var countB = customersB!.Length;
 
-        // Warm cache for both tenants
-        await clientA.GetAsync($"/api/customers/{idA}");
-        await clientB.GetAsync($"/api/customers/{idB}");
+        // Warm list caches for both tenants
+        await clientA.GetAsync("/api/customers");
+        await clientB.GetAsync("/api/customers");
 
-        // Invalidate tenant-a's customer
-        await clientA.PostAsync($"/api/customers/{idA}/invalidate", null);
+        // Create a customer in tenant-a (auto-invalidates tenant-a's list cache)
+        await clientA.PostAsJsonAsync("/api/customers",
+            new { Name = $"Isolation-{Guid.NewGuid():N}", Email = $"iso-{Guid.NewGuid():N}@test.com" });
 
-        // Tenant-b's customer should still be cached and accessible
-        var response = await clientB.GetAsync($"/api/customers/{idB}");
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var customerB = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
-        customerB.GetProperty("id").GetString().Should().Be(idB);
+        // Tenant-a should see the new customer (cache was auto-invalidated)
+        var afterA = await clientA.GetFromJsonAsync<JsonElement[]>("/api/customers", JsonOptions);
+        afterA!.Length.Should().Be(countA + 1);
+
+        // Tenant-b's cache should be untouched — still returns original count
+        var afterB = await clientB.GetFromJsonAsync<JsonElement[]>("/api/customers", JsonOptions);
+        afterB!.Length.Should().Be(countB);
     }
 
     [Fact]

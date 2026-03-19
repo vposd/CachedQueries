@@ -299,14 +299,15 @@ public class CacheInvalidatorTests
     }
 
     [Fact]
-    public async Task InvalidateByKeysAsync_ShouldRemoveKeysFromProvider()
+    public async Task InvalidateByKeysAsync_ShouldRemoveKeyAndSuffixVariants()
     {
-        // Arrange & Act
-        await _invalidator.InvalidateByKeysAsync(new[] { "key1", "key2" });
+        // Act
+        await _invalidator.InvalidateByKeysAsync(new[] { "key1" });
 
-        // Assert
+        // Assert — removes base key + :count + :any variants
         await _cacheProvider.Received(1).RemoveAsync("key1", Arg.Any<CancellationToken>());
-        await _cacheProvider.Received(1).RemoveAsync("key2", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("key1:count", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("key1:any", Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -323,7 +324,7 @@ public class CacheInvalidatorTests
         // Act
         await invalidator.InvalidateByKeysAsync(new[] { "key1" });
 
-        // Assert
+        // Assert — both providers receive the base key
         await defaultProvider.Received(1).RemoveAsync("key1", Arg.Any<CancellationToken>());
         await secondProvider.Received(1).RemoveAsync("key1", Arg.Any<CancellationToken>());
     }
@@ -339,7 +340,7 @@ public class CacheInvalidatorTests
     }
 
     [Fact]
-    public async Task InvalidateByKeysAsync_WithContext_ShouldPrefixKeysWithContext()
+    public async Task InvalidateByKeysAsync_WithContext_ShouldRemoveBothPrefixedAndUnprefixed()
     {
         // Arrange
         var contextProvider = Substitute.For<ICacheContextProvider>();
@@ -355,9 +356,53 @@ public class CacheInvalidatorTests
         // Act
         await invalidator.InvalidateByKeysAsync(new[] { "order-1" });
 
-        // Assert — should remove "tenant-a:order-1", not "order-1"
+        // Assert — should remove both prefixed and unprefixed variants
         await _cacheProvider.Received(1).RemoveAsync("tenant-a:order-1", Arg.Any<CancellationToken>());
-        await _cacheProvider.DidNotReceive().RemoveAsync("order-1", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("tenant-a:order-1:count", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("tenant-a:order-1:any", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("order-1", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("order-1:count", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("order-1:any", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvalidateByKeysAsync_ShouldCleanUpTrackingDictionaries()
+    {
+        // Arrange — register entries in both entity-type and tag tracking
+        _invalidator.RegisterCacheEntry("my-key", new[] { typeof(Order) });
+        _invalidator.RegisterCacheEntry("my-key:count", new[] { typeof(Order) });
+        _invalidator.RegisterCacheEntry("my-key", new[] { "my-tag" });
+
+        // Act
+        await _invalidator.InvalidateByKeysAsync(new[] { "my-key" });
+
+        // Assert — subsequent entity-type invalidation should NOT try to remove the same keys again
+        _cacheProvider.ClearReceivedCalls();
+        await _invalidator.InvalidateAsync(new[] { typeof(Order) });
+        await _cacheProvider.DidNotReceive().RemoveAsync("my-key", Arg.Any<CancellationToken>());
+        await _cacheProvider.DidNotReceive().RemoveAsync("my-key:count", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvalidateByKeysAsync_WithIgnoreContext_ShouldRemoveUnprefixedKeys()
+    {
+        // Scenario: entry was cached with IgnoreContext() → stored as "shared-data" (no prefix)
+        // Invalidation is called from a tenant context → should still remove "shared-data"
+        var contextProvider = Substitute.For<ICacheContextProvider>();
+        contextProvider.GetContextKey().Returns("tenant-a");
+        var providerFactory = Substitute.For<ICacheProviderFactory>();
+        providerFactory.GetAllProviders().Returns([_cacheProvider]);
+        var services = new ServiceCollection();
+        services.AddScoped<ICacheContextProvider>(_ => contextProvider);
+        var sp = services.BuildServiceProvider();
+
+        var invalidator = new CacheInvalidator(_cacheProvider, providerFactory, sp, _logger);
+
+        // Act
+        await invalidator.InvalidateByKeysAsync(new[] { "shared-data" });
+
+        // Assert — unprefixed key is removed (handles IgnoreContext case)
+        await _cacheProvider.Received(1).RemoveAsync("shared-data", Arg.Any<CancellationToken>());
     }
 
     [Fact]

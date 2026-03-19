@@ -62,8 +62,8 @@ public static class CacheExtensions
         => InvalidateAsync([typeof(TEntity)], cancellationToken);
 
     /// <summary>
-    /// Invalidates cache entries by their exact keys.
-    /// Use this when you cached with a custom key via WithKey() and want to invalidate directly.
+    /// Invalidates cache entries by the keys specified via WithKey().
+    /// Automatically handles context prefixes and suffix variants (:count, :any).
     /// </summary>
     public static async Task InvalidateByKeysAsync(IEnumerable<string> keys, CancellationToken cancellationToken = default)
     {
@@ -76,8 +76,8 @@ public static class CacheExtensions
     }
 
     /// <summary>
-    /// Invalidates a cache entry by its exact key.
-    /// Use this when you cached with a custom key via WithKey() and want to invalidate directly.
+    /// Invalidates a cache entry by the key specified via WithKey().
+    /// Automatically handles context prefixes and suffix variants (:count, :any).
     /// </summary>
     public static Task InvalidateByKeyAsync(string key, CancellationToken cancellationToken = default)
         => InvalidateByKeysAsync([key], cancellationToken);
