@@ -45,21 +45,16 @@ internal static class TrackingTags
         var tags = new List<string>();
         var userTagsList = userTags as IReadOnlyCollection<string> ?? userTags.ToList();
 
-        // When explicit tags are provided, use only those — skip auto-detected entity types.
-        // Tags are scoped: global (no context) or context-scoped (with context), never both.
-        if (userTagsList.Count > 0)
+        // Always include entity type tags so auto-invalidation via SaveChanges works.
+        foreach (var type in entityTypes)
         {
-            foreach (var tag in userTagsList)
-            {
-                tags.Add(UserTag(tag, contextKey));
-            }
+            tags.Add(EntityTag(type, contextKey));
         }
-        else
+
+        // Explicit user tags are added alongside entity type tags for manual invalidation.
+        foreach (var tag in userTagsList)
         {
-            foreach (var type in entityTypes)
-            {
-                tags.Add(EntityTag(type, contextKey));
-            }
+            tags.Add(UserTag(tag, contextKey));
         }
 
         // Context-level tag for ClearContextAsync

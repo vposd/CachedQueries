@@ -42,16 +42,16 @@ public class TrackingTagsTests
     }
 
     [Fact]
-    public void BuildTrackingTags_WithExplicitTags_ShouldUseOnlyExplicitTags()
+    public void BuildTrackingTags_WithExplicitTags_ShouldIncludeBothEntityAndUserTags()
     {
         var tags = TrackingTags.BuildTrackingTags(
             [typeof(Order)],
             ["my-tag"],
             null);
 
-        tags.Should().HaveCount(1);
+        tags.Should().HaveCount(2);
+        tags.Should().Contain($"tag:{typeof(Order).FullName}");
         tags.Should().Contain("tag:my-tag");
-        tags.Should().NotContain($"tag:{typeof(Order).FullName}");
     }
 
     [Fact]
@@ -67,17 +67,17 @@ public class TrackingTagsTests
     }
 
     [Fact]
-    public void BuildTrackingTags_WithContext_AndExplicitTags_ShouldScopeToContext()
+    public void BuildTrackingTags_WithContext_AndExplicitTags_ShouldIncludeBothEntityAndUserTags()
     {
         var tags = TrackingTags.BuildTrackingTags(
             [typeof(Order)],
             ["my-tag"],
             "tenant-1");
 
-        tags.Should().HaveCount(2);
+        tags.Should().HaveCount(3);
+        tags.Should().Contain($"tenant-1:tag:{typeof(Order).FullName}");
         tags.Should().Contain("tenant-1:tag:my-tag");
         tags.Should().Contain("tenant-1:tag:__context__");
-        tags.Should().NotContain("tag:my-tag");
     }
 
     [Fact]
