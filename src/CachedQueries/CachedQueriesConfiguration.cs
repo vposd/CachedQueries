@@ -3,29 +3,40 @@ using CachedQueries.Abstractions;
 namespace CachedQueries;
 
 /// <summary>
-/// Configuration options for CachedQueries library.
+///     Configuration options for CachedQueries library.
 /// </summary>
 public sealed class CachedQueriesConfiguration
 {
     /// <summary>
-    /// Default caching options applied when no options are specified.
+    ///     Cache key namespace prefix. Appears right after the Redis InstanceName
+    ///     and before the context key / hash in every cache key and tag key.
+    ///     Default is "cq".
+    /// </summary>
+    /// <example>
+    ///     Key format: {InstanceName}{CachePrefix}:{contextKey}:{hash}
+    ///     e.g. CacheLocal:cq:tenant-id:A1B2C3...
+    /// </example>
+    public string CachePrefix { get; set; } = "cq";
+
+    /// <summary>
+    ///     Default caching options applied when no options are specified.
     /// </summary>
     public CachingOptions DefaultOptions { get; set; } = CachingOptions.Default;
 
     /// <summary>
-    /// Whether to automatically invalidate cache when SaveChanges is called.
-    /// Default is true.
+    ///     Whether to automatically invalidate cache when SaveChanges is called.
+    ///     Default is true.
     /// </summary>
     public bool AutoInvalidation { get; set; } = true;
 
     /// <summary>
-    /// Whether to log cache operations (hits, misses, invalidations).
-    /// Default is true.
+    ///     Whether to log cache operations (hits, misses, invalidations).
+    ///     Default is true.
     /// </summary>
     public bool EnableLogging { get; set; } = true;
 
     /// <summary>
-    /// Custom provider factory. If set, overrides individual provider settings.
+    ///     Custom provider factory. If set, overrides individual provider settings.
     /// </summary>
     public Func<IServiceProvider, ICacheProviderFactory>? ProviderFactory { get; set; }
 
@@ -35,7 +46,7 @@ public sealed class CachedQueriesConfiguration
     internal Type? ScalarProviderType { get; set; }
 
     /// <summary>
-    /// Sets the cache provider for single items (FirstOrDefault, SingleOrDefault).
+    ///     Sets the cache provider for single items (FirstOrDefault, SingleOrDefault).
     /// </summary>
     public CachedQueriesConfiguration UseSingleItemProvider<TProvider>() where TProvider : class, ICacheProvider
     {
@@ -44,7 +55,7 @@ public sealed class CachedQueriesConfiguration
     }
 
     /// <summary>
-    /// Sets the cache provider for collections (ToList, ToArray).
+    ///     Sets the cache provider for collections (ToList, ToArray).
     /// </summary>
     public CachedQueriesConfiguration UseCollectionProvider<TProvider>() where TProvider : class, ICacheProvider
     {
@@ -53,7 +64,7 @@ public sealed class CachedQueriesConfiguration
     }
 
     /// <summary>
-    /// Sets the cache provider for scalar values (Count, Any, Sum).
+    ///     Sets the cache provider for scalar values (Count, Any, Sum).
     /// </summary>
     public CachedQueriesConfiguration UseScalarProvider<TProvider>() where TProvider : class, ICacheProvider
     {
@@ -62,11 +73,11 @@ public sealed class CachedQueriesConfiguration
     }
 
     /// <summary>
-    /// Sets the cache context provider for multi-tenant or scoped caching.
-    /// The context provider determines cache isolation boundaries (e.g., per tenant).
+    ///     Sets the cache context provider for multi-tenant or scoped caching.
+    ///     The context provider determines cache isolation boundaries (e.g., per tenant).
     /// </summary>
     /// <example>
-    /// services.AddCachedQueries(config => config
+    ///     services.AddCachedQueries(config => config
     ///     .UseContextProvider&lt;TenantCacheContextProvider&gt;()
     ///     .UseProvider&lt;RedisCacheProvider&gt;());
     /// </example>
@@ -77,7 +88,7 @@ public sealed class CachedQueriesConfiguration
     }
 
     /// <summary>
-    /// Sets the same provider for all cache targets.
+    ///     Sets the same provider for all cache targets.
     /// </summary>
     public CachedQueriesConfiguration UseProvider<TProvider>() where TProvider : class, ICacheProvider
     {

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Data.Common;
 using CachedQueries.Abstractions;
 using CachedQueries.Interceptors;
@@ -15,12 +16,12 @@ namespace CachedQueries.Tests;
 [Collection("Interceptors")]
 public class TransactionCacheInvalidationInterceptorTests : IDisposable
 {
-    private readonly ICacheInvalidator _invalidator;
-    private readonly ILogger<CacheInvalidationInterceptor> _saveChangesLogger;
-    private readonly ILogger<TransactionCacheInvalidationInterceptor> _transactionLogger;
-    private readonly CacheInvalidationInterceptor _saveChangesInterceptor;
-    private readonly TransactionCacheInvalidationInterceptor _transactionInterceptor;
     private readonly TestDbContext _context;
+    private readonly ICacheInvalidator _invalidator;
+    private readonly CacheInvalidationInterceptor _saveChangesInterceptor;
+    private readonly ILogger<CacheInvalidationInterceptor> _saveChangesLogger;
+    private readonly TransactionCacheInvalidationInterceptor _transactionInterceptor;
+    private readonly ILogger<TransactionCacheInvalidationInterceptor> _transactionLogger;
 
     public TransactionCacheInvalidationInterceptorTests()
     {
@@ -232,12 +233,12 @@ public class TransactionCacheInvalidationInterceptorTests : IDisposable
 [Collection("Interceptors")]
 public class TransactionCacheInvalidationInterceptorAdditionalTests : IDisposable
 {
-    private readonly ICacheInvalidator _invalidator;
-    private readonly ILogger<CacheInvalidationInterceptor> _saveChangesLogger;
-    private readonly ILogger<TransactionCacheInvalidationInterceptor> _transactionLogger;
-    private readonly CacheInvalidationInterceptor _saveChangesInterceptor;
-    private readonly TransactionCacheInvalidationInterceptor _transactionInterceptor;
     private readonly TestDbContext _context;
+    private readonly ICacheInvalidator _invalidator;
+    private readonly CacheInvalidationInterceptor _saveChangesInterceptor;
+    private readonly ILogger<CacheInvalidationInterceptor> _saveChangesLogger;
+    private readonly TransactionCacheInvalidationInterceptor _transactionInterceptor;
+    private readonly ILogger<TransactionCacheInvalidationInterceptor> _transactionLogger;
 
     public TransactionCacheInvalidationInterceptorAdditionalTests()
     {
@@ -270,7 +271,7 @@ public class TransactionCacheInvalidationInterceptorAdditionalTests : IDisposabl
     public void Interceptor_ShouldBeCreatedWithNullLogger()
     {
         // Arrange & Act
-        var interceptor = new TransactionCacheInvalidationInterceptor(_invalidator, null);
+        var interceptor = new TransactionCacheInvalidationInterceptor(_invalidator);
 
         // Assert
         interceptor.Should().NotBeNull();
@@ -281,7 +282,7 @@ public class TransactionCacheInvalidationInterceptorAdditionalTests : IDisposabl
     {
         // Arrange
         var contextId = TransactionCacheInvalidationInterceptor.GetContextIdentifier(_context);
-        var types = new System.Collections.Concurrent.ConcurrentDictionary<Type, byte>();
+        var types = new ConcurrentDictionary<Type, byte>();
         types[typeof(Order)] = 0;
         TransactionCacheInvalidationInterceptor.PendingInvalidations.TryAdd(contextId, types);
 
@@ -365,7 +366,7 @@ public class TransactionCacheInvalidationInterceptorAdditionalTests : IDisposabl
     {
         // Arrange: seed pending invalidations
         var contextId = TransactionCacheInvalidationInterceptor.GetContextIdentifier(_context);
-        var types = new System.Collections.Concurrent.ConcurrentDictionary<Type, byte>();
+        var types = new ConcurrentDictionary<Type, byte>();
         types[typeof(Order)] = 0;
         TransactionCacheInvalidationInterceptor.PendingInvalidations[contextId] = types;
 
@@ -389,7 +390,7 @@ public class TransactionCacheInvalidationInterceptorAdditionalTests : IDisposabl
     {
         // Arrange: seed pending invalidations
         var contextId = TransactionCacheInvalidationInterceptor.GetContextIdentifier(_context);
-        var types = new System.Collections.Concurrent.ConcurrentDictionary<Type, byte>();
+        var types = new ConcurrentDictionary<Type, byte>();
         types[typeof(Order)] = 0;
         TransactionCacheInvalidationInterceptor.PendingInvalidations[contextId] = types;
 
@@ -425,7 +426,7 @@ public class TransactionCacheInvalidationInterceptorAdditionalTests : IDisposabl
     }
 
     /// <summary>
-    /// Minimal EventDefinitionBase subclass for test event data construction.
+    ///     Minimal EventDefinitionBase subclass for test event data construction.
     /// </summary>
     private sealed class FakeEventDefinition : EventDefinitionBase
     {
@@ -437,14 +438,22 @@ public class TransactionCacheInvalidationInterceptorAdditionalTests : IDisposabl
 
     private sealed class LoggingOptions : ILoggingOptions
     {
-        public void Initialize(IDbContextOptions options) { }
-        public void Validate(IDbContextOptions options) { }
+        public void Initialize(IDbContextOptions options)
+        {
+        }
+
+        public void Validate(IDbContextOptions options)
+        {
+        }
+
         public bool IsSensitiveDataLoggingEnabled => false;
         public bool IsSensitiveDataLoggingWarned { get; set; }
         public bool DetailedErrorsEnabled => false;
         public WarningsConfiguration WarningsConfiguration => new();
-        public bool ShouldWarnForStringEnumValueInJson(Type type) => false;
+
+        public bool ShouldWarnForStringEnumValueInJson(Type type)
+        {
+            return false;
+        }
     }
 }
-
-

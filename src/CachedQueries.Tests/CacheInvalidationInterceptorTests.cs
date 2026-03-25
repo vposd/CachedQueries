@@ -3,7 +3,6 @@ using CachedQueries.Abstractions;
 using CachedQueries.Interceptors;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
@@ -13,10 +12,10 @@ namespace CachedQueries.Tests;
 [Collection("Interceptors")]
 public class CacheInvalidationInterceptorTests : IDisposable
 {
+    private readonly TestDbContext _context;
+    private readonly CacheInvalidationInterceptor _interceptor;
     private readonly ICacheInvalidator _invalidator;
     private readonly ILogger<CacheInvalidationInterceptor> _logger;
-    private readonly CacheInvalidationInterceptor _interceptor;
-    private readonly TestDbContext _context;
 
     public CacheInvalidationInterceptorTests()
     {
@@ -25,7 +24,7 @@ public class CacheInvalidationInterceptorTests : IDisposable
         _interceptor = new CacheInvalidationInterceptor(_invalidator, _logger);
 
         var options = new DbContextOptionsBuilder<TestDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .AddInterceptors(_interceptor)
             .Options;
 
@@ -235,16 +234,15 @@ public class CacheInvalidationInterceptorTests : IDisposable
         // Act & Assert - should not throw
         _context.SaveChanges();
     }
-
 }
 
 [Collection("Interceptors")]
 public class CacheInvalidationInterceptorFailureTests : IDisposable
 {
+    private readonly TestDbContext _context;
+    private readonly CacheInvalidationInterceptor _interceptor;
     private readonly ICacheInvalidator _invalidator;
     private readonly ILogger<CacheInvalidationInterceptor> _logger;
-    private readonly CacheInvalidationInterceptor _interceptor;
-    private readonly TestDbContext _context;
 
     public CacheInvalidationInterceptorFailureTests()
     {
@@ -290,7 +288,7 @@ public class CacheInvalidationInterceptorFailureTests : IDisposable
     public void Interceptor_ShouldBeCreatedWithNullLogger()
     {
         // Arrange & Act
-        var interceptor = new CacheInvalidationInterceptor(_invalidator, null);
+        var interceptor = new CacheInvalidationInterceptor(_invalidator);
 
         // Assert
         interceptor.Should().NotBeNull();
@@ -369,5 +367,3 @@ public class CacheInvalidationInterceptorFailureTests : IDisposable
         TransactionCacheInvalidationInterceptor.PendingInvalidations.ContainsKey(contextId).Should().BeFalse();
     }
 }
-
-

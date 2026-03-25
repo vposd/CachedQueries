@@ -8,8 +8,8 @@ using Microsoft.Extensions.Logging;
 namespace CachedQueries.Interceptors;
 
 /// <summary>
-/// EF Core interceptor that handles cache invalidation on transaction commit.
-/// Works together with <see cref="CacheInvalidationInterceptor"/>.
+///     EF Core interceptor that handles cache invalidation on transaction commit.
+///     Works together with <see cref="CacheInvalidationInterceptor" />.
 /// </summary>
 public sealed class TransactionCacheInvalidationInterceptor(
     ICacheInvalidator invalidator,
@@ -19,14 +19,20 @@ public sealed class TransactionCacheInvalidationInterceptor(
     // Track pending invalidations per DbContext instance (shared with SaveChanges interceptor)
     // Key: DbContext.ContextId.ToString() (unique per context instance + lease)
     // Value: thread-safe set of changed entity types
-    internal static readonly ConcurrentDictionary<string, ConcurrentDictionary<Type, byte>> PendingInvalidations = new();
+    internal static readonly ConcurrentDictionary<string, ConcurrentDictionary<Type, byte>>
+        PendingInvalidations = new();
 
-    internal static string GetContextIdentifier(DbContext context) => context.ContextId.ToString();
+    internal static string GetContextIdentifier(DbContext context)
+    {
+        return context.ContextId.ToString();
+    }
 
     public override void TransactionCommitted(DbTransaction transaction, TransactionEndEventData eventData)
     {
         if (eventData.Context is not null)
+        {
             InvalidatePendingChanges(eventData.Context);
+        }
 
         base.TransactionCommitted(transaction, eventData);
     }
@@ -37,7 +43,9 @@ public sealed class TransactionCacheInvalidationInterceptor(
         CancellationToken cancellationToken = default)
     {
         if (eventData.Context is not null)
+        {
             await InvalidatePendingChangesAsync(eventData.Context, cancellationToken);
+        }
 
         await base.TransactionCommittedAsync(transaction, eventData, cancellationToken);
     }
@@ -99,7 +107,9 @@ public sealed class TransactionCacheInvalidationInterceptor(
         var contextId = GetContextIdentifier(context);
 
         if (!PendingInvalidations.TryRemove(contextId, out var entityTypes) || entityTypes.IsEmpty)
+        {
             return;
+        }
 
         try
         {
@@ -117,7 +127,9 @@ public sealed class TransactionCacheInvalidationInterceptor(
         var contextId = GetContextIdentifier(context);
 
         if (!PendingInvalidations.TryRemove(contextId, out var entityTypes) || entityTypes.IsEmpty)
+        {
             return;
+        }
 
         try
         {

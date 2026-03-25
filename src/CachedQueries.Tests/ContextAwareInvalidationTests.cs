@@ -1,6 +1,5 @@
 using CachedQueries.Abstractions;
 using CachedQueries.Internal;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -9,9 +8,9 @@ using Xunit;
 namespace CachedQueries.Tests;
 
 /// <summary>
-/// Tests for context-aware (multi-tenant) cache invalidation.
-/// Verifies: when invalidating, entries for current context + global entries are removed,
-/// while entries for other contexts are preserved.
+///     Tests for context-aware (multi-tenant) cache invalidation.
+///     Verifies that the invalidator builds correct tag names that include/exclude context,
+///     delegating to the cache provider's distributed tag infrastructure.
 /// </summary>
 public class ContextAwareInvalidationTests
 {
@@ -27,7 +26,9 @@ public class ContextAwareInvalidationTests
     private CacheInvalidator CreateInvalidator(string? contextKey = null)
     {
         if (contextKey is null)
+        {
             return new CacheInvalidator(_cacheProvider, _logger);
+        }
 
         var contextProvider = Substitute.For<ICacheContextProvider>();
         contextProvider.GetContextKey().Returns(contextKey);
@@ -43,251 +44,150 @@ public class ContextAwareInvalidationTests
     }
 
     [Fact]
-    public async Task InvalidateAsync_ShouldRemoveGlobalEntries()
+    public async Task InvalidateAsync_WithNoContext_ShouldOnlyIncludeGlobalEntityTags()
     {
-        // Arrange: register entry without context (global)
+        // Arrange
         var invalidator = CreateInvalidator();
-        invalidator.RegisterCacheEntry("global-key", [typeof(Order)], contextKey: null);
 
         // Act
         await invalidator.InvalidateAsync([typeof(Order)]);
 
-        // Assert
-        await _cacheProvider.Received(1).RemoveAsync("global-key", Arg.Any<CancellationToken>());
+        // Assert - only global entity tag (no context prefix)
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                tags.Count == 1 &&
+                tags.Contains($"tag:{typeof(Order).FullName}")),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task InvalidateAsync_ShouldRemoveCurrentContextEntries()
-    {
-        // Arrange: register entry with context "tenant-1"
-        var invalidator = CreateInvalidator("tenant-1");
-        invalidator.RegisterCacheEntry("tenant1-key", [typeof(Order)], contextKey: "tenant-1");
-
-        // Act: invalidate with current context = "tenant-1"
-        await invalidator.InvalidateAsync([typeof(Order)]);
-
-        // Assert
-        await _cacheProvider.Received(1).RemoveAsync("tenant1-key", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task InvalidateAsync_ShouldNotRemoveOtherContextEntries()
-    {
-        // Arrange: register entry for tenant-2 but current context is tenant-1
-        var invalidator = CreateInvalidator("tenant-1");
-        invalidator.RegisterCacheEntry("tenant2-key", [typeof(Order)], contextKey: "tenant-2");
-
-        // Act
-        await invalidator.InvalidateAsync([typeof(Order)]);
-
-        // Assert: tenant-2's entry should NOT be removed
-        await _cacheProvider.DidNotReceive().RemoveAsync("tenant2-key", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task InvalidateAsync_ShouldRemoveGlobalAndCurrentContext_ButNotOtherContexts()
+    public async Task InvalidateAsync_WithContext_ShouldIncludeGlobalAndContextTags()
     {
         // Arrange
         var invalidator = CreateInvalidator("tenant-1");
-        invalidator.RegisterCacheEntry("global-key", [typeof(Order)], contextKey: null);
-        invalidator.RegisterCacheEntry("tenant1-key", [typeof(Order)], contextKey: "tenant-1");
-        invalidator.RegisterCacheEntry("tenant2-key", [typeof(Order)], contextKey: "tenant-2");
 
         // Act
         await invalidator.InvalidateAsync([typeof(Order)]);
 
-        // Assert
-        await _cacheProvider.Received(1).RemoveAsync("global-key", Arg.Any<CancellationToken>());
-        await _cacheProvider.Received(1).RemoveAsync("tenant1-key", Arg.Any<CancellationToken>());
-        await _cacheProvider.DidNotReceive().RemoveAsync("tenant2-key", Arg.Any<CancellationToken>());
+        // Assert - both global and context-specific entity tags
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                tags.Contains($"tag:{typeof(Order).FullName}") &&
+                tags.Contains($"tenant-1:tag:{typeof(Order).FullName}")),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task InvalidateByTagsAsync_ShouldRespectContext()
+    public async Task InvalidateAsync_WithContext_ShouldNotIncludeOtherContextTags()
     {
         // Arrange
-        var providerFactory = Substitute.For<ICacheProviderFactory>();
-        providerFactory.GetAllProviders().Returns([_cacheProvider]);
+        var invalidator = CreateInvalidator("tenant-1");
 
-        var contextProvider = Substitute.For<ICacheContextProvider>();
-        contextProvider.GetContextKey().Returns("tenant-1");
-        var services = new ServiceCollection();
-        services.AddScoped<ICacheContextProvider>(_ => contextProvider);
-        var sp = services.BuildServiceProvider();
+        // Act
+        await invalidator.InvalidateAsync([typeof(Order)]);
 
-        var invalidator = new CacheInvalidator(_cacheProvider, providerFactory, sp, _logger);
+        // Assert - should NOT include tenant-2 tags
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                !tags.Any(t => t.Contains("tenant-2"))),
+            Arg.Any<CancellationToken>());
+    }
 
-        invalidator.RegisterCacheEntry("global-tag-key", ["orders"], contextKey: null);
-        invalidator.RegisterCacheEntry("tenant1-tag-key", ["orders"], contextKey: "tenant-1");
-        invalidator.RegisterCacheEntry("tenant2-tag-key", ["orders"], contextKey: "tenant-2");
+    [Fact]
+    public async Task InvalidateByTagsAsync_WithContext_ShouldIncludeGlobalAndContextQualifiedTags()
+    {
+        // Arrange
+        var invalidator = CreateInvalidator("tenant-1");
 
         // Act
         await invalidator.InvalidateByTagsAsync(["orders"]);
 
-        // Assert
-        await _cacheProvider.Received(1).RemoveAsync("global-tag-key", Arg.Any<CancellationToken>());
-        await _cacheProvider.Received(1).RemoveAsync("tenant1-tag-key", Arg.Any<CancellationToken>());
-        await _cacheProvider.DidNotReceive().RemoveAsync("tenant2-tag-key", Arg.Any<CancellationToken>());
+        // Assert - global tag "orders" + context-qualified tag "tenant-1:orders"
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                tags.Contains("tag:orders") &&
+                tags.Contains("tenant-1:tag:orders")),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task InvalidateAsync_WithNoContext_ShouldOnlyRemoveGlobalEntries()
+    public async Task InvalidateByTagsAsync_WithNoContext_ShouldOnlyIncludeGlobalTags()
     {
-        // Arrange: no context provider configured → current context is null
+        // Arrange
         var invalidator = CreateInvalidator();
-        invalidator.RegisterCacheEntry("global-key", [typeof(Order)], contextKey: null);
-        invalidator.RegisterCacheEntry("tenant-key", [typeof(Order)], contextKey: "tenant-1");
 
         // Act
-        await invalidator.InvalidateAsync([typeof(Order)]);
+        await invalidator.InvalidateByTagsAsync(["orders"]);
 
-        // Assert: only global entries removed
-        await _cacheProvider.Received(1).RemoveAsync("global-key", Arg.Any<CancellationToken>());
-        await _cacheProvider.DidNotReceive().RemoveAsync("tenant-key", Arg.Any<CancellationToken>());
+        // Assert - only global tag
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                tags.Count == 1 &&
+                tags.Contains("tag:orders")),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ClearContextAsync_ShouldOnlyRemoveCurrentContextEntries()
-    {
-        // Arrange
-        var contextProvider = Substitute.For<ICacheContextProvider>();
-        contextProvider.GetContextKey().Returns("tenant-1");
-        var providerFactory = Substitute.For<ICacheProviderFactory>();
-        providerFactory.GetAllProviders().Returns([_cacheProvider]);
-        var services = new ServiceCollection();
-        services.AddScoped<ICacheContextProvider>(_ => contextProvider);
-        var sp = services.BuildServiceProvider();
-
-        var invalidator = new CacheInvalidator(_cacheProvider, providerFactory, sp, _logger);
-
-        invalidator.RegisterCacheEntry("global-key", [typeof(Order)], contextKey: null);
-        invalidator.RegisterCacheEntry("tenant1-key", [typeof(Order)], contextKey: "tenant-1");
-        invalidator.RegisterCacheEntry("tenant2-key", [typeof(Order)], contextKey: "tenant-2");
-
-        // Act
-        await invalidator.ClearContextAsync();
-
-        // Assert: only tenant-1 entries removed
-        await _cacheProvider.Received(1).RemoveAsync("tenant1-key", Arg.Any<CancellationToken>());
-        await _cacheProvider.DidNotReceive().RemoveAsync("global-key", Arg.Any<CancellationToken>());
-        await _cacheProvider.DidNotReceive().RemoveAsync("tenant2-key", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task ClearContextAsync_WithNoContext_ShouldLogWarningAndDoNothing()
-    {
-        // Arrange: no context provider
-        var invalidator = CreateInvalidator();
-        invalidator.RegisterCacheEntry("some-key", [typeof(Order)], contextKey: "tenant-1");
-
-        // Act
-        await invalidator.ClearContextAsync();
-
-        // Assert: no removals
-        await _cacheProvider.DidNotReceive().RemoveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task ClearAllAsync_ShouldClearEverything()
+    public async Task InvalidateAsync_MultipleEntityTypes_ShouldBuildTagsForAll()
     {
         // Arrange
         var invalidator = CreateInvalidator("tenant-1");
-        invalidator.RegisterCacheEntry("global-key", [typeof(Order)], contextKey: null);
-        invalidator.RegisterCacheEntry("tenant1-key", [typeof(Order)], contextKey: "tenant-1");
-        invalidator.RegisterCacheEntry("tenant2-key", [typeof(Order)], contextKey: "tenant-2");
-
-        // Act
-        await invalidator.ClearAllAsync();
-
-        // Assert: ClearAsync called on provider
-        await _cacheProvider.Received(1).ClearAsync(Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task RegisterCacheEntry_WithContext_ThenInvalidate_ShouldCleanTracking()
-    {
-        // Arrange
-        var invalidator = CreateInvalidator("tenant-1");
-        invalidator.RegisterCacheEntry("key1", [typeof(Order)], contextKey: "tenant-1");
-
-        // Act: invalidate twice
-        await invalidator.InvalidateAsync([typeof(Order)]);
-        _cacheProvider.ClearReceivedCalls();
-        await invalidator.InvalidateAsync([typeof(Order)]);
-
-        // Assert: second call should not remove (already cleaned)
-        await _cacheProvider.DidNotReceive().RemoveAsync("key1", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task InvalidateAsync_MultipleEntityTypes_ShouldRemoveMatchingAcrossTypes()
-    {
-        // Arrange
-        var invalidator = CreateInvalidator("tenant-1");
-        invalidator.RegisterCacheEntry("order-key", [typeof(Order)], contextKey: "tenant-1");
-        invalidator.RegisterCacheEntry("customer-key", [typeof(Customer)], contextKey: "tenant-1");
-        invalidator.RegisterCacheEntry("other-tenant-key", [typeof(Order)], contextKey: "tenant-2");
 
         // Act
         await invalidator.InvalidateAsync([typeof(Order), typeof(Customer)]);
 
-        // Assert
-        await _cacheProvider.Received(1).RemoveAsync("order-key", Arg.Any<CancellationToken>());
-        await _cacheProvider.Received(1).RemoveAsync("customer-key", Arg.Any<CancellationToken>());
-        await _cacheProvider.DidNotReceive().RemoveAsync("other-tenant-key", Arg.Any<CancellationToken>());
+        // Assert - 4 tags: 2 global + 2 context-specific
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                tags.Count == 4 &&
+                tags.Contains($"tag:{typeof(Order).FullName}") &&
+                tags.Contains($"tenant-1:tag:{typeof(Order).FullName}") &&
+                tags.Contains($"tag:{typeof(Customer).FullName}") &&
+                tags.Contains($"tenant-1:tag:{typeof(Customer).FullName}")),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task IgnoreContext_EntriesAreInvalidated_FromAnyContext()
-    {
-        // Arrange: register a global entry (IgnoreContext produces contextKey: null)
-        // and invalidate from tenant-1 — global entries should always be invalidated
-        var invalidator = CreateInvalidator("tenant-1");
-        invalidator.RegisterCacheEntry("ignore-ctx-key", [typeof(Order)], contextKey: null);
-
-        // Act
-        await invalidator.InvalidateAsync([typeof(Order)]);
-
-        // Assert: global entry removed even though current context is tenant-1
-        await _cacheProvider.Received(1).RemoveAsync("ignore-ctx-key", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task IgnoreContext_EntriesAreInvalidated_FromDifferentContext()
-    {
-        // Arrange: register global entry, then invalidate from tenant-2
-        var invalidator = CreateInvalidator("tenant-2");
-        invalidator.RegisterCacheEntry("global-shared-key", [typeof(Order)], contextKey: null);
-
-        // Act
-        await invalidator.InvalidateAsync([typeof(Order)]);
-
-        // Assert
-        await _cacheProvider.Received(1).RemoveAsync("global-shared-key", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task IgnoreContext_TagEntries_AreInvalidatedFromAnyContext()
+    public async Task ClearContextAsync_ShouldInvalidateContextLevelTag()
     {
         // Arrange
-        var providerFactory = Substitute.For<ICacheProviderFactory>();
-        providerFactory.GetAllProviders().Returns([_cacheProvider]);
-
-        var contextProvider = Substitute.For<ICacheContextProvider>();
-        contextProvider.GetContextKey().Returns("tenant-1");
-        var services = new ServiceCollection();
-        services.AddScoped<ICacheContextProvider>(_ => contextProvider);
-        var sp = services.BuildServiceProvider();
-
-        var invalidator = new CacheInvalidator(_cacheProvider, providerFactory, sp, _logger);
-
-        // Register a tag entry with null context (IgnoreContext)
-        invalidator.RegisterCacheEntry("global-tag-entry", ["reports"], contextKey: null);
+        var invalidator = CreateInvalidator("tenant-1");
 
         // Act
-        await invalidator.InvalidateByTagsAsync(["reports"]);
+        await invalidator.ClearContextAsync();
 
         // Assert
-        await _cacheProvider.Received(1).RemoveAsync("global-tag-entry", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                tags.Count == 1 &&
+                tags.Contains("tenant-1:tag:__context__")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ClearContextAsync_WithNoContext_ShouldNotCallProvider()
+    {
+        // Arrange
+        var invalidator = CreateInvalidator();
+
+        // Act
+        await invalidator.ClearContextAsync();
+
+        // Assert
+        await _cacheProvider.DidNotReceive().InvalidateByTagsAsync(
+            Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ClearAllAsync_ShouldClearAllProviders()
+    {
+        // Arrange
+        var invalidator = CreateInvalidator("tenant-1");
+
+        // Act
+        await invalidator.ClearAllAsync();
+
+        // Assert
+        await _cacheProvider.Received(1).ClearAsync(Arg.Any<CancellationToken>());
     }
 }

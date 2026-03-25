@@ -1,3 +1,4 @@
+using System.Reflection;
 using CachedQueries.Abstractions;
 using CachedQueries.Extensions;
 using CachedQueries.Internal;
@@ -15,16 +16,16 @@ namespace CachedQueries.Tests;
 [Collection("CacheServiceAccessor")]
 public class CacheableQueryTests : IDisposable
 {
-    private readonly TestDbContext _context;
-    private readonly IMemoryCache _memoryCache;
     private readonly ICacheProvider _cacheProvider;
-    private readonly ICacheKeyGenerator _keyGenerator;
+    private readonly TestDbContext _context;
     private readonly ICacheInvalidator _invalidator;
+    private readonly ICacheKeyGenerator _keyGenerator;
+    private readonly IMemoryCache _memoryCache;
 
     public CacheableQueryTests()
     {
         var options = new DbContextOptionsBuilder<TestDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
         _context = new TestDbContext(options);
@@ -118,7 +119,7 @@ public class CacheableQueryTests : IDisposable
             .Cacheable(o => o.WithKey("my-orders"))
             .ToListAsync();
 
-        var cached = await _cacheProvider.GetAsync<List<Order>>("my-orders");
+        var cached = await _cacheProvider.GetAsync<List<Order>>("cq:my-orders");
         cached.Should().NotBeNull();
         cached.Should().HaveCount(3);
     }
@@ -213,8 +214,7 @@ public class CacheableQueryTests : IDisposable
     [Fact]
     public async Task Cacheable_SingleOrDefaultAsync_NullPredicate_ShouldThrowIfMultiple()
     {
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _context.Orders.Cacheable().SingleOrDefaultAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _context.Orders.Cacheable().SingleOrDefaultAsync());
     }
 
     // --- CountAsync ---
@@ -353,12 +353,12 @@ public class CacheableQueryTests : IDisposable
             .Cacheable(o => o.IgnoreContext().WithKey("global-orders"))
             .ToListAsync();
 
-        // The key should be stored as "global-orders" (no prefix), not "tenant-1:global-orders"
-        var globalCached = await _cacheProvider.GetAsync<List<Order>>("global-orders");
+        // The key should be stored as "cq:global-orders" (no context), not "cq:tenant-1:global-orders"
+        var globalCached = await _cacheProvider.GetAsync<List<Order>>("cq:global-orders");
         globalCached.Should().NotBeNull();
         globalCached.Should().HaveCount(3);
 
-        var prefixedCached = await _cacheProvider.GetAsync<List<Order>>("tenant-1:global-orders");
+        var prefixedCached = await _cacheProvider.GetAsync<List<Order>>("cq:tenant-1:global-orders");
         prefixedCached.Should().BeNull();
     }
 
@@ -372,11 +372,11 @@ public class CacheableQueryTests : IDisposable
             .Cacheable(o => o.WithKey("tenant-orders"))
             .ToListAsync();
 
-        // The key should be stored with prefix "tenant-1:tenant-orders"
-        var prefixedCached = await _cacheProvider.GetAsync<List<Order>>("tenant-1:tenant-orders");
+        // The key should be stored with context: "cq:tenant-1:tenant-orders"
+        var prefixedCached = await _cacheProvider.GetAsync<List<Order>>("cq:tenant-1:tenant-orders");
         prefixedCached.Should().NotBeNull();
 
-        var globalCached = await _cacheProvider.GetAsync<List<Order>>("tenant-orders");
+        var globalCached = await _cacheProvider.GetAsync<List<Order>>("cq:tenant-orders");
         globalCached.Should().BeNull();
     }
 
@@ -391,7 +391,7 @@ public class CacheableQueryTests : IDisposable
 
         result.Should().NotBeNull();
 
-        var globalCached = await _cacheProvider.GetAsync<Order>("global-first");
+        var globalCached = await _cacheProvider.GetAsync<Order>("cq:global-first");
         globalCached.Should().NotBeNull();
     }
 
@@ -406,7 +406,7 @@ public class CacheableQueryTests : IDisposable
 
         count.Should().Be(3);
 
-        var globalCached = await _cacheProvider.GetAsync<int?>("global-count:count");
+        var globalCached = await _cacheProvider.GetAsync<int?>("cq:global-count:count");
         globalCached.Should().Be(3);
     }
 
@@ -421,7 +421,7 @@ public class CacheableQueryTests : IDisposable
 
         any.Should().BeTrue();
 
-        var globalCached = await _cacheProvider.GetAsync<bool?>("global-any:any");
+        var globalCached = await _cacheProvider.GetAsync<bool?>("cq:global-any:any");
         globalCached.Should().Be(true);
     }
 
@@ -436,7 +436,7 @@ public class CacheableQueryTests : IDisposable
 
         result.Should().NotBeNull();
 
-        var globalCached = await _cacheProvider.GetAsync<Order>("global-single");
+        var globalCached = await _cacheProvider.GetAsync<Order>("cq:global-single");
         globalCached.Should().NotBeNull();
     }
 
@@ -472,7 +472,130 @@ public class CacheableQueryTests : IDisposable
         CacheServiceAccessor.Configure(_cacheProvider, _keyGenerator, _invalidator);
         // Set up scope factory for context key resolution
         var field = typeof(CacheServiceAccessor).GetField("_scopeFactory",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            BindingFlags.NonPublic | BindingFlags.Static);
         field!.SetValue(null, sp.GetService<IServiceScopeFactory>());
+    }
+
+    [Fact]
+    public async Task Cacheable_ToListAsync_StampedeDoubleCheck_ShouldReturnCachedValueAfterLock()
+    {
+        // First call populates the cache
+        var result1 = await _context.Orders
+            .Cacheable(o => o.WithKey("stampede-list"))
+            .ToListAsync();
+
+        // Second call should hit the fast path (already cached)
+        var result2 = await _context.Orders
+            .Cacheable(o => o.WithKey("stampede-list"))
+            .ToListAsync();
+
+        result1.Should().HaveCount(3);
+        result2.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public async Task Cacheable_CountAsync_StampedeDoubleCheck_ShouldReturnCachedValueAfterLock()
+    {
+        // First call populates the cache
+        var count1 = await _context.Orders
+            .Cacheable(o => o.WithKey("stampede-count"))
+            .CountAsync();
+
+        // Second call should hit the fast path
+        var count2 = await _context.Orders
+            .Cacheable(o => o.WithKey("stampede-count"))
+            .CountAsync();
+
+        count1.Should().Be(3);
+        count2.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task Cacheable_ConcurrentToListAsync_ShouldHitDoubleCheckPath()
+    {
+        // Run concurrent requests with the same key — some will hit the double-check path
+        var tasks = Enumerable.Range(0, 5).Select(_ =>
+            _context.Orders
+                .Cacheable(o => o.WithKey("concurrent-list"))
+                .ToListAsync());
+
+        var results = await Task.WhenAll(tasks);
+        foreach (var r in results)
+        {
+            r.Should().HaveCount(3);
+        }
+    }
+
+    [Fact]
+    public async Task Cacheable_ConcurrentCountAsync_ShouldHitDoubleCheckPath()
+    {
+        var tasks = Enumerable.Range(0, 5).Select(_ =>
+            _context.Orders
+                .Cacheable(o => o.WithKey("concurrent-count"))
+                .CountAsync());
+
+        var results = await Task.WhenAll(tasks);
+        foreach (var r in results)
+        {
+            r.Should().Be(3);
+        }
+    }
+
+    [Fact]
+    public async Task Cacheable_ToListAsync_DoubleCheckInsideLock_ShouldReturnCachedValue()
+    {
+        // Simulate the double-check path: first GetAsync returns null, second returns data
+        var mockProvider = Substitute.For<ICacheProvider>();
+        var callCount = 0;
+        mockProvider.GetAsync<List<Order>>(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                callCount++;
+                // First call (fast path) returns null, second call (inside lock) returns cached data
+                return callCount == 1
+                    ? Task.FromResult<List<Order>?>(null)
+                    : Task.FromResult<List<Order>?>(new List<Order> { new() { Id = 99, Name = "Cached", Total = 999 } });
+            });
+
+        CacheServiceAccessor.Configure(mockProvider, _keyGenerator, _invalidator);
+
+        var result = await _context.Orders
+            .Cacheable(o => o.WithKey("double-check-list"))
+            .ToListAsync();
+
+        result.Should().HaveCount(1);
+        result[0].Id.Should().Be(99);
+        // GetAsync should have been called exactly twice (fast path + double-check)
+        callCount.Should().Be(2);
+        // SetAsync should NOT have been called since the double-check returned cached data
+        await mockProvider.DidNotReceive().SetAsync(
+            Arg.Any<string>(), Arg.Any<List<Order>>(), Arg.Any<CachingOptions>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Cacheable_CountAsync_DoubleCheckInsideLock_ShouldReturnCachedValue()
+    {
+        // Simulate the double-check path for scalar: first GetAsync returns null, second returns data
+        var mockProvider = Substitute.For<ICacheProvider>();
+        var callCount = 0;
+        mockProvider.GetAsync<int?>(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                callCount++;
+                return callCount == 1
+                    ? Task.FromResult<int?>(null)
+                    : Task.FromResult<int?>(42);
+            });
+
+        CacheServiceAccessor.Configure(mockProvider, _keyGenerator, _invalidator);
+
+        var result = await _context.Orders
+            .Cacheable(o => o.WithKey("double-check-count"))
+            .CountAsync();
+
+        result.Should().Be(42);
+        callCount.Should().Be(2);
+        await mockProvider.DidNotReceive().SetAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CachingOptions>(), Arg.Any<CancellationToken>());
     }
 }

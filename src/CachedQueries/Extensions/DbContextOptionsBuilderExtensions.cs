@@ -5,13 +5,13 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CachedQueries.Extensions;
 
 /// <summary>
-/// Extension methods for configuring EF Core DbContext with CachedQueries.
+///     Extension methods for configuring EF Core DbContext with CachedQueries.
 /// </summary>
 public static class DbContextOptionsBuilderExtensions
 {
     /// <summary>
-    /// Adds cache invalidation interceptors to the DbContext.
-    /// This includes SaveChanges and Transaction interceptors.
+    ///     Adds cache invalidation interceptors to the DbContext.
+    ///     This includes SaveChanges and Transaction interceptors.
     /// </summary>
     public static DbContextOptionsBuilder AddCacheInvalidation(
         this DbContextOptionsBuilder optionsBuilder,
@@ -33,5 +33,3 @@ public static class DbContextOptionsBuilderExtensions
         return optionsBuilder;
     }
 }
-
-

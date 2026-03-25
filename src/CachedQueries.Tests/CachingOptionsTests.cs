@@ -40,7 +40,7 @@ public class CachingOptionsTests
         var expiration = TimeSpan.FromMinutes(10);
 
         // Act
-        var options = new CachingOptions(expiration, useSlidingExpiration: true);
+        var options = new CachingOptions(expiration, true);
 
         // Assert
         options.Expiration.Should().Be(expiration);
@@ -80,7 +80,7 @@ public class CachingOptionsTests
         options.Expiration.Should().Be(TimeSpan.FromHours(2));
         options.UseSlidingExpiration.Should().BeTrue();
         options.CacheKey.Should().Be("custom-key");
-        options.Tags.Should().BeEquivalentTo(["tag1", "tag2"]);
+        options.Tags.Should().BeEquivalentTo("tag1", "tag2");
         options.SkipCache.Should().BeTrue();
         options.IgnoreContext.Should().BeTrue();
     }
@@ -92,5 +92,3 @@ public class CachingOptionsTests
         options.IgnoreContext.Should().BeFalse();
     }
 }
-
-

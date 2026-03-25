@@ -8,10 +8,10 @@ namespace CachedQueries.Tests;
 
 public class CacheProviderFactoryTests
 {
-    private readonly ICacheProvider _defaultProvider;
-    private readonly ICacheProvider _singleProvider;
     private readonly ICacheProvider _collectionProvider;
+    private readonly ICacheProvider _defaultProvider;
     private readonly ICacheProvider _scalarProvider;
+    private readonly ICacheProvider _singleProvider;
 
     public CacheProviderFactoryTests()
     {
@@ -25,7 +25,7 @@ public class CacheProviderFactoryTests
     public void GetProvider_WithSingleTarget_ShouldReturnSingleProvider()
     {
         // Arrange
-        var factory = new CacheProviderFactory(_defaultProvider, _singleProvider, null, null);
+        var factory = new CacheProviderFactory(_defaultProvider, _singleProvider);
 
         // Act
         var provider = factory.GetProvider(CacheTarget.Single);
@@ -38,7 +38,7 @@ public class CacheProviderFactoryTests
     public void GetProvider_WithCollectionTarget_ShouldReturnCollectionProvider()
     {
         // Arrange
-        var factory = new CacheProviderFactory(_defaultProvider, null, _collectionProvider, null);
+        var factory = new CacheProviderFactory(_defaultProvider, null, _collectionProvider);
 
         // Act
         var provider = factory.GetProvider(CacheTarget.Collection);
@@ -77,7 +77,7 @@ public class CacheProviderFactoryTests
     public void GetProvider_WithSingleTarget_WhenNoSingleProvider_ShouldReturnDefault()
     {
         // Arrange
-        var factory = new CacheProviderFactory(_defaultProvider, null, null, null);
+        var factory = new CacheProviderFactory(_defaultProvider);
 
         // Act
         var provider = factory.GetProvider(CacheTarget.Single);
@@ -90,7 +90,7 @@ public class CacheProviderFactoryTests
     public void GetProvider_WithCollectionTarget_WhenNoCollectionProvider_ShouldReturnDefault()
     {
         // Arrange
-        var factory = new CacheProviderFactory(_defaultProvider, null, null, null);
+        var factory = new CacheProviderFactory(_defaultProvider);
 
         // Act
         var provider = factory.GetProvider(CacheTarget.Collection);
@@ -103,7 +103,7 @@ public class CacheProviderFactoryTests
     public void GetProvider_WithScalarTarget_WhenNoScalarProvider_ShouldReturnDefault()
     {
         // Arrange
-        var factory = new CacheProviderFactory(_defaultProvider, null, null, null);
+        var factory = new CacheProviderFactory(_defaultProvider);
 
         // Act
         var provider = factory.GetProvider(CacheTarget.Scalar);
@@ -116,7 +116,7 @@ public class CacheProviderFactoryTests
     public void GetAllProviders_WithOnlyDefault_ShouldReturnSingleProvider()
     {
         // Arrange
-        var factory = new CacheProviderFactory(_defaultProvider, null, null, null);
+        var factory = new CacheProviderFactory(_defaultProvider);
 
         // Act
         var providers = factory.GetAllProviders().ToList();
@@ -161,7 +161,7 @@ public class CacheProviderFactoryTests
     public void GetAllProviders_WithSomeProviders_ShouldReturnOnlyRegistered()
     {
         // Arrange
-        var factory = new CacheProviderFactory(_defaultProvider, _singleProvider, null, null);
+        var factory = new CacheProviderFactory(_defaultProvider, _singleProvider);
 
         // Act
         var providers = factory.GetAllProviders().ToList();

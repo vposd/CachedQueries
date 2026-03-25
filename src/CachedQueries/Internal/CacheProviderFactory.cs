@@ -3,14 +3,14 @@ using CachedQueries.Abstractions;
 namespace CachedQueries.Internal;
 
 /// <summary>
-/// Default cache provider factory that routes cache operations to appropriate providers.
+///     Default cache provider factory that routes cache operations to appropriate providers.
 /// </summary>
 internal sealed class CacheProviderFactory : ICacheProviderFactory
 {
-    private readonly ICacheProvider _defaultProvider;
-    private readonly ICacheProvider? _singleProvider;
     private readonly ICacheProvider? _collectionProvider;
+    private readonly ICacheProvider _defaultProvider;
     private readonly ICacheProvider? _scalarProvider;
+    private readonly ICacheProvider? _singleProvider;
 
     public CacheProviderFactory(
         ICacheProvider defaultProvider,
@@ -40,13 +40,19 @@ internal sealed class CacheProviderFactory : ICacheProviderFactory
         var providers = new HashSet<ICacheProvider> { _defaultProvider };
 
         if (_singleProvider is not null)
+        {
             providers.Add(_singleProvider);
+        }
 
         if (_collectionProvider is not null)
+        {
             providers.Add(_collectionProvider);
+        }
 
         if (_scalarProvider is not null)
+        {
             providers.Add(_scalarProvider);
+        }
 
         return providers;
     }

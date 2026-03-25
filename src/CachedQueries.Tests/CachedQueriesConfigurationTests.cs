@@ -139,10 +139,11 @@ public class CachedQueriesConfigurationTests
         config.ProviderFactory.Should().NotBeNull();
     }
 
-    private class TestCacheContextProvider : Abstractions.ICacheContextProvider
+    private class TestCacheContextProvider : ICacheContextProvider
     {
-        public string? GetContextKey() => "test";
+        public string? GetContextKey()
+        {
+            return "test";
+        }
     }
 }
-
-

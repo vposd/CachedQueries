@@ -9,8 +9,8 @@ namespace CachedQueries.Tests;
 
 public class MemoryCacheProviderTests : IDisposable
 {
-    private readonly IMemoryCache _memoryCache;
     private readonly ILogger<MemoryCacheProvider> _logger;
+    private readonly IMemoryCache _memoryCache;
     private readonly MemoryCacheProvider _provider;
 
     public MemoryCacheProviderTests()
@@ -57,7 +57,7 @@ public class MemoryCacheProviderTests : IDisposable
         // Arrange
         var key = "sliding-key";
         var value = 42;
-        var options = new CachingOptions(TimeSpan.FromMinutes(5), useSlidingExpiration: true);
+        var options = new CachingOptions(TimeSpan.FromMinutes(5), true);
 
         // Act
         await _provider.SetAsync(key, value, options);
@@ -132,8 +132,7 @@ public class MemoryCacheProviderTests : IDisposable
         cts.Cancel();
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(
-            () => _provider.GetAsync<string>("key", cts.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() => _provider.GetAsync<string>("key", cts.Token));
     }
 
     [Fact]
@@ -144,8 +143,8 @@ public class MemoryCacheProviderTests : IDisposable
         cts.Cancel();
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(
-            () => _provider.SetAsync("key", "value", new CachingOptions(), cts.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            _provider.SetAsync("key", "value", new CachingOptions(), cts.Token));
     }
 
     [Fact]
@@ -156,8 +155,7 @@ public class MemoryCacheProviderTests : IDisposable
         cts.Cancel();
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(
-            () => _provider.RemoveAsync("key", cts.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() => _provider.RemoveAsync("key", cts.Token));
     }
 
     [Fact]
@@ -168,8 +166,7 @@ public class MemoryCacheProviderTests : IDisposable
         cts.Cancel();
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(
-            () => _provider.InvalidateByTagsAsync(["tag"], cts.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() => _provider.InvalidateByTagsAsync(["tag"], cts.Token));
     }
 
     [Fact]
@@ -180,8 +177,7 @@ public class MemoryCacheProviderTests : IDisposable
         cts.Cancel();
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(
-            () => _provider.ClearAsync(cts.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() => _provider.ClearAsync(cts.Token));
     }
 
     [Fact]
@@ -218,6 +214,71 @@ public class MemoryCacheProviderTests : IDisposable
         // Assert
         result.Should().BeEquivalentTo(value);
     }
+
+    [Fact]
+    public async Task ConcurrentSetAndInvalidate_ShouldNotThrow()
+    {
+        // Arrange: 10 concurrent writers + 2 concurrent invalidators
+        var options = new CachingOptions
+        {
+            Expiration = TimeSpan.FromMinutes(5),
+            Tags = ["orders", "reports"]
+        };
+
+        var writeTasks = Enumerable.Range(0, 10).Select(i =>
+            Task.Run(async () =>
+            {
+                for (var j = 0; j < 50; j++)
+                {
+                    await _provider.SetAsync($"key-{i}-{j}", $"value-{i}-{j}", options);
+                    await _provider.GetAsync<string>($"key-{i}-{j}");
+                }
+            }));
+
+        var invalidateTasks = Enumerable.Range(0, 2).Select(_ =>
+            Task.Run(async () =>
+            {
+                for (var j = 0; j < 20; j++)
+                {
+                    await _provider.InvalidateByTagsAsync(["orders"]);
+                    await Task.Yield();
+                }
+            }));
+
+        // Act & Assert: should not throw
+        await Task.WhenAll(writeTasks.Concat(invalidateTasks));
+    }
+
+    [Fact]
+    public async Task ConcurrentSetRemoveAndClear_ShouldNotThrow()
+    {
+        var options = new CachingOptions
+        {
+            Expiration = TimeSpan.FromMinutes(5),
+            Tags = ["tag1"]
+        };
+
+        var tasks = Enumerable.Range(0, 10).Select(i =>
+            Task.Run(async () =>
+            {
+                for (var j = 0; j < 50; j++)
+                {
+                    var key = $"concurrent-{i}-{j}";
+                    await _provider.SetAsync(key, "value", options);
+                    await _provider.RemoveAsync(key);
+                }
+            }));
+
+        var clearTask = Task.Run(async () =>
+        {
+            for (var j = 0; j < 5; j++)
+            {
+                await _provider.ClearAsync();
+                await Task.Yield();
+            }
+        });
+
+        // Act & Assert: should not throw
+        await Task.WhenAll(tasks.Append(clearTask));
+    }
 }
-
-

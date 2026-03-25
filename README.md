@@ -6,7 +6,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/vposd/CachedQueries/badge.svg?branch=main)](https://coveralls.io/github/vposd/CachedQueries?branch=main)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A .NET library for seamless caching of Entity Framework Core queries. Cache `IQueryable` results directly within EF with automatic invalidation on `SaveChanges`, transaction-aware invalidation, multi-context isolation, and pluggable cache providers.
+A .NET library for seamless caching of Entity Framework Core queries. Cache `IQueryable` results directly within EF with
+automatic invalidation on `SaveChanges`, transaction-aware invalidation, multi-context isolation, and pluggable cache
+providers.
 
 ## Installation
 
@@ -15,6 +17,7 @@ dotnet add package CachedQueries
 ```
 
 For Redis support:
+
 ```bash
 dotnet add package CachedQueries.Redis
 ```
@@ -73,13 +76,13 @@ That's it. Cache is automatically invalidated when `SaveChanges()` modifies rela
 
 The `.Cacheable()` extension returns a `CacheableQuery<T>` that supports all common terminal methods:
 
-| Method | Description |
-|--------|-------------|
-| `.ToListAsync()` | Cache as list |
-| `.FirstOrDefaultAsync()` | Cache first item |
-| `.SingleOrDefaultAsync()` | Cache single item |
-| `.CountAsync()` | Cache count |
-| `.AnyAsync()` | Cache existence check |
+| Method                    | Description           |
+|---------------------------|-----------------------|
+| `.ToListAsync()`          | Cache as list         |
+| `.FirstOrDefaultAsync()`  | Cache first item      |
+| `.SingleOrDefaultAsync()` | Cache single item     |
+| `.CountAsync()`           | Cache count           |
+| `.AnyAsync()`             | Cache existence check |
 
 Configure per-query behavior with the fluent builder:
 
@@ -97,7 +100,8 @@ Configure per-query behavior with the fluent builder:
 
 ### Automatic (default)
 
-Cache is invalidated automatically on `SaveChanges()`. The library detects which entity types were modified and invalidates all cached queries that depend on them.
+Cache is invalidated automatically on `SaveChanges()`. The library detects which entity types were modified and
+invalidates all cached queries that depend on them.
 
 ```csharp
 db.Orders.Add(newOrder);
@@ -206,12 +210,12 @@ builder.Services.AddCachedQueries(config => config
 
 ### Cache Targets
 
-| Target | Auto-selected for | Description |
-|--------|-------------------|-------------|
-| `Single` | `FirstOrDefault`, `SingleOrDefault` | Individual entities |
-| `Collection` | `ToList` | Lists and arrays |
-| `Scalar` | `Count`, `Any` | Aggregation results |
-| `Auto` | - | Automatically determined (default) |
+| Target       | Auto-selected for                   | Description                        |
+|--------------|-------------------------------------|------------------------------------|
+| `Single`     | `FirstOrDefault`, `SingleOrDefault` | Individual entities                |
+| `Collection` | `ToList`                            | Lists and arrays                   |
+| `Scalar`     | `Count`, `Any`                      | Aggregation results                |
+| `Auto`       | -                                   | Automatically determined (default) |
 
 ## Custom Cache Provider
 
@@ -241,7 +245,8 @@ await db.Orders.AnyCachedAsync(o => o.Status == OrderStatus.Pending, ct);
 
 ## Demo Project
 
-See [`examples/`](examples/) for a full working demo with Docker Compose, PostgreSQL, Redis, multi-context isolation, and 73 integration tests.
+See [`examples/`](examples/) for a full working demo with Docker Compose, PostgreSQL, Redis, multi-context isolation,
+and 73 integration tests.
 
 ```bash
 cd examples

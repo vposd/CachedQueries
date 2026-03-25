@@ -1,7 +1,7 @@
 namespace CachedQueries.Internal;
 
 /// <summary>
-/// Suffixes appended to cache keys by scalar terminal methods.
+///     Suffixes appended to cache keys by scalar terminal methods.
 /// </summary>
 internal static class CacheKeySuffixes
 {

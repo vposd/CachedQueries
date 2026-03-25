@@ -85,11 +85,10 @@ public class QueryCacheKeyGeneratorTests : IDisposable
 
         // Assert
         key.Should().NotBeNullOrEmpty();
-        key.Should().StartWith("CQ:");
     }
 
     [Fact]
-    public void GenerateKey_ShouldStartWithPrefix()
+    public void GenerateKey_ShouldReturnHashOnly()
     {
         // Arrange
         var query = _context.Orders;
@@ -97,8 +96,9 @@ public class QueryCacheKeyGeneratorTests : IDisposable
         // Act
         var key = _generator.GenerateKey(query);
 
-        // Assert
-        key.Should().StartWith("CQ:");
+        // Assert — key generator returns just the hash, no prefix
+        key.Should().NotBeNullOrEmpty();
+        key.Should().NotContain(":");
     }
 
     [Fact]
@@ -288,5 +288,3 @@ public class ExpressionStringVisitorTests
         result.Should().Contain("String");
     }
 }
-
-

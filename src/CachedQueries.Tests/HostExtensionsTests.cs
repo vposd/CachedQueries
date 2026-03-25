@@ -1,4 +1,3 @@
-using CachedQueries.Abstractions;
 using CachedQueries.Extensions;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,5 +41,3 @@ public class HostExtensionsTests : IDisposable
         CacheServiceAccessor.IsConfigured.Should().BeTrue();
     }
 }
-
-

@@ -82,7 +82,7 @@ public class CacheOptionsBuilderTests
             .WithTags("orders", "reports")
             .Build();
 
-        options.Tags.Should().BeEquivalentTo(["orders", "reports"]);
+        options.Tags.Should().BeEquivalentTo("orders", "reports");
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class CacheOptionsBuilderTests
             .WithTags("reports")
             .Build();
 
-        options.Tags.Should().BeEquivalentTo(["orders", "reports"]);
+        options.Tags.Should().BeEquivalentTo("orders", "reports");
     }
 
     [Fact]

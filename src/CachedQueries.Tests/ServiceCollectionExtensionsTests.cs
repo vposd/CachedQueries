@@ -142,42 +142,6 @@ public class ServiceCollectionExtensionsTests
         factory.GetProvider(CacheTarget.Scalar).Should().BeOfType<TestCacheProvider>();
     }
 
-    private class TestCacheProvider : ICacheProvider
-    {
-        public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
-            => Task.FromResult(default(T));
-
-        public Task SetAsync<T>(string key, T value, CachingOptions options, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-
-        public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-
-        public Task InvalidateByTagsAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-
-        public Task ClearAsync(CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-    }
-
-    private class AnotherTestCacheProvider : ICacheProvider
-    {
-        public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
-            => Task.FromResult(default(T));
-
-        public Task SetAsync<T>(string key, T value, CachingOptions options, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-
-        public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-
-        public Task InvalidateByTagsAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-
-        public Task ClearAsync(CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-    }
-
     [Fact]
     public void AddCachedQueries_WithCustomProviderFactory_ShouldUseIt()
     {
@@ -226,10 +190,7 @@ public class ServiceCollectionExtensionsTests
         services.AddLogging();
 
         // Act
-        services.AddCachedQueries(config =>
-        {
-            config.DefaultOptions = new CachingOptions(TimeSpan.FromHours(2));
-        });
+        services.AddCachedQueries(config => { config.DefaultOptions = new CachingOptions(TimeSpan.FromHours(2)); });
         var provider = services.BuildServiceProvider();
         var config = provider.GetRequiredService<CachedQueriesConfiguration>();
 
@@ -364,9 +325,70 @@ public class ServiceCollectionExtensionsTests
             .Should().Be(TimeSpan.FromHours(3));
     }
 
+    private class TestCacheProvider : ICacheProvider
+    {
+        public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(default(T));
+        }
+
+        public Task SetAsync<T>(string key, T value, CachingOptions options,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task InvalidateByTagsAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task ClearAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private class AnotherTestCacheProvider : ICacheProvider
+    {
+        public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(default(T));
+        }
+
+        public Task SetAsync<T>(string key, T value, CachingOptions options,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task InvalidateByTagsAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task ClearAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
     private class TestContextProvider : ICacheContextProvider
     {
-        public string? GetContextKey() => "test-context";
+        public string? GetContextKey()
+        {
+            return "test-context";
+        }
     }
 
     private class TestProviderFactory : ICacheProviderFactory
@@ -378,9 +400,14 @@ public class ServiceCollectionExtensionsTests
             _provider = provider;
         }
 
-        public ICacheProvider GetProvider(CacheTarget target) => _provider;
-        public IEnumerable<ICacheProvider> GetAllProviders() => [_provider];
+        public ICacheProvider GetProvider(CacheTarget target)
+        {
+            return _provider;
+        }
+
+        public IEnumerable<ICacheProvider> GetAllProviders()
+        {
+            return [_provider];
+        }
     }
 }
-
-

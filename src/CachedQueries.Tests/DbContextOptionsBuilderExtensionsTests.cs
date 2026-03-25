@@ -52,5 +52,3 @@ public class DbContextOptionsBuilderExtensionsTests
         result.Should().Be(optionsBuilder);
     }
 }
-
-
