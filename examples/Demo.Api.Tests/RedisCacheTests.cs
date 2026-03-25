@@ -41,7 +41,7 @@ public class RedisCacheTests
         await client.GetAsync("/api/customers");
 
         // Verify Redis has keys with tenant prefix and CQ: hash
-        var keys = GetRedisServer().Keys(pattern: "*CQ:*").ToList();
+        var keys = GetRedisServer().Keys(pattern: "*cq:*").ToList();
         keys.Should().NotBeEmpty("cacheable queries should create Redis keys");
     }
 
@@ -56,7 +56,7 @@ public class RedisCacheTests
         await client.GetAsync("/api/goods/by-category/Electronics");
 
         // Verify tag sets exist in Redis
-        var tagKeys = GetRedisServer().Keys(pattern: "cq:tag:*").ToList();
+        var tagKeys = GetRedisServer().Keys(pattern: "*:tag:*").ToList();
         tagKeys.Should().NotBeEmpty("tagged queries should create tag sets in Redis");
     }
 
@@ -84,13 +84,13 @@ public class RedisCacheTests
         await client.GetAsync("/api/customers");
         await client.GetAsync("/api/goods");
 
-        var keysBefore = GetRedisServer().Keys(pattern: "*CQ:*").ToList();
+        var keysBefore = GetRedisServer().Keys(pattern: "*cq:*").ToList();
         keysBefore.Should().NotBeEmpty();
 
         // Flush via admin command
         GetRedisServer().FlushDatabase();
 
-        var keysAfter = GetRedisServer().Keys(pattern: "*CQ:*").ToList();
+        var keysAfter = GetRedisServer().Keys(pattern: "*cq:*").ToList();
         keysAfter.Should().BeEmpty();
     }
 
@@ -123,13 +123,13 @@ public class RedisCacheTests
         GetRedisServer().FlushDatabase();
         await client.GetAsync("/api/customers");
 
-        var keysBefore = GetRedisServer().Keys(pattern: "*CQ:*").ToList();
+        var keysBefore = GetRedisServer().Keys(pattern: "*cq:*").ToList();
         keysBefore.Should().NotBeEmpty();
 
         // Invalidate Customer entity type
         await client.PostAsync("/api/cache/invalidate-entity/customer", null);
 
-        var keysAfter = GetRedisServer().Keys(pattern: "*CQ:*").ToList();
+        var keysAfter = GetRedisServer().Keys(pattern: "*cq:*").ToList();
         keysAfter.Count.Should().BeLessThan(keysBefore.Count);
     }
 
@@ -144,7 +144,7 @@ public class RedisCacheTests
         await clientA.GetAsync("/api/customers");
         await clientB.GetAsync("/api/customers");
 
-        var allKeys = GetRedisServer().Keys(pattern: "*CQ:*").Select(k => k.ToString()).ToList();
+        var allKeys = GetRedisServer().Keys(pattern: "*cq:*").Select(k => k.ToString()).ToList();
 
         // Should have at least 2 keys — one per tenant
         allKeys.Count.Should().BeGreaterOrEqualTo(2);

@@ -330,4 +330,32 @@ public class CacheInvalidatorTests
         var result = _invalidator.GetCurrentContextKey();
         result.Should().BeNull();
     }
+
+    [Fact]
+    public async Task InvalidateAsync_WithEmptyEntityTypes_ShouldReturnEarly()
+    {
+        await _invalidator.InvalidateAsync([]);
+
+        await _cacheProvider.DidNotReceive()
+            .InvalidateByTagsAsync(Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvalidateByTagsAsync_WithEmptyTags_ShouldReturnEarly()
+    {
+        await _invalidator.InvalidateByTagsAsync([]);
+
+        await _cacheProvider.DidNotReceive()
+            .InvalidateByTagsAsync(Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvalidateByKeysAsync_WhenProviderThrows_ShouldLogAndContinue()
+    {
+        _cacheProvider.RemoveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new InvalidOperationException("Redis down")));
+
+        // Should not throw
+        await _invalidator.InvalidateByKeysAsync(["key1"]);
+    }
 }

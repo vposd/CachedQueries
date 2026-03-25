@@ -705,4 +705,17 @@ public class RedisCacheProviderFallbackModeTests
 
         // Assert - should not throw
     }
+
+    [Fact]
+    public async Task InvalidateTagFallback_WhenExceptionOccurs_ShouldLogAndReturnZero()
+    {
+        // Arrange — make GetAsync throw to trigger the catch in InvalidateTagFallbackAsync
+        _distributedCache.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new Exception("Redis connection error"));
+
+        // Act — should not throw
+        await _provider.InvalidateByTagsAsync(["tag:failing-tag"]);
+
+        // Assert — no exception propagated
+    }
 }

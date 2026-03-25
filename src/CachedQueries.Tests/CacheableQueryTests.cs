@@ -475,4 +475,69 @@ public class CacheableQueryTests : IDisposable
             BindingFlags.NonPublic | BindingFlags.Static);
         field!.SetValue(null, sp.GetService<IServiceScopeFactory>());
     }
+
+    [Fact]
+    public async Task Cacheable_ToListAsync_StampedeDoubleCheck_ShouldReturnCachedValueAfterLock()
+    {
+        // First call populates the cache
+        var result1 = await _context.Orders
+            .Cacheable(o => o.WithKey("stampede-list"))
+            .ToListAsync();
+
+        // Second call should hit the fast path (already cached)
+        var result2 = await _context.Orders
+            .Cacheable(o => o.WithKey("stampede-list"))
+            .ToListAsync();
+
+        result1.Should().HaveCount(3);
+        result2.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public async Task Cacheable_CountAsync_StampedeDoubleCheck_ShouldReturnCachedValueAfterLock()
+    {
+        // First call populates the cache
+        var count1 = await _context.Orders
+            .Cacheable(o => o.WithKey("stampede-count"))
+            .CountAsync();
+
+        // Second call should hit the fast path
+        var count2 = await _context.Orders
+            .Cacheable(o => o.WithKey("stampede-count"))
+            .CountAsync();
+
+        count1.Should().Be(3);
+        count2.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task Cacheable_ConcurrentToListAsync_ShouldHitDoubleCheckPath()
+    {
+        // Run concurrent requests with the same key — some will hit the double-check path
+        var tasks = Enumerable.Range(0, 5).Select(_ =>
+            _context.Orders
+                .Cacheable(o => o.WithKey("concurrent-list"))
+                .ToListAsync());
+
+        var results = await Task.WhenAll(tasks);
+        foreach (var r in results)
+        {
+            r.Should().HaveCount(3);
+        }
+    }
+
+    [Fact]
+    public async Task Cacheable_ConcurrentCountAsync_ShouldHitDoubleCheckPath()
+    {
+        var tasks = Enumerable.Range(0, 5).Select(_ =>
+            _context.Orders
+                .Cacheable(o => o.WithKey("concurrent-count"))
+                .CountAsync());
+
+        var results = await Task.WhenAll(tasks);
+        foreach (var r in results)
+        {
+            r.Should().Be(3);
+        }
+    }
 }
