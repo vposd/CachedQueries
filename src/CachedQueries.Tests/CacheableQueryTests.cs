@@ -540,4 +540,62 @@ public class CacheableQueryTests : IDisposable
             r.Should().Be(3);
         }
     }
+
+    [Fact]
+    public async Task Cacheable_ToListAsync_DoubleCheckInsideLock_ShouldReturnCachedValue()
+    {
+        // Simulate the double-check path: first GetAsync returns null, second returns data
+        var mockProvider = Substitute.For<ICacheProvider>();
+        var callCount = 0;
+        mockProvider.GetAsync<List<Order>>(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                callCount++;
+                // First call (fast path) returns null, second call (inside lock) returns cached data
+                return callCount == 1
+                    ? Task.FromResult<List<Order>?>(null)
+                    : Task.FromResult<List<Order>?>(new List<Order> { new() { Id = 99, Name = "Cached", Total = 999 } });
+            });
+
+        CacheServiceAccessor.Configure(mockProvider, _keyGenerator, _invalidator);
+
+        var result = await _context.Orders
+            .Cacheable(o => o.WithKey("double-check-list"))
+            .ToListAsync();
+
+        result.Should().HaveCount(1);
+        result[0].Id.Should().Be(99);
+        // GetAsync should have been called exactly twice (fast path + double-check)
+        callCount.Should().Be(2);
+        // SetAsync should NOT have been called since the double-check returned cached data
+        await mockProvider.DidNotReceive().SetAsync(
+            Arg.Any<string>(), Arg.Any<List<Order>>(), Arg.Any<CachingOptions>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Cacheable_CountAsync_DoubleCheckInsideLock_ShouldReturnCachedValue()
+    {
+        // Simulate the double-check path for scalar: first GetAsync returns null, second returns data
+        var mockProvider = Substitute.For<ICacheProvider>();
+        var callCount = 0;
+        mockProvider.GetAsync<int?>(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                callCount++;
+                return callCount == 1
+                    ? Task.FromResult<int?>(null)
+                    : Task.FromResult<int?>(42);
+            });
+
+        CacheServiceAccessor.Configure(mockProvider, _keyGenerator, _invalidator);
+
+        var result = await _context.Orders
+            .Cacheable(o => o.WithKey("double-check-count"))
+            .CountAsync();
+
+        result.Should().Be(42);
+        callCount.Should().Be(2);
+        await mockProvider.DidNotReceive().SetAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CachingOptions>(), Arg.Any<CancellationToken>());
+    }
 }

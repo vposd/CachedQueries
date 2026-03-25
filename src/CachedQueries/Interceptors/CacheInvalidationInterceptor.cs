@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using CachedQueries.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -78,7 +77,6 @@ public sealed class CacheInvalidationInterceptor(
         return base.SaveChangesFailedAsync(eventData, cancellationToken);
     }
 
-    [ExcludeFromCodeCoverage]
     private static void CaptureChangedEntityTypes(DbContext? context)
     {
         if (context is null)
