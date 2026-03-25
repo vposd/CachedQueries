@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using CachedQueries.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -6,27 +5,21 @@ using Microsoft.Extensions.Logging;
 namespace CachedQueries.Internal;
 
 /// <summary>
-/// Default implementation of cache invalidator.
-/// Tracks cache entries with context awareness for multi-tenant invalidation.
+///     Default implementation of cache invalidator.
+///     Uses distributed tag-based tracking stored in the cache provider itself,
+///     so invalidation works correctly across multiple application instances.
 /// </summary>
 /// <remarks>
-/// Invalidation rule: when an entity type is invalidated, entries matching
-/// the current context AND global entries (no context) are removed.
-/// Entries belonging to other contexts are left untouched.
+///     Invalidation rule: when an entity type is invalidated, entries matching
+///     the current context AND global entries (no context) are removed.
+///     Entries belonging to other contexts are left untouched.
 /// </remarks>
 internal sealed class CacheInvalidator : ICacheInvalidator
 {
     private readonly ICacheProvider _defaultProvider;
+    private readonly ILogger<CacheInvalidator> _logger;
     private readonly ICacheProviderFactory? _providerFactory;
     private readonly IServiceScopeFactory? _scopeFactory;
-    private readonly ILogger<CacheInvalidator> _logger;
-
-    // Maps entity type → { cacheKey → contextKey? }
-    // contextKey is null for global (context-independent) entries
-    private readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, string?>> _entityTypeToKeys = new();
-
-    // Maps tag → { cacheKey → contextKey? }
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, string?>> _tagToKeys = new();
 
     public CacheInvalidator(ICacheProvider cacheProvider, ILogger<CacheInvalidator> logger)
     {
@@ -57,106 +50,69 @@ internal sealed class CacheInvalidator : ICacheInvalidator
     }
 
     /// <summary>
-    /// Invalidates cache entries for entity types.
-    /// Removes entries matching the current context + global entries (contextKey == null).
+    ///     Invalidates cache entries for entity types by delegating to the cache provider's
+    ///     tag-based invalidation. Builds tag names for both global and current-context entries.
     /// </summary>
     public async Task InvalidateAsync(IEnumerable<Type> entityTypes, CancellationToken cancellationToken = default)
     {
         var currentContext = GetCurrentContextKey();
-        var keysToInvalidate = new HashSet<string>();
+        var tags = TrackingTags.InvalidationTagsForEntityTypes(entityTypes, currentContext);
 
-        foreach (var entityType in entityTypes)
+        if (tags.Count == 0)
         {
-            if (!_entityTypeToKeys.TryGetValue(entityType, out var entries))
-                continue;
-
-            var toRemove = new List<string>();
-            foreach (var (cacheKey, ctxKey) in entries)
-            {
-                // Invalidate global entries (ctxKey == null) and current context entries
-                if (ctxKey is null || ctxKey == currentContext)
-                {
-                    keysToInvalidate.Add(cacheKey);
-                    toRemove.Add(cacheKey);
-                }
-            }
-
-            foreach (var key in toRemove)
-                entries.TryRemove(key, out _);
-
-            if (entries.IsEmpty)
-                _entityTypeToKeys.TryRemove(entityType, out _);
+            return;
         }
 
-        await InvalidateKeysAsync(keysToInvalidate, cancellationToken);
+        await InvalidateByProviderTagsAsync(tags, cancellationToken);
+
+        _logger.LogInformation("Invalidated cache for entity types via {TagCount} tags", tags.Count);
     }
 
     /// <summary>
-    /// Invalidates cache entries for tags.
-    /// Removes entries matching the current context + global entries (contextKey == null).
+    ///     Invalidates cache entries for user-defined tags by delegating to the cache provider's
+    ///     tag-based invalidation. Builds tag names for both global and current-context entries.
     /// </summary>
     public async Task InvalidateByTagsAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default)
     {
         var currentContext = GetCurrentContextKey();
-        var keysToInvalidate = new HashSet<string>();
-        var tagsList = tags.ToList();
+        var qualifiedTags = TrackingTags.InvalidationTagsForUserTags(tags, currentContext);
 
-        foreach (var tag in tagsList)
+        if (qualifiedTags.Count == 0)
         {
-            if (!_tagToKeys.TryGetValue(tag, out var entries))
-                continue;
-
-            var toRemove = new List<string>();
-            foreach (var (cacheKey, ctxKey) in entries)
-            {
-                if (ctxKey is null || ctxKey == currentContext)
-                {
-                    keysToInvalidate.Add(cacheKey);
-                    toRemove.Add(cacheKey);
-                }
-            }
-
-            foreach (var key in toRemove)
-                entries.TryRemove(key, out _);
-
-            if (entries.IsEmpty)
-                _tagToKeys.TryRemove(tag, out _);
+            return;
         }
 
-        await InvalidateKeysAsync(keysToInvalidate, cancellationToken);
+        await InvalidateByProviderTagsAsync(qualifiedTags, cancellationToken);
 
-        // Also delegate to all cache providers for distributed tag invalidation
-        var providers = GetAllProviders();
-        foreach (var provider in providers)
-        {
-            await provider.InvalidateByTagsAsync(tagsList, cancellationToken);
-        }
-    }
-
-    public void RegisterCacheEntry(string cacheKey, IEnumerable<Type> entityTypes, string? contextKey = null)
-    {
-        foreach (var entityType in entityTypes)
-        {
-            var entries = _entityTypeToKeys.GetOrAdd(entityType, _ => new());
-            entries[cacheKey] = contextKey;
-        }
-    }
-
-    public void RegisterCacheEntry(string cacheKey, IEnumerable<string> tags, string? contextKey = null)
-    {
-        foreach (var tag in tags)
-        {
-            var entries = _tagToKeys.GetOrAdd(tag, _ => new());
-            entries[cacheKey] = contextKey;
-        }
+        _logger.LogInformation("Invalidated cache for {TagCount} tags", qualifiedTags.Count);
     }
 
     /// <summary>
-    /// Invalidates cache entries by user-supplied keys.
-    /// Automatically expands each key to include :count and :any suffix variants,
-    /// and tries both context-prefixed and global (unprefixed) versions to handle
-    /// entries cached with or without IgnoreContext().
-    /// Also cleans up tracking dictionaries to prevent stale entry accumulation.
+    ///     No-op. Tracking is now handled by the cache provider through enriched tags in SetAsync.
+    ///     Kept for backward compatibility.
+    /// </summary>
+    public void RegisterCacheEntry(string cacheKey, IEnumerable<Type> entityTypes, string? contextKey = null)
+    {
+        // Tracking is now handled by the cache provider through enriched tags passed to SetAsync.
+        // CacheableQuery builds tracking tags (entity types + user tags + context) and passes them
+        // to the provider's SetAsync via CachingOptions.Tags. This ensures tracking data is stored
+        // in the distributed cache, not in-memory, so it works across multiple app instances.
+    }
+
+    /// <summary>
+    ///     No-op. Tracking is now handled by the cache provider through enriched tags in SetAsync.
+    ///     Kept for backward compatibility.
+    /// </summary>
+    public void RegisterCacheEntry(string cacheKey, IEnumerable<string> tags, string? contextKey = null)
+    {
+        // See comment in the entity types overload above.
+    }
+
+    /// <summary>
+    ///     Invalidates cache entries by user-supplied keys.
+    ///     Automatically expands each key to include :count and :any suffix variants,
+    ///     and tries both context-prefixed and global (unprefixed) versions to handle
+    ///     entries cached with or without IgnoreContext().
     /// </summary>
     public async Task InvalidateByKeysAsync(IEnumerable<string> keys, CancellationToken cancellationToken = default)
     {
@@ -168,44 +124,27 @@ internal sealed class CacheInvalidator : ICacheInvalidator
             // Always try the unprefixed key (handles IgnoreContext or no context configured)
             keySet.Add(key);
             foreach (var suffix in CacheKeySuffixes.All)
+            {
                 keySet.Add($"{key}{suffix}");
+            }
 
             // Also try the context-prefixed key if a context is active
             if (!string.IsNullOrEmpty(contextKey))
             {
                 keySet.Add($"{contextKey}:{key}");
                 foreach (var suffix in CacheKeySuffixes.All)
+                {
                     keySet.Add($"{contextKey}:{key}{suffix}");
+                }
             }
         }
 
-        // Clean up tracking dictionaries
-        RemoveFromTracking(_entityTypeToKeys, keySet);
-        RemoveFromTracking(_tagToKeys, keySet);
-
         await InvalidateKeysAsync(keySet, cancellationToken);
-    }
-
-    private static void RemoveFromTracking<TKey>(
-        ConcurrentDictionary<TKey, ConcurrentDictionary<string, string?>> tracking,
-        HashSet<string> keysToRemove) where TKey : notnull
-    {
-        foreach (var (trackingKey, entries) in tracking)
-        {
-            foreach (var cacheKey in keysToRemove)
-                entries.TryRemove(cacheKey, out _);
-
-            if (entries.IsEmpty)
-                tracking.TryRemove(trackingKey, out _);
-        }
     }
 
     public async Task ClearAllAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogWarning("Clearing all cache entries");
-
-        _entityTypeToKeys.Clear();
-        _tagToKeys.Clear();
 
         var providers = GetAllProviders();
         foreach (var provider in providers)
@@ -235,43 +174,37 @@ internal sealed class CacheInvalidator : ICacheInvalidator
 
         _logger.LogInformation("Clearing cache for context: {ContextKey}", contextKey);
 
-        var keysToInvalidate = CollectKeysForContext(contextKey);
-        await InvalidateKeysAsync(keysToInvalidate, cancellationToken);
+        var contextTag = TrackingTags.ContextTag(contextKey);
+        await InvalidateByProviderTagsAsync([contextTag], cancellationToken);
     }
 
-    private HashSet<string> CollectKeysForContext(string contextKey)
+    internal string? GetCurrentContextKey()
     {
-        var keys = new HashSet<string>();
-
-        foreach (var (_, entries) in _entityTypeToKeys)
+        if (_scopeFactory is null)
         {
-            var toRemove = entries
-                .Where(e => e.Value == contextKey)
-                .Select(e => e.Key)
-                .ToList();
-
-            foreach (var k in toRemove)
-            {
-                keys.Add(k);
-                entries.TryRemove(k, out _);
-            }
+            return null;
         }
 
-        foreach (var (_, entries) in _tagToKeys)
-        {
-            var toRemove = entries
-                .Where(e => e.Value == contextKey)
-                .Select(e => e.Key)
-                .ToList();
+        using var scope = _scopeFactory.CreateScope();
+        var contextProvider = scope.ServiceProvider.GetService<ICacheContextProvider>();
+        return contextProvider?.GetContextKey();
+    }
 
-            foreach (var k in toRemove)
+    private async Task InvalidateByProviderTagsAsync(IReadOnlyList<string> tags, CancellationToken cancellationToken)
+    {
+        var providers = GetAllProviders();
+        foreach (var provider in providers)
+        {
+            try
             {
-                keys.Add(k);
-                entries.TryRemove(k, out _);
+                await provider.InvalidateByTagsAsync(tags, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to invalidate cache by tags on provider: {ProviderType}",
+                    provider.GetType().Name);
             }
         }
-
-        return keys;
     }
 
     private async Task InvalidateKeysAsync(HashSet<string> keys, CancellationToken cancellationToken)
@@ -302,22 +235,12 @@ internal sealed class CacheInvalidator : ICacheInvalidator
         }
     }
 
-    internal string? GetCurrentContextKey()
-    {
-        if (_scopeFactory is null)
-        {
-            return null;
-        }
-
-        using var scope = _scopeFactory.CreateScope();
-        var contextProvider = scope.ServiceProvider.GetService<ICacheContextProvider>();
-        return contextProvider?.GetContextKey();
-    }
-
     private IReadOnlyList<ICacheProvider> GetAllProviders()
     {
         if (_providerFactory is not null)
+        {
             return _providerFactory.GetAllProviders().ToList();
+        }
 
         return [_defaultProvider];
     }

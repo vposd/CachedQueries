@@ -193,9 +193,15 @@ public class CacheServiceAccessorTests : IDisposable
     private class TestContextProvider : ICacheContextProvider
     {
         private readonly string? _key;
-        public TestContextProvider(string? key) => _key = key;
-        public string? GetContextKey() => _key;
+
+        public TestContextProvider(string? key)
+        {
+            _key = key;
+        }
+
+        public string? GetContextKey()
+        {
+            return _key;
+        }
     }
 }
-
-

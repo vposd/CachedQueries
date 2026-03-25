@@ -11,8 +11,8 @@ namespace CachedQueries.Tests;
 public class CacheInvalidatorTests
 {
     private readonly ICacheProvider _cacheProvider;
-    private readonly ILogger<CacheInvalidator> _logger;
     private readonly CacheInvalidator _invalidator;
+    private readonly ILogger<CacheInvalidator> _logger;
 
     public CacheInvalidatorTests()
     {
@@ -22,143 +22,101 @@ public class CacheInvalidatorTests
     }
 
     [Fact]
-    public void RegisterCacheEntry_WithEntityTypes_ShouldTrackEntry()
+    public void RegisterCacheEntry_WithEntityTypes_IsNoOp()
     {
-        // Arrange
-        var cacheKey = "test-key";
-        var entityTypes = new[] { typeof(Order), typeof(OrderItem) };
-
-        // Act
-        _invalidator.RegisterCacheEntry(cacheKey, entityTypes);
-
-        // Assert - no exception means success
+        // RegisterCacheEntry is now a no-op; tracking is handled by the provider via tags in SetAsync
+        _invalidator.RegisterCacheEntry("test-key", new[] { typeof(Order), typeof(OrderItem) });
     }
 
     [Fact]
-    public void RegisterCacheEntry_WithTags_ShouldTrackEntry()
+    public void RegisterCacheEntry_WithTags_IsNoOp()
     {
-        // Arrange
-        var cacheKey = "test-key";
-        var tags = new[] { "orders", "items" };
-
-        // Act
-        _invalidator.RegisterCacheEntry(cacheKey, tags);
-
-        // Assert - no exception means success
+        _invalidator.RegisterCacheEntry("test-key", new[] { "orders", "items" });
     }
 
     [Fact]
-    public async Task InvalidateAsync_WithRegisteredEntityTypes_ShouldRemoveCache()
+    public async Task InvalidateAsync_ShouldCallProviderInvalidateByTags_WithEntityTypeTags()
     {
-        // Arrange
-        var cacheKey = "test-key";
-        _invalidator.RegisterCacheEntry(cacheKey, new[] { typeof(Order) });
-
         // Act
         await _invalidator.InvalidateAsync(new[] { typeof(Order) });
 
-        // Assert
-        await _cacheProvider.Received(1).RemoveAsync(cacheKey, Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task InvalidateAsync_WithUnregisteredEntityTypes_ShouldNotRemoveCache()
-    {
-        // Arrange
-        _invalidator.RegisterCacheEntry("test-key", new[] { typeof(Order) });
-
-        // Act
-        await _invalidator.InvalidateAsync(new[] { typeof(Customer) });
-
-        // Assert
-        await _cacheProvider.DidNotReceive().RemoveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task InvalidateByTagsAsync_WithRegisteredTags_ShouldRemoveCache()
-    {
-        // Arrange
-        var cacheKey = "test-key";
-        _invalidator.RegisterCacheEntry(cacheKey, new[] { "orders" });
-
-        // Act
-        await _invalidator.InvalidateByTagsAsync(new[] { "orders" });
-
-        // Assert
-        await _cacheProvider.Received(1).RemoveAsync(cacheKey, Arg.Any<CancellationToken>());
+        // Assert - should delegate to provider with global entity tag
         await _cacheProvider.Received(1).InvalidateByTagsAsync(
-            Arg.Is<IEnumerable<string>>(t => t.Contains("orders")),
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                tags.Contains($"tag:{typeof(Order).FullName}")),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task InvalidateAsync_WhenCacheProviderThrows_ShouldLogWarning()
+    public async Task InvalidateAsync_WithUnrelatedEntityTypes_ShouldStillCallProvider()
+    {
+        // Act - even without prior registration, the provider handles tag lookup
+        await _invalidator.InvalidateAsync(new[] { typeof(Customer) });
+
+        // Assert
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                tags.Contains($"tag:{typeof(Customer).FullName}")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvalidateAsync_WhenProviderThrows_ShouldLogWarning()
     {
         // Arrange
-        var cacheKey = "test-key";
-        _invalidator.RegisterCacheEntry(cacheKey, new[] { typeof(Order) });
-        _cacheProvider.RemoveAsync(cacheKey, Arg.Any<CancellationToken>())
+        _cacheProvider.InvalidateByTagsAsync(Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromException(new Exception("Cache error")));
 
-        // Act
+        // Act - should not throw
         await _invalidator.InvalidateAsync(new[] { typeof(Order) });
 
-        // Assert - should not throw, just log
+        // Assert
         _logger.ReceivedWithAnyArgs().LogWarning(default, default(Exception), default);
     }
 
     [Fact]
-    public async Task InvalidateAsync_WithMultipleEntityTypes_ShouldRemoveAllRelatedCaches()
+    public async Task InvalidateAsync_WithMultipleEntityTypes_ShouldBuildTagsForAll()
     {
-        // Arrange
-        _invalidator.RegisterCacheEntry("key1", new[] { typeof(Order) });
-        _invalidator.RegisterCacheEntry("key2", new[] { typeof(Order) });
-        _invalidator.RegisterCacheEntry("key3", new[] { typeof(Customer) });
-
         // Act
-        await _invalidator.InvalidateAsync(new[] { typeof(Order) });
+        await _invalidator.InvalidateAsync(new[] { typeof(Order), typeof(Customer) });
 
-        // Assert
-        await _cacheProvider.Received(1).RemoveAsync("key1", Arg.Any<CancellationToken>());
-        await _cacheProvider.Received(1).RemoveAsync("key2", Arg.Any<CancellationToken>());
-        await _cacheProvider.DidNotReceive().RemoveAsync("key3", Arg.Any<CancellationToken>());
+        // Assert - both entity types should be in the tags
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                tags.Contains($"tag:{typeof(Order).FullName}") &&
+                tags.Contains($"tag:{typeof(Customer).FullName}")),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task InvalidateAsync_AfterAlreadyInvalidated_ShouldNotRemoveAgain()
+    public async Task InvalidateByTagsAsync_ShouldCallProviderInvalidateByTags()
     {
-        // Arrange
-        _invalidator.RegisterCacheEntry("key1", new[] { typeof(Order) });
-
         // Act
-        await _invalidator.InvalidateAsync(new[] { typeof(Order) });
-        await _invalidator.InvalidateAsync(new[] { typeof(Order) });
+        await _invalidator.InvalidateByTagsAsync(new[] { "orders" });
 
-        // Assert - only one call
-        await _cacheProvider.Received(1).RemoveAsync("key1", Arg.Any<CancellationToken>());
+        // Assert - global user tag (no context)
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags => tags.Contains("tag:orders")),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task InvalidateByTagsAsync_WithMultipleTags_ShouldRemoveAllRelatedCaches()
+    public async Task InvalidateByTagsAsync_WithMultipleTags_ShouldIncludeAllTags()
     {
-        // Arrange
-        _invalidator.RegisterCacheEntry("key1", new[] { "tag1" });
-        _invalidator.RegisterCacheEntry("key2", new[] { "tag2" });
-        _invalidator.RegisterCacheEntry("key3", new[] { "tag1", "tag2" });
-
         // Act
         await _invalidator.InvalidateByTagsAsync(new[] { "tag1", "tag2" });
 
         // Assert
-        await _cacheProvider.Received().RemoveAsync("key1", Arg.Any<CancellationToken>());
-        await _cacheProvider.Received().RemoveAsync("key2", Arg.Any<CancellationToken>());
-        await _cacheProvider.Received().RemoveAsync("key3", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                tags.Contains("tag:tag1") && tags.Contains("tag:tag2")),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task InvalidateByTagsAsync_WithProviderFactory_ShouldInvalidateAcrossAllProviders()
     {
-        // Arrange - constructor with provider factory
+        // Arrange
         var defaultProvider = Substitute.For<ICacheProvider>();
         var singleProvider = Substitute.For<ICacheProvider>();
         var collectionProvider = Substitute.For<ICacheProvider>();
@@ -166,25 +124,24 @@ public class CacheInvalidatorTests
         providerFactory.GetAllProviders().Returns([defaultProvider, singleProvider, collectionProvider]);
 
         var invalidator = new CacheInvalidator(defaultProvider, providerFactory, _logger);
-        invalidator.RegisterCacheEntry("key1", new[] { "tag1" });
 
         // Act
         await invalidator.InvalidateByTagsAsync(new[] { "tag1" });
 
         // Assert - should call InvalidateByTagsAsync on all providers
         await defaultProvider.Received(1).InvalidateByTagsAsync(
-            Arg.Is<IEnumerable<string>>(t => t.Contains("tag1")),
+            Arg.Is<IEnumerable<string>>(t => t.Contains("tag:tag1")),
             Arg.Any<CancellationToken>());
         await singleProvider.Received(1).InvalidateByTagsAsync(
-            Arg.Is<IEnumerable<string>>(t => t.Contains("tag1")),
+            Arg.Is<IEnumerable<string>>(t => t.Contains("tag:tag1")),
             Arg.Any<CancellationToken>());
         await collectionProvider.Received(1).InvalidateByTagsAsync(
-            Arg.Is<IEnumerable<string>>(t => t.Contains("tag1")),
+            Arg.Is<IEnumerable<string>>(t => t.Contains("tag:tag1")),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task InvalidateAsync_WithProviderFactory_ShouldRemoveFromAllProviders()
+    public async Task InvalidateAsync_WithProviderFactory_ShouldInvalidateAcrossAllProviders()
     {
         // Arrange
         var defaultProvider = Substitute.For<ICacheProvider>();
@@ -193,14 +150,15 @@ public class CacheInvalidatorTests
         providerFactory.GetAllProviders().Returns([defaultProvider, singleProvider]);
 
         var invalidator = new CacheInvalidator(defaultProvider, providerFactory, _logger);
-        invalidator.RegisterCacheEntry("key1", new[] { typeof(Order) });
 
         // Act
         await invalidator.InvalidateAsync(new[] { typeof(Order) });
 
         // Assert
-        await defaultProvider.Received(1).RemoveAsync("key1", Arg.Any<CancellationToken>());
-        await singleProvider.Received(1).RemoveAsync("key1", Arg.Any<CancellationToken>());
+        await defaultProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>());
+        await singleProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -213,7 +171,6 @@ public class CacheInvalidatorTests
         providerFactory.GetAllProviders().Returns([defaultProvider, secondProvider]);
 
         var invalidator = new CacheInvalidator(defaultProvider, providerFactory, _logger);
-        invalidator.RegisterCacheEntry("key1", new[] { typeof(Order) });
 
         // Act
         await invalidator.ClearAllAsync();
@@ -245,22 +202,20 @@ public class CacheInvalidatorTests
     }
 
     [Fact]
-    public async Task ClearContextAsync_WithNoContext_ShouldNotRemoveAnything()
+    public async Task ClearContextAsync_WithNoContext_ShouldNotCallProvider()
     {
-        // Arrange: no context provider, no scope factory
-        _invalidator.RegisterCacheEntry("key1", new[] { typeof(Order) }, contextKey: "tenant-1");
-
         // Act
         await _invalidator.ClearContextAsync();
 
         // Assert
-        await _cacheProvider.DidNotReceive().RemoveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _cacheProvider.DidNotReceive().InvalidateByTagsAsync(
+            Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ClearContextAsync_ShouldRemoveEntriesForCurrentContext()
+    public async Task ClearContextAsync_ShouldInvalidateContextTag()
     {
-        // Arrange - use constructor with IServiceProvider to get context
+        // Arrange
         var contextProvider = Substitute.For<ICacheContextProvider>();
         contextProvider.GetContextKey().Returns("my-tenant");
         var providerFactory = Substitute.For<ICacheProviderFactory>();
@@ -271,31 +226,13 @@ public class CacheInvalidatorTests
 
         var invalidator = new CacheInvalidator(_cacheProvider, providerFactory, sp, _logger);
 
-        // Register both entity type entries and tag entries for the context
-        invalidator.RegisterCacheEntry("entity-key", new[] { typeof(Order) }, contextKey: "my-tenant");
-        invalidator.RegisterCacheEntry("tag-key", new[] { "my-tag" }, contextKey: "my-tenant");
-        invalidator.RegisterCacheEntry("other-key", new[] { typeof(Order) }, contextKey: "other-tenant");
-
         // Act
         await invalidator.ClearContextAsync();
 
-        // Assert
-        await _cacheProvider.Received(1).RemoveAsync("entity-key", Arg.Any<CancellationToken>());
-        await _cacheProvider.Received(1).RemoveAsync("tag-key", Arg.Any<CancellationToken>());
-        await _cacheProvider.DidNotReceive().RemoveAsync("other-key", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task InvalidateByTagsAsync_WithUnregisteredTags_ShouldNotRemoveCache()
-    {
-        // Arrange
-        _invalidator.RegisterCacheEntry("key1", new[] { "tag1" });
-
-        // Act
-        await _invalidator.InvalidateByTagsAsync(new[] { "nonexistent" });
-
-        // Assert
-        await _cacheProvider.DidNotReceive().RemoveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        // Assert - should invalidate the context-level tag
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags => tags.Contains("my-tenant:tag:__context__")),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -366,24 +303,6 @@ public class CacheInvalidatorTests
     }
 
     [Fact]
-    public async Task InvalidateByKeysAsync_ShouldCleanUpTrackingDictionaries()
-    {
-        // Arrange — register entries in both entity-type and tag tracking
-        _invalidator.RegisterCacheEntry("my-key", new[] { typeof(Order) });
-        _invalidator.RegisterCacheEntry("my-key:count", new[] { typeof(Order) });
-        _invalidator.RegisterCacheEntry("my-key", new[] { "my-tag" });
-
-        // Act
-        await _invalidator.InvalidateByKeysAsync(new[] { "my-key" });
-
-        // Assert — subsequent entity-type invalidation should NOT try to remove the same keys again
-        _cacheProvider.ClearReceivedCalls();
-        await _invalidator.InvalidateAsync(new[] { typeof(Order) });
-        await _cacheProvider.DidNotReceive().RemoveAsync("my-key", Arg.Any<CancellationToken>());
-        await _cacheProvider.DidNotReceive().RemoveAsync("my-key:count", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
     public async Task InvalidateByKeysAsync_WithIgnoreContext_ShouldRemoveUnprefixedKeys()
     {
         // Scenario: entry was cached with IgnoreContext() → stored as "shared-data" (no prefix)
@@ -408,10 +327,7 @@ public class CacheInvalidatorTests
     [Fact]
     public void GetCurrentContextKey_WhenNoScopeFactory_ShouldReturnNull()
     {
-        // The default constructor doesn't set _scopeFactory
         var result = _invalidator.GetCurrentContextKey();
         result.Should().BeNull();
     }
 }
-
-

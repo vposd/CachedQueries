@@ -1,3 +1,4 @@
+using System.Reflection;
 using CachedQueries.Abstractions;
 using CachedQueries.Extensions;
 using CachedQueries.Internal;
@@ -15,16 +16,16 @@ namespace CachedQueries.Tests;
 [Collection("CacheServiceAccessor")]
 public class CacheableQueryTests : IDisposable
 {
-    private readonly TestDbContext _context;
-    private readonly IMemoryCache _memoryCache;
     private readonly ICacheProvider _cacheProvider;
-    private readonly ICacheKeyGenerator _keyGenerator;
+    private readonly TestDbContext _context;
     private readonly ICacheInvalidator _invalidator;
+    private readonly ICacheKeyGenerator _keyGenerator;
+    private readonly IMemoryCache _memoryCache;
 
     public CacheableQueryTests()
     {
         var options = new DbContextOptionsBuilder<TestDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
         _context = new TestDbContext(options);
@@ -118,7 +119,7 @@ public class CacheableQueryTests : IDisposable
             .Cacheable(o => o.WithKey("my-orders"))
             .ToListAsync();
 
-        var cached = await _cacheProvider.GetAsync<List<Order>>("my-orders");
+        var cached = await _cacheProvider.GetAsync<List<Order>>("cq:my-orders");
         cached.Should().NotBeNull();
         cached.Should().HaveCount(3);
     }
@@ -213,8 +214,7 @@ public class CacheableQueryTests : IDisposable
     [Fact]
     public async Task Cacheable_SingleOrDefaultAsync_NullPredicate_ShouldThrowIfMultiple()
     {
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _context.Orders.Cacheable().SingleOrDefaultAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _context.Orders.Cacheable().SingleOrDefaultAsync());
     }
 
     // --- CountAsync ---
@@ -353,12 +353,12 @@ public class CacheableQueryTests : IDisposable
             .Cacheable(o => o.IgnoreContext().WithKey("global-orders"))
             .ToListAsync();
 
-        // The key should be stored as "global-orders" (no prefix), not "tenant-1:global-orders"
-        var globalCached = await _cacheProvider.GetAsync<List<Order>>("global-orders");
+        // The key should be stored as "cq:global-orders" (no context), not "cq:tenant-1:global-orders"
+        var globalCached = await _cacheProvider.GetAsync<List<Order>>("cq:global-orders");
         globalCached.Should().NotBeNull();
         globalCached.Should().HaveCount(3);
 
-        var prefixedCached = await _cacheProvider.GetAsync<List<Order>>("tenant-1:global-orders");
+        var prefixedCached = await _cacheProvider.GetAsync<List<Order>>("cq:tenant-1:global-orders");
         prefixedCached.Should().BeNull();
     }
 
@@ -372,11 +372,11 @@ public class CacheableQueryTests : IDisposable
             .Cacheable(o => o.WithKey("tenant-orders"))
             .ToListAsync();
 
-        // The key should be stored with prefix "tenant-1:tenant-orders"
-        var prefixedCached = await _cacheProvider.GetAsync<List<Order>>("tenant-1:tenant-orders");
+        // The key should be stored with context: "cq:tenant-1:tenant-orders"
+        var prefixedCached = await _cacheProvider.GetAsync<List<Order>>("cq:tenant-1:tenant-orders");
         prefixedCached.Should().NotBeNull();
 
-        var globalCached = await _cacheProvider.GetAsync<List<Order>>("tenant-orders");
+        var globalCached = await _cacheProvider.GetAsync<List<Order>>("cq:tenant-orders");
         globalCached.Should().BeNull();
     }
 
@@ -391,7 +391,7 @@ public class CacheableQueryTests : IDisposable
 
         result.Should().NotBeNull();
 
-        var globalCached = await _cacheProvider.GetAsync<Order>("global-first");
+        var globalCached = await _cacheProvider.GetAsync<Order>("cq:global-first");
         globalCached.Should().NotBeNull();
     }
 
@@ -406,7 +406,7 @@ public class CacheableQueryTests : IDisposable
 
         count.Should().Be(3);
 
-        var globalCached = await _cacheProvider.GetAsync<int?>("global-count:count");
+        var globalCached = await _cacheProvider.GetAsync<int?>("cq:global-count:count");
         globalCached.Should().Be(3);
     }
 
@@ -421,7 +421,7 @@ public class CacheableQueryTests : IDisposable
 
         any.Should().BeTrue();
 
-        var globalCached = await _cacheProvider.GetAsync<bool?>("global-any:any");
+        var globalCached = await _cacheProvider.GetAsync<bool?>("cq:global-any:any");
         globalCached.Should().Be(true);
     }
 
@@ -436,7 +436,7 @@ public class CacheableQueryTests : IDisposable
 
         result.Should().NotBeNull();
 
-        var globalCached = await _cacheProvider.GetAsync<Order>("global-single");
+        var globalCached = await _cacheProvider.GetAsync<Order>("cq:global-single");
         globalCached.Should().NotBeNull();
     }
 
@@ -472,7 +472,7 @@ public class CacheableQueryTests : IDisposable
         CacheServiceAccessor.Configure(_cacheProvider, _keyGenerator, _invalidator);
         // Set up scope factory for context key resolution
         var field = typeof(CacheServiceAccessor).GetField("_scopeFactory",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            BindingFlags.NonPublic | BindingFlags.Static);
         field!.SetValue(null, sp.GetService<IServiceScopeFactory>());
     }
 }

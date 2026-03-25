@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Security.Cryptography;
 using System.Text;
@@ -7,16 +8,14 @@ using Microsoft.EntityFrameworkCore;
 namespace CachedQueries.Internal;
 
 /// <summary>
-/// Default implementation of cache key generator using query expression tree.
+///     Default implementation of cache key generator using query expression tree.
 /// </summary>
 internal sealed class QueryCacheKeyGenerator : ICacheKeyGenerator
 {
-    private const string Prefix = "CQ:";
-
     public string GenerateKey<T>(IQueryable<T> query)
     {
         var queryString = GetQueryString(query);
-        return GenerateHash(queryString);
+        return ComputeHash(queryString);
     }
 
     public string GenerateKey<T>(IQueryable<T> query, Expression<Func<T, bool>>? predicate)
@@ -25,7 +24,7 @@ internal sealed class QueryCacheKeyGenerator : ICacheKeyGenerator
         return GenerateKey(baseQuery);
     }
 
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [ExcludeFromCodeCoverage]
     private static string GetQueryString<T>(IQueryable<T> query)
     {
         // Use EF Core's query string if available
@@ -52,23 +51,26 @@ internal sealed class QueryCacheKeyGenerator : ICacheKeyGenerator
         return visitor.ToString();
     }
 
-    private static string GenerateHash(string input)
+    private static string ComputeHash(string input)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-        return Prefix + Convert.ToBase64String(bytes)[..22]; // Shortened hash
+        return Convert.ToHexString(bytes);
     }
 }
 
 /// <summary>
-/// Visitor that creates a stable string representation of an expression tree.
+///     Visitor that creates a stable string representation of an expression tree.
 /// </summary>
 internal sealed class ExpressionStringVisitor : ExpressionVisitor
 {
     private readonly StringBuilder _builder = new();
 
-    public override string ToString() => _builder.ToString();
+    public override string ToString()
+    {
+        return _builder.ToString();
+    }
 
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [ExcludeFromCodeCoverage]
     protected override Expression VisitConstant(ConstantExpression node)
     {
         if (node.Value is IQueryable queryable)
@@ -95,7 +97,11 @@ internal sealed class ExpressionStringVisitor : ExpressionVisitor
 
         for (var i = 0; i < node.Arguments.Count; i++)
         {
-            if (i > 0) _builder.Append(',');
+            if (i > 0)
+            {
+                _builder.Append(',');
+            }
+
             Visit(node.Arguments[i]);
         }
 
@@ -126,6 +132,3 @@ internal sealed class ExpressionStringVisitor : ExpressionVisitor
         return node;
     }
 }
-
-
-

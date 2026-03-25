@@ -14,16 +14,16 @@ namespace CachedQueries.Tests;
 [Collection("CacheServiceAccessor")]
 public class QueryableCacheExtensionsTests : IDisposable
 {
-    private readonly TestDbContext _context;
-    private readonly IMemoryCache _memoryCache;
     private readonly ICacheProvider _cacheProvider;
-    private readonly ICacheKeyGenerator _keyGenerator;
+    private readonly TestDbContext _context;
     private readonly ICacheInvalidator _invalidator;
+    private readonly ICacheKeyGenerator _keyGenerator;
+    private readonly IMemoryCache _memoryCache;
 
     public QueryableCacheExtensionsTests()
     {
         var options = new DbContextOptionsBuilder<TestDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
         _context = new TestDbContext(options);
@@ -45,7 +45,7 @@ public class QueryableCacheExtensionsTests : IDisposable
         var cacheLogger = Substitute.For<ILogger<MemoryCacheProvider>>();
         _cacheProvider = new MemoryCacheProvider(_memoryCache, cacheLogger);
         _keyGenerator = new QueryCacheKeyGenerator();
-        
+
         var invalidatorLogger = Substitute.For<ILogger<CacheInvalidator>>();
         _invalidator = new CacheInvalidator(_cacheProvider, invalidatorLogger);
 
@@ -163,8 +163,7 @@ public class QueryableCacheExtensionsTests : IDisposable
     public async Task SingleOrDefaultCachedAsync_WithNullPredicate_ShouldThrowIfMultiple()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _context.Orders.SingleOrDefaultCachedAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _context.Orders.SingleOrDefaultCachedAsync());
     }
 
     [Fact]
@@ -220,7 +219,7 @@ public class QueryableCacheExtensionsTests : IDisposable
     {
         // Act - use different predicates that generate different cache keys
         var hasHighTotal = await _context.Orders.AnyCachedAsync(o => o.Total > 250);
-        
+
         // Assert
         hasHighTotal.Should().BeTrue();
     }
@@ -277,7 +276,7 @@ public class QueryableCacheExtensionsTests : IDisposable
 
         // Act
         await _context.Orders.ToListCachedAsync(options);
-        var cached = await _cacheProvider.GetAsync<List<Order>>("custom-orders-key");
+        var cached = await _cacheProvider.GetAsync<List<Order>>("cq:custom-orders-key");
 
         // Assert
         cached.Should().NotBeNull();
@@ -397,7 +396,7 @@ public class QueryableCacheExtensionsTests : IDisposable
     {
         // Arrange - use a context with only one order
         var options = new DbContextOptionsBuilder<TestDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         using var singleContext = new TestDbContext(options);
         singleContext.Orders.Add(new Order { Id = 1, Name = "Single" });
@@ -671,4 +670,3 @@ public class QueryableCacheExtensionsTests : IDisposable
         result2!.Id.Should().Be(1);
     }
 }
-

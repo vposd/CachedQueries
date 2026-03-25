@@ -1,11 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
 namespace CachedQueries.Internal;
 
 /// <summary>
-/// Extracts entity types from a LINQ expression tree.
-/// Used to determine which entity types a query depends on for cache invalidation.
+///     Extracts entity types from a LINQ expression tree.
+///     Used to determine which entity types a query depends on for cache invalidation.
 /// </summary>
 internal static class EntityTypeExtractor
 {
@@ -13,14 +14,14 @@ internal static class EntityTypeExtractor
     {
         var visitor = new EntityTypeVisitor();
         visitor.Visit(query.Expression);
-        
+
         // Always include the root entity type if it's a valid entity
         var rootType = typeof(T);
         if (IsEntityType(rootType))
         {
             visitor.AddType(rootType);
         }
-        
+
         return visitor.EntityTypes;
     }
 
@@ -38,9 +39,12 @@ internal static class EntityTypeExtractor
 
         public IReadOnlySet<Type> EntityTypes => _entityTypes;
 
-        public void AddType(Type type) => _entityTypes.Add(type);
+        public void AddType(Type type)
+        {
+            _entityTypes.Add(type);
+        }
 
-        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        [ExcludeFromCodeCoverage]
         protected override Expression VisitConstant(ConstantExpression node)
         {
             // DbSet<T> appears as a constant in the expression tree
@@ -126,4 +130,3 @@ internal static class EntityTypeExtractor
         }
     }
 }
-

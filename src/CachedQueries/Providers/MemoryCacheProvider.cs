@@ -6,15 +6,15 @@ using Microsoft.Extensions.Logging;
 namespace CachedQueries.Providers;
 
 /// <summary>
-/// In-memory cache provider using IMemoryCache.
+///     In-memory cache provider using IMemoryCache.
 /// </summary>
 public sealed class MemoryCacheProvider(IMemoryCache cache, ILogger<MemoryCacheProvider> logger) : ICacheProvider
 {
-    // Track keys by tag for invalidation (ConcurrentDictionary for thread-safe removal)
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _tagToKeys = new();
-
     // Track all keys for clear operation (ConcurrentDictionary for thread-safe removal)
     private readonly ConcurrentDictionary<string, byte> _allKeys = new();
+
+    // Track keys by tag for invalidation (ConcurrentDictionary for thread-safe removal)
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _tagToKeys = new();
 
     public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
     {
@@ -23,9 +23,13 @@ public sealed class MemoryCacheProvider(IMemoryCache cache, ILogger<MemoryCacheP
         var result = cache.TryGetValue<T>(key, out var value) ? value : default;
 
         if (result is not null)
+        {
             logger.LogDebug("Cache hit for key: {CacheKey}", key);
+        }
         else
+        {
             logger.LogDebug("Cache miss for key: {CacheKey}", key);
+        }
 
         return Task.FromResult(result);
     }
@@ -37,9 +41,13 @@ public sealed class MemoryCacheProvider(IMemoryCache cache, ILogger<MemoryCacheP
         var entryOptions = new MemoryCacheEntryOptions();
 
         if (options.UseSlidingExpiration)
+        {
             entryOptions.SlidingExpiration = options.Expiration;
+        }
         else
+        {
             entryOptions.AbsoluteExpirationRelativeToNow = options.Expiration;
+        }
 
         // Register callback to clean up tracking when entry is evicted
         entryOptions.RegisterPostEvictionCallback((evictedKey, _, _, _) =>
@@ -47,15 +55,16 @@ public sealed class MemoryCacheProvider(IMemoryCache cache, ILogger<MemoryCacheP
             RemoveKeyFromTracking(evictedKey.ToString()!);
         });
 
-        cache.Set(key, value, entryOptions);
+        // Track key and tags BEFORE cache.Set so that if eviction fires immediately
+        // (e.g., memory pressure), the eviction callback can properly clean up tracking.
         _allKeys[key] = 0;
-
-        // Track tags
         foreach (var tag in options.Tags)
         {
-            var keys = _tagToKeys.GetOrAdd(tag, _ => new());
+            var keys = _tagToKeys.GetOrAdd(tag, _ => new ConcurrentDictionary<string, byte>());
             keys[key] = 0;
         }
+
+        cache.Set(key, value, entryOptions);
 
         logger.LogDebug("Cached value for key: {CacheKey}, Expiration: {Expiration}", key, options.Expiration);
 
@@ -94,7 +103,9 @@ public sealed class MemoryCacheProvider(IMemoryCache cache, ILogger<MemoryCacheP
         }
 
         if (invalidatedCount > 0)
+        {
             logger.LogInformation("Invalidated {Count} cache entries by tags", invalidatedCount);
+        }
 
         return Task.CompletedTask;
     }
@@ -120,7 +131,7 @@ public sealed class MemoryCacheProvider(IMemoryCache cache, ILogger<MemoryCacheP
     {
         _allKeys.TryRemove(key, out _);
 
-        foreach (var tagEntry in _tagToKeys)
+        foreach (var tagEntry in _tagToKeys.ToArray())
         {
             tagEntry.Value.TryRemove(key, out _);
         }

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using CachedQueries.Abstractions;
 using CachedQueries.Interceptors;
 using CachedQueries.Internal;
@@ -9,30 +10,28 @@ using Microsoft.Extensions.Logging;
 namespace CachedQueries.Extensions;
 
 /// <summary>
-/// Extension methods for configuring CachedQueries in DI container.
+///     Extension methods for configuring CachedQueries in DI container.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds CachedQueries services with in-memory cache as default provider.
+    ///     Adds CachedQueries services with in-memory cache as default provider.
     /// </summary>
     /// <example>
-    /// // Basic usage with in-memory cache
-    /// services.AddCachedQueries();
-    /// 
-    /// // With custom options
-    /// services.AddCachedQueries(config => {
+    ///     // Basic usage with in-memory cache
+    ///     services.AddCachedQueries();
+    ///     // With custom options
+    ///     services.AddCachedQueries(config => {
     ///     config.DefaultOptions = new CachingOptions(TimeSpan.FromHours(1));
     ///     config.AutoInvalidation = true;
-    /// });
-    /// 
-    /// // With multiple providers
-    /// services.AddCachedQueries(config => {
+    ///     });
+    ///     // With multiple providers
+    ///     services.AddCachedQueries(config => {
     ///     config
-    ///         .UseSingleItemProvider&lt;RedisCacheProvider&gt;()
-    ///         .UseCollectionProvider&lt;MongoCacheProvider&gt;()
-    ///         .UseScalarProvider&lt;RedisCacheProvider&gt;();
-    /// });
+    ///     .UseSingleItemProvider&lt;RedisCacheProvider&gt;()
+    ///     .UseCollectionProvider&lt;MongoCacheProvider&gt;()
+    ///     .UseScalarProvider&lt;RedisCacheProvider&gt;();
+    ///     });
     /// </example>
     public static IServiceCollection AddCachedQueries(
         this IServiceCollection services,
@@ -53,16 +52,15 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds CachedQueries services with custom default cache provider.
+    ///     Adds CachedQueries services with custom default cache provider.
     /// </summary>
     /// <example>
-    /// // Using Redis as default provider
-    /// services.AddCachedQueries&lt;RedisCacheProvider&gt;();
-    /// 
-    /// // With configuration
-    /// services.AddCachedQueries&lt;RedisCacheProvider&gt;(config => {
+    ///     // Using Redis as default provider
+    ///     services.AddCachedQueries&lt;RedisCacheProvider&gt;();
+    ///     // With configuration
+    ///     services.AddCachedQueries&lt;RedisCacheProvider&gt;(config => {
     ///     config.DefaultOptions = new CachingOptions(TimeSpan.FromMinutes(15));
-    /// });
+    ///     });
     /// </example>
     public static IServiceCollection AddCachedQueries<TDefaultProvider>(
         this IServiceCollection services,
@@ -130,10 +128,10 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers a cache context provider for multi-tenant or scoped caching.
+    ///     Registers a cache context provider for multi-tenant or scoped caching.
     /// </summary>
     /// <example>
-    /// services.AddCacheContextProvider&lt;TenantCacheContextProvider&gt;();
+    ///     services.AddCacheContextProvider&lt;TenantCacheContextProvider&gt;();
     /// </example>
     public static IServiceCollection AddCacheContextProvider<TProvider>(this IServiceCollection services)
         where TProvider : class, ICacheContextProvider
@@ -143,10 +141,11 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers a cache context provider using a factory function.
+    ///     Registers a cache context provider using a factory function.
     /// </summary>
     /// <example>
-    /// services.AddCacheContextProvider(sp => new TenantCacheContextProvider(sp.GetRequiredService&lt;ITenantAccessor&gt;()));
+    ///     services.AddCacheContextProvider(sp => new TenantCacheContextProvider(sp.GetRequiredService&lt;ITenantAccessor&gt;
+    ///     ()));
     /// </example>
     public static IServiceCollection AddCacheContextProvider(
         this IServiceCollection services,
@@ -157,8 +156,8 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Initializes the CachedQueries static accessor.
-    /// Call this in your application startup after building the service provider.
+    ///     Initializes the CachedQueries static accessor.
+    ///     Call this in your application startup after building the service provider.
     /// </summary>
     public static IServiceProvider UseCachedQueries(this IServiceProvider serviceProvider)
     {
@@ -167,16 +166,15 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds cache invalidation interceptors to DbContext options.
-    /// Use this when you don't have direct access to DbContextOptionsBuilder.
+    ///     Adds cache invalidation interceptors to DbContext options.
+    ///     Use this when you don't have direct access to DbContextOptionsBuilder.
     /// </summary>
     /// <typeparam name="TContext">The DbContext type to configure.</typeparam>
     /// <example>
-    /// // After registering your DbContext
-    /// services.AddDbContext&lt;MyDbContext&gt;(options => options.UseSqlServer(connectionString));
-    /// 
-    /// // Add cache invalidation interceptors
-    /// services.AddCacheInvalidation&lt;MyDbContext&gt;();
+    ///     // After registering your DbContext
+    ///     services.AddDbContext&lt;MyDbContext&gt;(options => options.UseSqlServer(connectionString));
+    ///     // Add cache invalidation interceptors
+    ///     services.AddCacheInvalidation&lt;MyDbContext&gt;();
     /// </example>
     public static IServiceCollection AddCacheInvalidation<TContext>(this IServiceCollection services)
         where TContext : DbContext
@@ -223,9 +221,12 @@ public static class ServiceCollectionExtensions
         {
             // This branch is only hit when DbContextOptions is registered via ImplementationType,
             // which doesn't happen with standard AddDbContext registration patterns.
-            [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-            static DbContextOptions<TContext> CreateFromType(ServiceDescriptor desc, IServiceProvider sp) =>
-                (DbContextOptions<TContext>)ActivatorUtilities.CreateInstance(sp, desc.ImplementationType!);
+            [ExcludeFromCodeCoverage]
+            static DbContextOptions<TContext> CreateFromType(ServiceDescriptor desc, IServiceProvider sp)
+            {
+                return (DbContextOptions<TContext>)ActivatorUtilities.CreateInstance(sp, desc.ImplementationType!);
+            }
+
             originalOptions = CreateFromType(originalDescriptor, serviceProvider);
         }
 
