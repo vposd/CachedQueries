@@ -23,24 +23,6 @@ public static class CacheExtensions
     }
 
     /// <summary>
-    ///     Clears all cached entries for the current cache context (e.g., tenant).
-    ///     Only affects entries within the current context scope.
-    /// </summary>
-    /// <example>
-    ///     // Clear cache for current tenant
-    ///     await Cache.ClearContextAsync();
-    /// </example>
-    public static async Task ClearContextAsync(CancellationToken cancellationToken = default)
-    {
-        if (!CacheServiceAccessor.IsConfigured)
-        {
-            throw new InvalidOperationException("CachedQueries is not configured. Call UseCachedQueries() first.");
-        }
-
-        await CacheServiceAccessor.Invalidator!.ClearContextAsync(cancellationToken);
-    }
-
-    /// <summary>
     ///     Invalidates cache entries by entity types.
     /// </summary>
     public static async Task InvalidateAsync(IEnumerable<Type> entityTypes,
@@ -121,14 +103,6 @@ public static class Cache
     public static Task ClearAllAsync(CancellationToken cancellationToken = default)
     {
         return CacheExtensions.ClearAllAsync(cancellationToken);
-    }
-
-    /// <summary>
-    ///     Clears all cached entries for the current cache context (e.g., tenant).
-    /// </summary>
-    public static Task ClearContextAsync(CancellationToken cancellationToken = default)
-    {
-        return CacheExtensions.ClearContextAsync(cancellationToken);
     }
 
     /// <summary>

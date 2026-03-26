@@ -203,13 +203,4 @@ public class CustomersTests
         afterB!.Length.Should().Be(countB);
     }
 
-    [Fact]
-    public async Task ClearTenantCache_ReturnsOk()
-    {
-        var client = _factory.CreateClientForTenant("tenant-a");
-        await client.GetAsync("/api/customers");
-
-        var response = await client.PostAsync("/api/customers/clear-cache", null);
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
 }

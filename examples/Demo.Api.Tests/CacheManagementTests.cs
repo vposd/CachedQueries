@@ -42,16 +42,6 @@ public class CacheManagementTests
     }
 
     [Fact]
-    public async Task ClearTenant_ReturnsOk()
-    {
-        var client = _factory.CreateClientForTenant("tenant-b");
-        await client.GetAsync("/api/goods"); // warm
-
-        var response = await client.PostAsync("/api/cache/clear-tenant", null);
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
     public async Task InvalidateEntity_Customer_ReturnsOk()
     {
         var client = _factory.CreateClientForTenant("tenant-a");

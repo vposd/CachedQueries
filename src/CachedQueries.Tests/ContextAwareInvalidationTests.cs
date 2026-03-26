@@ -40,7 +40,7 @@ public class ContextAwareInvalidationTests
         services.AddScoped<ICacheContextProvider>(_ => contextProvider);
         var sp = services.BuildServiceProvider();
 
-        return new CacheInvalidator(_cacheProvider, providerFactory, sp, _logger);
+        return new CacheInvalidator(_cacheProvider, providerFactory, sp.GetRequiredService<IServiceScopeFactory>(), _logger);
     }
 
     [Fact]
@@ -145,37 +145,6 @@ public class ContextAwareInvalidationTests
                 tags.Contains($"tag:{typeof(Customer).FullName}") &&
                 tags.Contains($"tenant-1:tag:{typeof(Customer).FullName}")),
             Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task ClearContextAsync_ShouldInvalidateContextLevelTag()
-    {
-        // Arrange
-        var invalidator = CreateInvalidator("tenant-1");
-
-        // Act
-        await invalidator.ClearContextAsync();
-
-        // Assert
-        await _cacheProvider.Received(1).InvalidateByTagsAsync(
-            Arg.Is<IReadOnlyList<string>>(tags =>
-                tags.Count == 1 &&
-                tags.Contains("tenant-1:tag:__context__")),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task ClearContextAsync_WithNoContext_ShouldNotCallProvider()
-    {
-        // Arrange
-        var invalidator = CreateInvalidator();
-
-        // Act
-        await invalidator.ClearContextAsync();
-
-        // Assert
-        await _cacheProvider.DidNotReceive().InvalidateByTagsAsync(
-            Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

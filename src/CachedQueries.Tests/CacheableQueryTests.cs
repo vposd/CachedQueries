@@ -598,4 +598,28 @@ public class CacheableQueryTests : IDisposable
         await mockProvider.DidNotReceive().SetAsync(
             Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CachingOptions>(), Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task Cacheable_FirstOrDefault_WithKey_ManualInvalidate_ShouldReturnFreshValue()
+    {
+        // Cache a single item with explicit key
+        var order = await _context.Orders
+            .Where(o => o.Id == 1)
+            .Cacheable(o => o.WithKey("order-1"))
+            .FirstOrDefaultAsync();
+
+        order.Should().NotBeNull();
+        order!.Name.Should().Be("Order 1");
+
+        // Verify it's in cache
+        var cached = await _cacheProvider.GetAsync<Order>("cq:order-1");
+        cached.Should().NotBeNull();
+
+        // Manually invalidate by key
+        await _invalidator.InvalidateByKeysAsync(["order-1"]);
+
+        // After invalidation, cache entry should be gone
+        var afterInvalidation = await _cacheProvider.GetAsync<Order>("cq:order-1");
+        afterInvalidation.Should().BeNull("manual key invalidation should remove the cached entry");
+    }
 }
