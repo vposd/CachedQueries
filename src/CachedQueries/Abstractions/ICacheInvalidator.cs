@@ -58,10 +58,4 @@ public interface ICacheInvalidator
     ///     Use with caution in production environments.
     /// </summary>
     Task ClearAllAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    ///     Clears all cached entries for the current cache context (e.g., tenant).
-    ///     Only affects entries registered with the current context key.
-    /// </summary>
-    Task ClearContextAsync(CancellationToken cancellationToken = default);
 }

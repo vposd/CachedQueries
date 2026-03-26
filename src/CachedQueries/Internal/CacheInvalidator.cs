@@ -40,12 +40,12 @@ internal sealed class CacheInvalidator : ICacheInvalidator
     public CacheInvalidator(
         ICacheProvider cacheProvider,
         ICacheProviderFactory providerFactory,
-        IServiceProvider serviceProvider,
+        IServiceScopeFactory scopeFactory,
         ILogger<CacheInvalidator> logger)
     {
         _defaultProvider = cacheProvider;
         _providerFactory = providerFactory;
-        _scopeFactory = serviceProvider.GetService<IServiceScopeFactory>();
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -117,24 +117,25 @@ internal sealed class CacheInvalidator : ICacheInvalidator
     public async Task InvalidateByKeysAsync(IEnumerable<string> keys, CancellationToken cancellationToken = default)
     {
         var contextKey = GetCurrentContextKey();
+        var prefix = CacheServiceAccessor.CachePrefix;
         var keySet = new HashSet<string>();
 
         foreach (var key in keys)
         {
-            // Always try the unprefixed key (handles IgnoreContext or no context configured)
-            keySet.Add(key);
+            // Global key: {prefix}:{key}
+            keySet.Add($"{prefix}:{key}");
             foreach (var suffix in CacheKeySuffixes.All)
             {
-                keySet.Add($"{key}{suffix}");
+                keySet.Add($"{prefix}:{key}{suffix}");
             }
 
-            // Also try the context-prefixed key if a context is active
+            // Context-scoped key: {prefix}:{context}:{key}
             if (!string.IsNullOrEmpty(contextKey))
             {
-                keySet.Add($"{contextKey}:{key}");
+                keySet.Add($"{prefix}:{contextKey}:{key}");
                 foreach (var suffix in CacheKeySuffixes.All)
                 {
-                    keySet.Add($"{contextKey}:{key}{suffix}");
+                    keySet.Add($"{prefix}:{contextKey}:{key}{suffix}");
                 }
             }
         }
@@ -160,22 +161,6 @@ internal sealed class CacheInvalidator : ICacheInvalidator
         }
 
         _logger.LogInformation("Cleared all cache entries across {ProviderCount} providers", providers.Count);
-    }
-
-    public async Task ClearContextAsync(CancellationToken cancellationToken = default)
-    {
-        var contextKey = GetCurrentContextKey();
-
-        if (string.IsNullOrEmpty(contextKey))
-        {
-            _logger.LogWarning("No cache context available. Use ClearAllAsync to clear all entries.");
-            return;
-        }
-
-        _logger.LogInformation("Clearing cache for context: {ContextKey}", contextKey);
-
-        var contextTag = TrackingTags.ContextTag(contextKey);
-        await InvalidateByProviderTagsAsync([contextTag], cancellationToken);
     }
 
     internal string? GetCurrentContextKey()

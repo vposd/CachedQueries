@@ -22,8 +22,7 @@ public static class OrdersEndpoints
                 .Include(o => o.Items).ThenInclude(i => i.Good)
                 .OrderByDescending(o => o.CreatedAt)
                 .Cacheable(o => o
-                    .Expire(TimeSpan.FromMinutes(5))
-                    .WithTags("orders-list"))
+                    .Expire(TimeSpan.FromMinutes(5)))
                 .ToListAsync();
 
             return Results.Ok(orders.Select(o => new

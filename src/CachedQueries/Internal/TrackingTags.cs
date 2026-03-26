@@ -26,14 +26,6 @@ internal static class TrackingTags
     }
 
     /// <summary>
-    ///     Builds a context-level tag used by ClearContextAsync to remove all entries for a context.
-    /// </summary>
-    internal static string ContextTag(string contextKey)
-    {
-        return $"{contextKey}:tag:__context__";
-    }
-
-    /// <summary>
     ///     Builds all tracking tags for a cache entry being stored.
     ///     These tags are passed to the provider's SetAsync via CachingOptions.Tags.
     /// </summary>
@@ -45,22 +37,20 @@ internal static class TrackingTags
         var tags = new List<string>();
         var userTagsList = userTags as IReadOnlyCollection<string> ?? userTags.ToList();
 
-        // Always include entity type tags so auto-invalidation via SaveChanges works.
-        foreach (var type in entityTypes)
+        // When explicit tags are provided, use only those — the caller manages invalidation manually.
+        if (userTagsList.Count > 0)
         {
-            tags.Add(EntityTag(type, contextKey));
+            foreach (var tag in userTagsList)
+            {
+                tags.Add(UserTag(tag, contextKey));
+            }
         }
-
-        // Explicit user tags are added alongside entity type tags for manual invalidation.
-        foreach (var tag in userTagsList)
+        else
         {
-            tags.Add(UserTag(tag, contextKey));
-        }
-
-        // Context-level tag for ClearContextAsync
-        if (contextKey is not null)
-        {
-            tags.Add(ContextTag(contextKey));
+            foreach (var type in entityTypes)
+            {
+                tags.Add(EntityTag(type, contextKey));
+            }
         }
 
         return tags;

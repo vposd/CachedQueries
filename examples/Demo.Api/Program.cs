@@ -69,12 +69,6 @@ app.MapPost("/api/cache/clear-all", async () =>
     return Results.Ok(new { message = "All cache cleared" });
 }).WithTags("Cache");
 
-app.MapPost("/api/cache/clear-tenant", async () =>
-{
-    await Cache.ClearContextAsync();
-    return Results.Ok(new { message = "Tenant cache cleared" });
-}).WithTags("Cache");
-
 app.MapPost("/api/cache/invalidate-entity/{entityType}", async (string entityType) =>
 {
     var type = entityType.ToLowerInvariant() switch

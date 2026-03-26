@@ -554,7 +554,8 @@ public class CacheableQueryTests : IDisposable
                 // First call (fast path) returns null, second call (inside lock) returns cached data
                 return callCount == 1
                     ? Task.FromResult<List<Order>?>(null)
-                    : Task.FromResult<List<Order>?>(new List<Order> { new() { Id = 99, Name = "Cached", Total = 999 } });
+                    : Task.FromResult<List<Order>?>(new List<Order>
+                        { new() { Id = 99, Name = "Cached", Total = 999 } });
             });
 
         CacheServiceAccessor.Configure(mockProvider, _keyGenerator, _invalidator);
@@ -597,5 +598,29 @@ public class CacheableQueryTests : IDisposable
         callCount.Should().Be(2);
         await mockProvider.DidNotReceive().SetAsync(
             Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CachingOptions>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Cacheable_FirstOrDefault_WithKey_ManualInvalidate_ShouldReturnFreshValue()
+    {
+        // Cache a single item with explicit key
+        var order = await _context.Orders
+            .Where(o => o.Id == 1)
+            .Cacheable(o => o.WithKey("order-1"))
+            .FirstOrDefaultAsync();
+
+        order.Should().NotBeNull();
+        order!.Name.Should().Be("Order 1");
+
+        // Verify it's in cache
+        var cached = await _cacheProvider.GetAsync<Order>("cq:order-1");
+        cached.Should().NotBeNull();
+
+        // Manually invalidate by key
+        await _invalidator.InvalidateByKeysAsync(["order-1"]);
+
+        // After invalidation, cache entry should be gone
+        var afterInvalidation = await _cacheProvider.GetAsync<Order>("cq:order-1");
+        afterInvalidation.Should().BeNull("manual key invalidation should remove the cached entry");
     }
 }

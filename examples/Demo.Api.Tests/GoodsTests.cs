@@ -132,7 +132,7 @@ public class GoodsTests
     }
 
     [Fact]
-    public async Task CreateGood_AutoInvalidatesCategoryCache()
+    public async Task CreateGood_ManualTagInvalidation_RefreshesCategoryCache()
     {
         await _factory.ResetCacheAsync();
         var client = _factory.CreateClientForTenant("tenant-b");
@@ -143,6 +143,9 @@ public class GoodsTests
 
         await client.PostAsJsonAsync("/api/goods",
             new { Name = $"Shelf-{Guid.NewGuid():N}", Price = 149.99m, Category = "Furniture" });
+
+        // Explicit tags require manual invalidation — auto-invalidation by entity type is skipped
+        await client.PostAsync("/api/goods/invalidate-category/Furniture", null);
 
         var after = await client.GetFromJsonAsync<JsonElement[]>(
             "/api/goods/by-category/Furniture", JsonOptions);

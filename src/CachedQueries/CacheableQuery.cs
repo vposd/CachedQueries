@@ -333,7 +333,10 @@ public sealed class CacheableQuery<T> where T : class
 
     private CachingOptions BuildOptionsWithTracking(string? contextKey)
     {
-        var entityTypes = EntityTypeExtractor.ExtractEntityTypes(Query);
+        // When explicit key is set, caller manages cache manually — skip auto entity type tags.
+        IEnumerable<Type> entityTypes = _options.CacheKey is not null
+            ? Array.Empty<Type>()
+            : EntityTypeExtractor.ExtractEntityTypes(Query);
         var trackingTags = TrackingTags.BuildTrackingTags(entityTypes, _options.Tags, contextKey);
         return _options.WithTrackingTags(trackingTags);
     }

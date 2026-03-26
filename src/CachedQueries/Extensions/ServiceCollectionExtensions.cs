@@ -117,13 +117,14 @@ public static class ServiceCollectionExtensions
         });
 
         // Register invalidator with provider factory
-        // Note: IServiceProvider is passed to resolve scoped ICacheContextProvider at runtime
+        // Note: IServiceScopeFactory is passed to resolve scoped ICacheContextProvider at runtime
         services.AddSingleton<ICacheInvalidator>(sp =>
         {
             var cacheProvider = sp.GetRequiredService<ICacheProvider>();
             var providerFactory = sp.GetRequiredService<ICacheProviderFactory>();
+            var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
             var logger = sp.GetRequiredService<ILogger<CacheInvalidator>>();
-            return new CacheInvalidator(cacheProvider, providerFactory, sp, logger);
+            return new CacheInvalidator(cacheProvider, providerFactory, scopeFactory, logger);
         });
     }
 

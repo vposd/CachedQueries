@@ -48,21 +48,6 @@ public class CacheExtensionsTests : IDisposable
     }
 
     [Fact]
-    public async Task ClearContextAsync_WhenNotConfigured_ShouldThrowInvalidOperationException()
-    {
-        var act = () => CacheExtensions.ClearContextAsync();
-        await act.Should().ThrowAsync<InvalidOperationException>();
-    }
-
-    [Fact]
-    public async Task ClearContextAsync_WhenConfigured_ShouldDelegateToCacheInvalidator()
-    {
-        ConfigureAccessor();
-        await CacheExtensions.ClearContextAsync();
-        await _invalidator.Received(1).ClearContextAsync(Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
     public async Task InvalidateAsync_ByEntityTypes_WhenNotConfigured_ShouldThrow()
     {
         var act = () => CacheExtensions.InvalidateAsync(new[] { typeof(Order) });
@@ -151,14 +136,6 @@ public class CacheExtensionsTests : IDisposable
     }
 
     [Fact]
-    public async Task Cache_ClearContextAsync_ShouldDelegate()
-    {
-        ConfigureAccessor();
-        await Cache.ClearContextAsync();
-        await _invalidator.Received(1).ClearContextAsync(Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
     public async Task Cache_InvalidateAsync_ShouldDelegate()
     {
         ConfigureAccessor();
@@ -213,14 +190,5 @@ public class CacheExtensionsTests : IDisposable
         using var cts = new CancellationTokenSource();
         await CacheExtensions.ClearAllAsync(cts.Token);
         await _invalidator.Received(1).ClearAllAsync(cts.Token);
-    }
-
-    [Fact]
-    public async Task ClearContextAsync_WithCancellationToken_ShouldPassThrough()
-    {
-        ConfigureAccessor();
-        using var cts = new CancellationTokenSource();
-        await CacheExtensions.ClearContextAsync(cts.Token);
-        await _invalidator.Received(1).ClearContextAsync(cts.Token);
     }
 }

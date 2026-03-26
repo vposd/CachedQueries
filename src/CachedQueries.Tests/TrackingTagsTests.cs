@@ -35,23 +35,16 @@ public class TrackingTagsTests
     }
 
     [Fact]
-    public void ContextTag_ShouldIncludeTagMarker()
-    {
-        var tag = TrackingTags.ContextTag("tenant-1");
-        tag.Should().Be("tenant-1:tag:__context__");
-    }
-
-    [Fact]
-    public void BuildTrackingTags_WithExplicitTags_ShouldIncludeBothEntityAndUserTags()
+    public void BuildTrackingTags_WithExplicitTags_ShouldUseOnlyExplicitTags()
     {
         var tags = TrackingTags.BuildTrackingTags(
             [typeof(Order)],
             ["my-tag"],
             null);
 
-        tags.Should().HaveCount(2);
-        tags.Should().Contain($"tag:{typeof(Order).FullName}");
+        tags.Should().HaveCount(1);
         tags.Should().Contain("tag:my-tag");
+        tags.Should().NotContain($"tag:{typeof(Order).FullName}");
     }
 
     [Fact]
@@ -67,17 +60,16 @@ public class TrackingTagsTests
     }
 
     [Fact]
-    public void BuildTrackingTags_WithContext_AndExplicitTags_ShouldIncludeBothEntityAndUserTags()
+    public void BuildTrackingTags_WithContext_AndExplicitTags_ShouldUseOnlyExplicitTags()
     {
         var tags = TrackingTags.BuildTrackingTags(
             [typeof(Order)],
             ["my-tag"],
             "tenant-1");
 
-        tags.Should().HaveCount(3);
-        tags.Should().Contain($"tenant-1:tag:{typeof(Order).FullName}");
+        tags.Should().HaveCount(1);
         tags.Should().Contain("tenant-1:tag:my-tag");
-        tags.Should().Contain("tenant-1:tag:__context__");
+        tags.Should().NotContain($"tenant-1:tag:{typeof(Order).FullName}");
     }
 
     [Fact]
@@ -88,22 +80,20 @@ public class TrackingTagsTests
             [],
             "tenant-1");
 
-        tags.Should().HaveCount(2);
+        tags.Should().HaveCount(1);
         tags.Should().Contain($"tenant-1:tag:{typeof(Order).FullName}");
-        tags.Should().Contain("tenant-1:tag:__context__");
         tags.Should().NotContain($"tag:{typeof(Order).FullName}");
     }
 
     [Fact]
-    public void BuildTrackingTags_WithNoEntityTypesOrTags_ShouldReturnOnlyContextTag()
+    public void BuildTrackingTags_WithNoEntityTypesOrTags_AndContext_ShouldReturnEmpty()
     {
         var tags = TrackingTags.BuildTrackingTags(
             [],
             [],
             "tenant-1");
 
-        tags.Should().HaveCount(1);
-        tags.Should().Contain("tenant-1:tag:__context__");
+        tags.Should().BeEmpty();
     }
 
     [Fact]

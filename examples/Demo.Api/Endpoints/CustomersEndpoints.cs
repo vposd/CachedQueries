@@ -74,12 +74,6 @@ public static class CustomersEndpoints
             return Results.Created($"/api/customers/{customer.Id}", customer);
         });
 
-        // POST /api/customers/clear-cache — clear cache for current tenant only
-        group.MapPost("/clear-cache", async () =>
-        {
-            await Cache.ClearContextAsync();
-            return Results.Ok(new { message = "Cache cleared for current tenant" });
-        });
     }
 
     public record CreateCustomerRequest(string Name, string? Email);

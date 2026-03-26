@@ -75,26 +75,6 @@ public class MultiTenantTests
     }
 
     [Fact]
-    public async Task ClearTenantACache_DoesNotAffectTenantB()
-    {
-        var clientA = _factory.CreateClientForTenant("tenant-a");
-        var clientB = _factory.CreateClientForTenant("tenant-b");
-
-        // Warm both
-        await clientA.GetAsync("/api/customers");
-        await clientB.GetAsync("/api/customers");
-
-        // Clear only tenant A
-        await clientA.PostAsync("/api/customers/clear-cache", null);
-
-        // Tenant B still works fine
-        var response = await clientB.GetAsync("/api/customers");
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var customers = await response.Content.ReadFromJsonAsync<JsonElement[]>(JsonOptions);
-        customers!.Length.Should().BeGreaterOrEqualTo(3);
-    }
-
-    [Fact]
     public async Task DefaultTenant_UsedWhenNoHeader()
     {
         var client = _factory.CreateClient();
