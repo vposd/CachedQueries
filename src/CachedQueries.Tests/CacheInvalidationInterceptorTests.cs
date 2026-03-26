@@ -3,6 +3,8 @@ using CachedQueries.Abstractions;
 using CachedQueries.Interceptors;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
@@ -365,5 +367,54 @@ public class CacheInvalidationInterceptorFailureTests : IDisposable
         // Assert - pending invalidations should have been cleared
         var contextId = TransactionCacheInvalidationInterceptor.GetContextIdentifier(_context);
         TransactionCacheInvalidationInterceptor.PendingInvalidations.ContainsKey(contextId).Should().BeFalse();
+    }
+
+    [Fact]
+    public void SavingChanges_WithNullContext_ShouldNotThrow()
+    {
+        var eventData = new DbContextEventData(
+            new FakeEventDefinition(), (_, _) => "test", null!);
+
+        var result = _interceptor.SavingChanges(eventData, default);
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task SavingChangesAsync_WithNullContext_ShouldNotThrow()
+    {
+        var eventData = new DbContextEventData(
+            new FakeEventDefinition(), (_, _) => "test", null!);
+
+        var result = await _interceptor.SavingChangesAsync(eventData, default);
+        result.Should().NotBeNull();
+    }
+
+    private sealed class FakeEventDefinition : EventDefinitionBase
+    {
+        public FakeEventDefinition()
+            : base(new FakeLoggingOptions(), new EventId(1, "Test"), LogLevel.Debug, "Test")
+        {
+        }
+    }
+
+    private sealed class FakeLoggingOptions : ILoggingOptions
+    {
+        public void Initialize(IDbContextOptions options)
+        {
+        }
+
+        public void Validate(IDbContextOptions options)
+        {
+        }
+
+        public bool IsSensitiveDataLoggingEnabled => false;
+        public bool IsSensitiveDataLoggingWarned { get; set; }
+        public bool DetailedErrorsEnabled => false;
+        public WarningsConfiguration WarningsConfiguration => new();
+
+        public bool ShouldWarnForStringEnumValueInJson(Type type)
+        {
+            return false;
+        }
     }
 }

@@ -41,12 +41,16 @@ internal static class TrackingTags
         if (userTagsList.Count > 0)
         {
             foreach (var tag in userTagsList)
+            {
                 tags.Add(UserTag(tag, contextKey));
+            }
         }
         else
         {
             foreach (var type in entityTypes)
+            {
                 tags.Add(EntityTag(type, contextKey));
+            }
         }
 
         return tags;

@@ -40,7 +40,8 @@ public class ContextAwareInvalidationTests
         services.AddScoped<ICacheContextProvider>(_ => contextProvider);
         var sp = services.BuildServiceProvider();
 
-        return new CacheInvalidator(_cacheProvider, providerFactory, sp.GetRequiredService<IServiceScopeFactory>(), _logger);
+        return new CacheInvalidator(_cacheProvider, providerFactory, sp.GetRequiredService<IServiceScopeFactory>(),
+            _logger);
     }
 
     [Fact]

@@ -554,7 +554,8 @@ public class CacheableQueryTests : IDisposable
                 // First call (fast path) returns null, second call (inside lock) returns cached data
                 return callCount == 1
                     ? Task.FromResult<List<Order>?>(null)
-                    : Task.FromResult<List<Order>?>(new List<Order> { new() { Id = 99, Name = "Cached", Total = 999 } });
+                    : Task.FromResult<List<Order>?>(new List<Order>
+                        { new() { Id = 99, Name = "Cached", Total = 999 } });
             });
 
         CacheServiceAccessor.Configure(mockProvider, _keyGenerator, _invalidator);

@@ -191,5 +191,4 @@ public class CacheExtensionsTests : IDisposable
         await CacheExtensions.ClearAllAsync(cts.Token);
         await _invalidator.Received(1).ClearAllAsync(cts.Token);
     }
-
 }

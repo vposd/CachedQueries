@@ -58,5 +58,4 @@ public interface ICacheInvalidator
     ///     Use with caution in production environments.
     /// </summary>
     Task ClearAllAsync(CancellationToken cancellationToken = default);
-
 }

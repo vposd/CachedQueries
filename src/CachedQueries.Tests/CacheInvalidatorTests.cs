@@ -254,7 +254,8 @@ public class CacheInvalidatorTests
         services.AddScoped<ICacheContextProvider>(_ => contextProvider);
         var sp = services.BuildServiceProvider();
 
-        var invalidator = new CacheInvalidator(_cacheProvider, providerFactory, sp.GetRequiredService<IServiceScopeFactory>(), _logger);
+        var invalidator = new CacheInvalidator(_cacheProvider, providerFactory,
+            sp.GetRequiredService<IServiceScopeFactory>(), _logger);
 
         // Act
         await invalidator.InvalidateByKeysAsync(new[] { "order-1" });
@@ -281,7 +282,8 @@ public class CacheInvalidatorTests
         services.AddScoped<ICacheContextProvider>(_ => contextProvider);
         var sp = services.BuildServiceProvider();
 
-        var invalidator = new CacheInvalidator(_cacheProvider, providerFactory, sp.GetRequiredService<IServiceScopeFactory>(), _logger);
+        var invalidator = new CacheInvalidator(_cacheProvider, providerFactory,
+            sp.GetRequiredService<IServiceScopeFactory>(), _logger);
 
         // Act
         await invalidator.InvalidateByKeysAsync(new[] { "shared-data" });
