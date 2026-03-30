@@ -326,4 +326,47 @@ public class CacheInvalidatorTests
         // Should not throw
         await _invalidator.InvalidateByKeysAsync(["key1"]);
     }
+
+    [Fact]
+    public async Task InvalidateAsync_WithExplicitContextKey_ShouldBuildContextScopedTags()
+    {
+        // Act
+        await _invalidator.InvalidateAsync(new[] { typeof(Order) }, "tenant-x");
+
+        // Assert - should include both global and context-scoped tags
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                tags.Contains($"tag:{typeof(Order).FullName}") &&
+                tags.Contains($"tenant-x:tag:{typeof(Order).FullName}")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvalidateByTagsAsync_WithExplicitContextKey_ShouldBuildContextScopedTags()
+    {
+        // Act
+        await _invalidator.InvalidateByTagsAsync(new[] { "orders" }, "tenant-x");
+
+        // Assert - should include both global and context-scoped tags
+        await _cacheProvider.Received(1).InvalidateByTagsAsync(
+            Arg.Is<IReadOnlyList<string>>(tags =>
+                tags.Contains("tag:orders") &&
+                tags.Contains("tenant-x:tag:orders")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvalidateByKeysAsync_WithExplicitContextKey_ShouldRemoveBothPrefixedAndUnprefixed()
+    {
+        // Act
+        await _invalidator.InvalidateByKeysAsync(new[] { "order-1" }, "tenant-x");
+
+        // Assert — should remove both context-scoped and global variants
+        await _cacheProvider.Received(1).RemoveAsync("cq:tenant-x:order-1", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("cq:tenant-x:order-1:count", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("cq:tenant-x:order-1:any", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("cq:order-1", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("cq:order-1:count", Arg.Any<CancellationToken>());
+        await _cacheProvider.Received(1).RemoveAsync("cq:order-1:any", Arg.Any<CancellationToken>());
+    }
 }

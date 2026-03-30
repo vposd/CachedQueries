@@ -53,39 +53,25 @@ internal sealed class CacheInvalidator : ICacheInvalidator
     ///     Invalidates cache entries for entity types by delegating to the cache provider's
     ///     tag-based invalidation. Builds tag names for both global and current-context entries.
     /// </summary>
-    public async Task InvalidateAsync(IEnumerable<Type> entityTypes, CancellationToken cancellationToken = default)
-    {
-        var currentContext = GetCurrentContextKey();
-        var tags = TrackingTags.InvalidationTagsForEntityTypes(entityTypes, currentContext);
+    public Task InvalidateAsync(IEnumerable<Type> entityTypes, CancellationToken cancellationToken = default) =>
+        InvalidateEntityTypesAsync(entityTypes, GetCurrentContextKey(), cancellationToken);
 
-        if (tags.Count == 0)
-        {
-            return;
-        }
-
-        await InvalidateByProviderTagsAsync(tags, cancellationToken);
-
-        _logger.LogInformation("Invalidated cache for entity types via {TagCount} tags", tags.Count);
-    }
+    /// <inheritdoc />
+    public Task InvalidateAsync(IEnumerable<Type> entityTypes, string contextKey,
+        CancellationToken cancellationToken = default) =>
+        InvalidateEntityTypesAsync(entityTypes, contextKey, cancellationToken);
 
     /// <summary>
     ///     Invalidates cache entries for user-defined tags by delegating to the cache provider's
     ///     tag-based invalidation. Builds tag names for both global and current-context entries.
     /// </summary>
-    public async Task InvalidateByTagsAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default)
-    {
-        var currentContext = GetCurrentContextKey();
-        var qualifiedTags = TrackingTags.InvalidationTagsForUserTags(tags, currentContext);
+    public Task InvalidateByTagsAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default) =>
+        InvalidateUserTagsAsync(tags, GetCurrentContextKey(), cancellationToken);
 
-        if (qualifiedTags.Count == 0)
-        {
-            return;
-        }
-
-        await InvalidateByProviderTagsAsync(qualifiedTags, cancellationToken);
-
-        _logger.LogInformation("Invalidated cache for {TagCount} tags", qualifiedTags.Count);
-    }
+    /// <inheritdoc />
+    public Task InvalidateByTagsAsync(IEnumerable<string> tags, string contextKey,
+        CancellationToken cancellationToken = default) =>
+        InvalidateUserTagsAsync(tags, contextKey, cancellationToken);
 
     /// <summary>
     ///     No-op. Tracking is now handled by the cache provider through enriched tags in SetAsync.
@@ -114,9 +100,67 @@ internal sealed class CacheInvalidator : ICacheInvalidator
     ///     and tries both context-prefixed and global (unprefixed) versions to handle
     ///     entries cached with or without IgnoreContext().
     /// </summary>
-    public async Task InvalidateByKeysAsync(IEnumerable<string> keys, CancellationToken cancellationToken = default)
+    public Task InvalidateByKeysAsync(IEnumerable<string> keys, CancellationToken cancellationToken = default) =>
+        InvalidateByKeysInternalAsync(keys, GetCurrentContextKey(), cancellationToken);
+
+    /// <inheritdoc />
+    public Task InvalidateByKeysAsync(IEnumerable<string> keys, string contextKey,
+        CancellationToken cancellationToken = default) =>
+        InvalidateByKeysInternalAsync(keys, contextKey, cancellationToken);
+
+    public async Task ClearAllAsync(CancellationToken cancellationToken = default)
     {
-        var contextKey = GetCurrentContextKey();
+        _logger.LogWarning("Clearing all cache entries");
+
+        var providers = GetAllProviders();
+        foreach (var provider in providers)
+        {
+            try
+            {
+                await provider.ClearAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to clear cache provider: {ProviderType}", provider.GetType().Name);
+            }
+        }
+
+        _logger.LogInformation("Cleared all cache entries across {ProviderCount} providers", providers.Count);
+    }
+
+    private async Task InvalidateEntityTypesAsync(IEnumerable<Type> entityTypes, string? currentContext,
+        CancellationToken cancellationToken)
+    {
+        var tags = TrackingTags.InvalidationTagsForEntityTypes(entityTypes, currentContext);
+
+        if (tags.Count == 0)
+        {
+            return;
+        }
+
+        await InvalidateByProviderTagsAsync(tags, cancellationToken);
+
+        _logger.LogInformation("Invalidated cache for entity types via {TagCount} tags", tags.Count);
+    }
+
+    private async Task InvalidateUserTagsAsync(IEnumerable<string> tags, string? currentContext,
+        CancellationToken cancellationToken)
+    {
+        var qualifiedTags = TrackingTags.InvalidationTagsForUserTags(tags, currentContext);
+
+        if (qualifiedTags.Count == 0)
+        {
+            return;
+        }
+
+        await InvalidateByProviderTagsAsync(qualifiedTags, cancellationToken);
+
+        _logger.LogInformation("Invalidated cache for {TagCount} tags", qualifiedTags.Count);
+    }
+
+    private async Task InvalidateByKeysInternalAsync(IEnumerable<string> keys, string? contextKey,
+        CancellationToken cancellationToken)
+    {
         var prefix = CacheServiceAccessor.CachePrefix;
         var keySet = new HashSet<string>();
 
@@ -141,26 +185,6 @@ internal sealed class CacheInvalidator : ICacheInvalidator
         }
 
         await InvalidateKeysAsync(keySet, cancellationToken);
-    }
-
-    public async Task ClearAllAsync(CancellationToken cancellationToken = default)
-    {
-        _logger.LogWarning("Clearing all cache entries");
-
-        var providers = GetAllProviders();
-        foreach (var provider in providers)
-        {
-            try
-            {
-                await provider.ClearAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to clear cache provider: {ProviderType}", provider.GetType().Name);
-            }
-        }
-
-        _logger.LogInformation("Cleared all cache entries across {ProviderCount} providers", providers.Count);
     }
 
     internal string? GetCurrentContextKey()
