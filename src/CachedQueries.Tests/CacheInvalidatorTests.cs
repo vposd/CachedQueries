@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
 
+#pragma warning disable CS0618 // exercising obsolete members on purpose
+
 namespace CachedQueries.Tests;
 
 public class CacheInvalidatorTests

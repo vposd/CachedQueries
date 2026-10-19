@@ -19,24 +19,32 @@ public sealed class CachedQueriesConfiguration
     public string CachePrefix { get; set; } = "cq";
 
     /// <summary>
-    ///     Default caching options applied when no options are specified.
+    ///     Default expiration for <c>.Cacheable()</c> and <c>.Cacheable(o =&gt; ...)</c>.
+    ///     Only <see cref="CachingOptions.Expiration" /> and <see cref="CachingOptions.UseSlidingExpiration" /> are
+    ///     used; options passed explicitly via <c>.Cacheable(CachingOptions)</c> are used as-is.
+    ///     Default is 30 minutes absolute expiration.
     /// </summary>
     public CachingOptions DefaultOptions { get; set; } = CachingOptions.Default;
 
     /// <summary>
     ///     Whether to automatically invalidate cache when SaveChanges is called.
+    ///     When false, <c>AddCacheInvalidation</c> does not register the EF interceptors and entries are only
+    ///     invalidated manually (via <c>Cache</c>) or by expiration.
     ///     Default is true.
     /// </summary>
     public bool AutoInvalidation { get; set; } = true;
 
     /// <summary>
-    ///     Whether to log cache operations (hits, misses, invalidations).
-    ///     Default is true.
+    ///     Has no effect. Control CachedQueries logging with standard logging configuration instead, e.g.
+    ///     <c>"Logging:LogLevel:CachedQueries": "Warning"</c>.
     /// </summary>
+    [Obsolete("Has no effect. Configure log levels for the \"CachedQueries\" category through logging configuration instead.")]
     public bool EnableLogging { get; set; } = true;
 
     /// <summary>
-    ///     Custom provider factory. If set, overrides individual provider settings.
+    ///     Custom provider factory. If set, overrides <see cref="UseSingleItemProvider{TProvider}" />,
+    ///     <see cref="UseCollectionProvider{TProvider}" />, <see cref="UseScalarProvider{TProvider}" /> and
+    ///     <see cref="UseProvider{TProvider}" />.
     /// </summary>
     public Func<IServiceProvider, ICacheProviderFactory>? ProviderFactory { get; set; }
 
@@ -55,7 +63,7 @@ public sealed class CachedQueriesConfiguration
     }
 
     /// <summary>
-    ///     Sets the cache provider for collections (ToList, ToArray).
+    ///     Sets the cache provider for collections (ToList).
     /// </summary>
     public CachedQueriesConfiguration UseCollectionProvider<TProvider>() where TProvider : class, ICacheProvider
     {
@@ -64,7 +72,7 @@ public sealed class CachedQueriesConfiguration
     }
 
     /// <summary>
-    ///     Sets the cache provider for scalar values (Count, Any, Sum).
+    ///     Sets the cache provider for scalar values (Count, Any).
     /// </summary>
     public CachedQueriesConfiguration UseScalarProvider<TProvider>() where TProvider : class, ICacheProvider
     {
@@ -89,6 +97,7 @@ public sealed class CachedQueriesConfiguration
 
     /// <summary>
     ///     Sets the same provider for all cache targets.
+    ///     The provider type must be registered in DI (e.g. via <c>AddCachedQueries&lt;TProvider&gt;()</c>).
     /// </summary>
     public CachedQueriesConfiguration UseProvider<TProvider>() where TProvider : class, ICacheProvider
     {

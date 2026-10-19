@@ -4,8 +4,11 @@ using CachedQueries.Interceptors;
 using CachedQueries.Providers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+
+#pragma warning disable CS0618 // exercising obsolete members on purpose
 
 namespace CachedQueries.Tests;
 
@@ -239,19 +242,49 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddCacheInvalidation_WhenNoDbContextRegistered_ShouldNotThrow()
+    public void AddCacheInvalidation_WhenNoDbContextRegistered_ShouldThrow()
     {
-        // Arrange
+        // Calling it before AddDbContext used to silently do nothing, leaving auto-invalidation off.
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddCachedQueries();
 
-        // Act - no DbContext<TestDbContext> registered
-        services.AddCacheInvalidation<TestDbContext>();
-        var provider = services.BuildServiceProvider();
+        var act = () => services.AddCacheInvalidation<TestDbContext>();
 
-        // Assert - should not throw during registration
-        provider.Should().NotBeNull();
+        act.Should().Throw<InvalidOperationException>().WithMessage("*AddDbContext<TestDbContext>*");
+    }
+
+    [Fact]
+    public void AddCacheInvalidation_WithImplementationType_ShouldDecorateDbContextOptions()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddCachedQueries();
+        services.AddSingleton<DbContextOptions<TestDbContext>, DbContextOptions<TestDbContext>>();
+
+        services.AddCacheInvalidation<TestDbContext>();
+        using var provider = services.BuildServiceProvider();
+
+        var options = provider.GetRequiredService<DbContextOptions<TestDbContext>>();
+        options.FindExtension<CoreOptionsExtension>()!.Interceptors
+            .Should().Contain(i => i is CacheInvalidationInterceptor)
+            .And.Contain(i => i is TransactionCacheInvalidationInterceptor);
+    }
+
+    [Fact]
+    public void AddCacheInvalidation_WhenAutoInvalidationDisabled_ShouldNotAddInterceptors()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddCachedQueries(config => config.AutoInvalidation = false);
+        services.AddDbContext<TestDbContext>(o => o.UseInMemoryDatabase("AutoInvalidationDisabled"));
+
+        services.AddCacheInvalidation<TestDbContext>();
+        using var provider = services.BuildServiceProvider();
+
+        var options = provider.GetRequiredService<DbContextOptions<TestDbContext>>();
+        (options.FindExtension<CoreOptionsExtension>()?.Interceptors ?? [])
+            .Should().NotContain(i => i is CacheInvalidationInterceptor);
     }
 
     [Fact]

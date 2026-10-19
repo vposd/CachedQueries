@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CachedQueries\CachedQueries.csproj" />
+    <ProjectReference Include="..\..\src\CachedQueries.Redis\CachedQueries.Redis.csproj" />
   </ItemGroup>
 
   <ItemGroup>

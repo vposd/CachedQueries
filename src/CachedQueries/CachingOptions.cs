@@ -55,11 +55,16 @@ public sealed class CachingOptions
 
     /// <summary>
     ///     Custom cache key. If null, key is generated from query expression.
+    ///     Entries with a custom key are not invalidated automatically by <c>SaveChanges</c>.
     /// </summary>
     public string? CacheKey { get; init; }
 
     /// <summary>
-    ///     Tags for cache invalidation. When any entity with these tags changes, cache is invalidated.
+    ///     Tags for grouped manual invalidation (<c>Cache.InvalidateByTagAsync</c>).
+    ///     When tags are set, automatic entity-type invalidation is not applied to the entry unless the
+    ///     entity tag is included explicitly — see <see cref="CacheTags.ForEntity{TEntity}" />.
+    ///     Inside <see cref="Abstractions.ICacheProvider.SetAsync{T}" /> this collection holds the fully qualified
+    ///     provider-level tracking tags instead.
     /// </summary>
     public IReadOnlyCollection<string> Tags { get; init; } = [];
 

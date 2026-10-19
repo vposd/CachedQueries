@@ -19,7 +19,7 @@ public static class CacheExtensions
             throw new InvalidOperationException("CachedQueries is not configured. Call UseCachedQueries() first.");
         }
 
-        await CacheServiceAccessor.Invalidator!.ClearAllAsync(cancellationToken);
+        await CacheServiceAccessor.Invalidator!.ClearAllAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -33,7 +33,7 @@ public static class CacheExtensions
             throw new InvalidOperationException("CachedQueries is not configured. Call UseCachedQueries() first.");
         }
 
-        await CacheServiceAccessor.Invalidator!.InvalidateAsync(entityTypes, cancellationToken);
+        await CacheServiceAccessor.Invalidator!.InvalidateAsync(entityTypes, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -56,7 +56,7 @@ public static class CacheExtensions
             throw new InvalidOperationException("CachedQueries is not configured. Call UseCachedQueries() first.");
         }
 
-        await CacheServiceAccessor.Invalidator!.InvalidateByKeysAsync(keys, cancellationToken);
+        await CacheServiceAccessor.Invalidator!.InvalidateByKeysAsync(keys, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -79,7 +79,7 @@ public static class CacheExtensions
             throw new InvalidOperationException("CachedQueries is not configured. Call UseCachedQueries() first.");
         }
 
-        await CacheServiceAccessor.Invalidator!.InvalidateByTagsAsync(tags, cancellationToken);
+        await CacheServiceAccessor.Invalidator!.InvalidateByTagsAsync(tags, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

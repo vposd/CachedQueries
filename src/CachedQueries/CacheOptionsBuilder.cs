@@ -2,6 +2,8 @@ namespace CachedQueries;
 
 /// <summary>
 ///     Fluent builder for configuring cache options.
+///     Expiration defaults come from <see cref="CachedQueriesConfiguration.DefaultOptions" />
+///     (30 minutes absolute when not configured).
 ///     Used with the
 ///     <see cref="Extensions.CacheableExtensions.Cacheable{T}(IQueryable{T}, Action{CacheOptionsBuilder})" /> method.
 /// </summary>
@@ -15,10 +17,10 @@ public sealed class CacheOptionsBuilder
 {
     private readonly List<string> _tags = [];
     private string? _cacheKey;
-    private TimeSpan _expiration = TimeSpan.FromMinutes(30);
+    private TimeSpan _expiration = CacheServiceAccessor.DefaultOptions.Expiration;
     private bool _ignoreContext;
     private bool _skipCache;
-    private bool _slidingExpiration;
+    private bool _slidingExpiration = CacheServiceAccessor.DefaultOptions.UseSlidingExpiration;
     private CacheTarget _target = CacheTarget.Auto;
 
     /// <summary>
@@ -47,6 +49,11 @@ public sealed class CacheOptionsBuilder
     /// <summary>
     ///     Sets a custom cache key. If not set, the key is generated from the query expression.
     /// </summary>
+    /// <remarks>
+    ///     Entries with a custom key are <b>not</b> invalidated automatically by <c>SaveChanges</c>; invalidate them
+    ///     with <c>Cache.InvalidateByKeyAsync(key)</c> or tags. The key is still prefixed with the cache prefix and,
+    ///     unless <see cref="IgnoreContext" /> is used, the current context key.
+    /// </remarks>
     public CacheOptionsBuilder WithKey(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
@@ -57,6 +64,12 @@ public sealed class CacheOptionsBuilder
     /// <summary>
     ///     Adds tags for grouped cache invalidation.
     /// </summary>
+    /// <remarks>
+    ///     Tags <b>replace</b> automatic entity-type tracking: an entry cached with tags is invalidated through
+    ///     <c>Cache.InvalidateByTagAsync</c>/<c>InvalidateByTagsAsync</c> (or by key / clear), not by <c>SaveChanges</c>.
+    ///     To keep automatic invalidation for an entity type, add its tag explicitly:
+    ///     <code>.WithTags("reports", CacheTags.ForEntity&lt;Order&gt;())</code>
+    /// </remarks>
     public CacheOptionsBuilder WithTags(params string[] tags)
     {
         _tags.AddRange(tags);

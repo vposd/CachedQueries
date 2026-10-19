@@ -2,20 +2,37 @@ using System.Collections.Concurrent;
 using CachedQueries.Abstractions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 
 namespace CachedQueries.Providers;
 
 /// <summary>
-///     In-memory cache provider using IMemoryCache.
+///     In-process cache provider backed by <see cref="IMemoryCache" />.
 /// </summary>
+/// <remarks>
+///     <para>
+///         Tag invalidation uses one <see cref="CancellationTokenSource" /> per tag, attached to every entry carrying
+///         that tag as an expiration token. Invalidating a tag cancels its token, which expires all of its entries
+///         atomically. An entry stored with an already-cancelled token is never added, so a write racing with an
+///         invalidation of one of its tags cannot leave an untracked entry behind.
+///     </para>
+///     <para>
+///         Cached values are returned by reference: every caller receives the same instance. Treat results
+///         obtained through the cache as read-only.
+///     </para>
+///     <para>
+///         The provider is only suitable for a single application instance. Use a distributed provider
+///         (e.g. <c>CachedQueries.Redis</c>) when several instances must observe the same invalidations.
+///     </para>
+/// </remarks>
 public sealed class MemoryCacheProvider(IMemoryCache cache, ILogger<MemoryCacheProvider> logger) : ICacheProvider
 {
-    // Track all keys for clear operation (ConcurrentDictionary for thread-safe removal)
-    private readonly ConcurrentDictionary<string, byte> _allKeys = new();
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _tagTokens = new();
 
-    // Track keys by tag for invalidation (ConcurrentDictionary for thread-safe removal)
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _tagToKeys = new();
+    // Attached to every entry so ClearAsync can expire all entries written by this provider.
+    private CancellationTokenSource _clearToken = new();
 
+    /// <inheritdoc />
     public Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -34,6 +51,7 @@ public sealed class MemoryCacheProvider(IMemoryCache cache, ILogger<MemoryCacheP
         return Task.FromResult(result);
     }
 
+    /// <inheritdoc />
     public Task SetAsync<T>(string key, T value, CachingOptions options, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -49,19 +67,11 @@ public sealed class MemoryCacheProvider(IMemoryCache cache, ILogger<MemoryCacheP
             entryOptions.AbsoluteExpirationRelativeToNow = options.Expiration;
         }
 
-        // Register callback to clean up tracking when entry is evicted
-        entryOptions.RegisterPostEvictionCallback((evictedKey, _, _, _) =>
-        {
-            RemoveKeyFromTracking(evictedKey.ToString()!);
-        });
-
-        // Track key and tags BEFORE cache.Set so that if eviction fires immediately
-        // (e.g., memory pressure), the eviction callback can properly clean up tracking.
-        _allKeys[key] = 0;
+        entryOptions.AddExpirationToken(new CancellationChangeToken(Volatile.Read(ref _clearToken).Token));
         foreach (var tag in options.Tags)
         {
-            var keys = _tagToKeys.GetOrAdd(tag, _ => new ConcurrentDictionary<string, byte>());
-            keys[key] = 0;
+            var tagToken = _tagTokens.GetOrAdd(tag, _ => new CancellationTokenSource());
+            entryOptions.AddExpirationToken(new CancellationChangeToken(tagToken.Token));
         }
 
         cache.Set(key, value, entryOptions);
@@ -71,18 +81,19 @@ public sealed class MemoryCacheProvider(IMemoryCache cache, ILogger<MemoryCacheP
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc />
     public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         cache.Remove(key);
-        RemoveKeyFromTracking(key);
 
         logger.LogDebug("Removed cache key: {CacheKey}", key);
 
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc />
     public Task InvalidateByTagsAsync(IEnumerable<string> tags, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -91,49 +102,39 @@ public sealed class MemoryCacheProvider(IMemoryCache cache, ILogger<MemoryCacheP
 
         foreach (var tag in tags)
         {
-            if (_tagToKeys.TryRemove(tag, out var keys))
+            if (_tagTokens.TryRemove(tag, out var tagToken))
             {
-                foreach (var key in keys.Keys)
-                {
-                    cache.Remove(key);
-                    RemoveKeyFromTracking(key);
-                    invalidatedCount++;
-                }
+                // Not disposed on purpose: a concurrent SetAsync may still read its Token.
+                tagToken.Cancel();
+                invalidatedCount++;
             }
         }
 
         if (invalidatedCount > 0)
         {
-            logger.LogInformation("Invalidated {Count} cache entries by tags", invalidatedCount);
+            logger.LogInformation("Invalidated cache entries for {Count} tags", invalidatedCount);
         }
 
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc />
     public Task ClearAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        foreach (var key in _allKeys.Keys)
-        {
-            cache.Remove(key);
-        }
+        Interlocked.Exchange(ref _clearToken, new CancellationTokenSource()).Cancel();
 
-        _allKeys.Clear();
-        _tagToKeys.Clear();
+        foreach (var tag in _tagTokens.Keys)
+        {
+            if (_tagTokens.TryRemove(tag, out var tagToken))
+            {
+                tagToken.Cancel();
+            }
+        }
 
         logger.LogInformation("Cleared all cache entries");
 
         return Task.CompletedTask;
-    }
-
-    private void RemoveKeyFromTracking(string key)
-    {
-        _allKeys.TryRemove(key, out _);
-
-        foreach (var tagEntry in _tagToKeys.ToArray())
-        {
-            tagEntry.Value.TryRemove(key, out _);
-        }
     }
 }

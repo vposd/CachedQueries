@@ -4,12 +4,15 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CachedQueries;
 
 /// <summary>
-///     Static accessor for cache services.
-///     Configured during DI setup.
+///     Static accessor for cache services, used by <see cref="CacheableQuery{T}" /> and <c>Cache</c>.
+///     Populated by <c>app.Services.UseCachedQueries()</c>.
 /// </summary>
+/// <remarks>
+///     The accessor is process-wide: one configuration per process. Until it is configured,
+///     <c>.Cacheable()</c> queries execute without caching and the <c>Cache</c> helpers throw.
+/// </remarks>
 public static class CacheServiceAccessor
 {
-    private static IServiceProvider? _serviceProvider;
     private static IServiceScopeFactory? _scopeFactory;
 
     internal static ICacheProvider? CacheProvider { get; private set; }
@@ -17,6 +20,7 @@ public static class CacheServiceAccessor
     internal static ICacheInvalidator? Invalidator { get; private set; }
     internal static ICacheProviderFactory? ProviderFactory { get; private set; }
     internal static string CachePrefix { get; private set; } = "cq";
+    internal static CachingOptions DefaultOptions { get; private set; } = CachingOptions.Default;
 
     /// <summary>
     ///     Gets whether the cache services are configured.
@@ -43,7 +47,6 @@ public static class CacheServiceAccessor
     /// </summary>
     public static void Configure(IServiceProvider serviceProvider)
     {
-        _serviceProvider = serviceProvider;
         _scopeFactory = serviceProvider.GetService<IServiceScopeFactory>();
 
         CacheProvider = serviceProvider.GetService<ICacheProvider>();
@@ -55,13 +58,18 @@ public static class CacheServiceAccessor
         if (config is not null)
         {
             CachePrefix = config.CachePrefix;
+            DefaultOptions = config.DefaultOptions;
         }
     }
 
     /// <summary>
     ///     Gets the current cache context key (e.g., tenant ID).
-    ///     Creates a scope to properly resolve scoped ICacheContextProvider.
     /// </summary>
+    /// <remarks>
+    ///     The <see cref="ICacheContextProvider" /> is resolved from a <b>new</b> DI scope, not from the current
+    ///     request scope. It must therefore read ambient state (e.g. <c>IHttpContextAccessor</c>, an
+    ///     <c>AsyncLocal</c>) rather than state stored in other scoped services by middleware.
+    /// </remarks>
     public static string? GetContextKey()
     {
         if (_scopeFactory is null)
@@ -79,12 +87,12 @@ public static class CacheServiceAccessor
     /// </summary>
     public static void Reset()
     {
-        _serviceProvider = null;
         _scopeFactory = null;
         CacheProvider = null;
         KeyGenerator = null;
         Invalidator = null;
         ProviderFactory = null;
         CachePrefix = "cq";
+        DefaultOptions = CachingOptions.Default;
     }
 }

@@ -17,6 +17,8 @@ public static class ServiceCollectionExtensions
     /// <summary>
     ///     Adds CachedQueries services with Redis distributed cache.
     ///     Requires AddStackExchangeRedisCache to be configured first.
+    ///     Register an <see cref="IConnectionMultiplexer" /> as well to get atomic tag operations; without it the
+    ///     provider runs in a non-atomic fallback mode intended for development.
     /// </summary>
     /// <example>
     ///     services.AddStackExchangeRedisCache(options => options.Configuration = "localhost:6379");
@@ -69,7 +71,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IConnectionMultiplexer>(_ =>
             ConnectionMultiplexer.Connect(connectionString));
 
+        // Share the same connection with IDistributedCache instead of opening a second one
         services.AddStackExchangeRedisCache(options => { options.Configuration = connectionString; });
+        services.AddOptions<RedisCacheOptions>()
+            .Configure<IServiceProvider>((options, sp) => options.ConnectionMultiplexerFactory =
+                () => Task.FromResult(sp.GetRequiredService<IConnectionMultiplexer>()));
 
         return services.AddCachedQueriesWithRedis(configure);
     }

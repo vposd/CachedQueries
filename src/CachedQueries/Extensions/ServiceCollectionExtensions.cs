@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using CachedQueries.Abstractions;
 using CachedQueries.Interceptors;
 using CachedQueries.Internal;
@@ -167,37 +166,32 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    ///     Adds cache invalidation interceptors to DbContext options.
-    ///     Use this when you don't have direct access to DbContextOptionsBuilder.
+    ///     Adds cache invalidation interceptors to the options of an already registered DbContext.
+    ///     Must be called <b>after</b> <c>AddDbContext</c> / <c>AddDbContextPool</c> / <c>AddDbContextFactory</c>.
     /// </summary>
+    /// <remarks>
+    ///     When <see cref="CachedQueriesConfiguration.AutoInvalidation" /> is false, the options are left unchanged
+    ///     and cache entries are only invalidated manually (via <c>Cache</c>) or by expiration.
+    /// </remarks>
     /// <typeparam name="TContext">The DbContext type to configure.</typeparam>
+    /// <exception cref="InvalidOperationException">No <c>DbContextOptions&lt;TContext&gt;</c> is registered yet.</exception>
     /// <example>
-    ///     // After registering your DbContext
     ///     services.AddDbContext&lt;MyDbContext&gt;(options => options.UseSqlServer(connectionString));
-    ///     // Add cache invalidation interceptors
     ///     services.AddCacheInvalidation&lt;MyDbContext&gt;();
     /// </example>
     public static IServiceCollection AddCacheInvalidation<TContext>(this IServiceCollection services)
         where TContext : DbContext
     {
-        // Find and remove existing DbContextOptions<TContext> registration
-        var existingDescriptor = services.FirstOrDefault(d =>
-            d.ServiceType == typeof(DbContextOptions<TContext>));
+        var existingDescriptor = services.LastOrDefault(d => d.ServiceType == typeof(DbContextOptions<TContext>))
+                                 ?? throw new InvalidOperationException(
+                                     $"No DbContextOptions<{typeof(TContext).Name}> registration found. " +
+                                     $"Call AddDbContext<{typeof(TContext).Name}>() before AddCacheInvalidation<{typeof(TContext).Name}>().");
 
-        if (existingDescriptor is not null)
-        {
-            services.Remove(existingDescriptor);
-
-            // Re-register with interceptors
-            services.Add(ServiceDescriptor.Describe(
-                typeof(DbContextOptions<TContext>),
-                sp =>
-                {
-                    var options = CreateDecoratedOptions<TContext>(existingDescriptor, sp);
-                    return options;
-                },
-                existingDescriptor.Lifetime));
-        }
+        services.Remove(existingDescriptor);
+        services.Add(ServiceDescriptor.Describe(
+            typeof(DbContextOptions<TContext>),
+            sp => CreateDecoratedOptions<TContext>(existingDescriptor, sp),
+            existingDescriptor.Lifetime));
 
         return services;
     }
@@ -207,46 +201,13 @@ public static class ServiceCollectionExtensions
         IServiceProvider serviceProvider)
         where TContext : DbContext
     {
-        // Get original options
-        DbContextOptions<TContext> originalOptions;
+        var originalOptions = (DbContextOptions<TContext>)(
+            originalDescriptor.ImplementationInstance
+            ?? originalDescriptor.ImplementationFactory?.Invoke(serviceProvider)
+            ?? ActivatorUtilities.CreateInstance(serviceProvider, originalDescriptor.ImplementationType!));
 
-        if (originalDescriptor.ImplementationInstance is not null)
-        {
-            originalOptions = (DbContextOptions<TContext>)originalDescriptor.ImplementationInstance;
-        }
-        else if (originalDescriptor.ImplementationFactory is not null)
-        {
-            originalOptions = (DbContextOptions<TContext>)originalDescriptor.ImplementationFactory(serviceProvider);
-        }
-        else
-        {
-            // This branch is only hit when DbContextOptions is registered via ImplementationType,
-            // which doesn't happen with standard AddDbContext registration patterns.
-            [ExcludeFromCodeCoverage]
-            static DbContextOptions<TContext> CreateFromType(ServiceDescriptor desc, IServiceProvider sp)
-            {
-                return (DbContextOptions<TContext>)ActivatorUtilities.CreateInstance(sp, desc.ImplementationType!);
-            }
-
-            originalOptions = CreateFromType(originalDescriptor, serviceProvider);
-        }
-
-        // Create new options with interceptors
         var builder = new DbContextOptionsBuilder<TContext>(originalOptions);
-
-        var saveChangesInterceptor = serviceProvider.GetService<CacheInvalidationInterceptor>();
-        var transactionInterceptor = serviceProvider.GetService<TransactionCacheInvalidationInterceptor>();
-
-        if (saveChangesInterceptor is not null)
-        {
-            builder.AddInterceptors(saveChangesInterceptor);
-        }
-
-        if (transactionInterceptor is not null)
-        {
-            builder.AddInterceptors(transactionInterceptor);
-        }
-
+        builder.AddCacheInvalidation(serviceProvider);
         return builder.Options;
     }
 }

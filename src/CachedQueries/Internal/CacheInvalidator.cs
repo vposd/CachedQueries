@@ -77,6 +77,7 @@ internal sealed class CacheInvalidator : ICacheInvalidator
     ///     No-op. Tracking is now handled by the cache provider through enriched tags in SetAsync.
     ///     Kept for backward compatibility.
     /// </summary>
+    [Obsolete("No longer used.")]
     public void RegisterCacheEntry(string cacheKey, IEnumerable<Type> entityTypes, string? contextKey = null)
     {
         // Tracking is now handled by the cache provider through enriched tags passed to SetAsync.
@@ -89,6 +90,7 @@ internal sealed class CacheInvalidator : ICacheInvalidator
     ///     No-op. Tracking is now handled by the cache provider through enriched tags in SetAsync.
     ///     Kept for backward compatibility.
     /// </summary>
+    [Obsolete("No longer used.")]
     public void RegisterCacheEntry(string cacheKey, IEnumerable<string> tags, string? contextKey = null)
     {
         // See comment in the entity types overload above.
@@ -117,7 +119,7 @@ internal sealed class CacheInvalidator : ICacheInvalidator
         {
             try
             {
-                await provider.ClearAsync(cancellationToken);
+                await provider.ClearAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -138,7 +140,7 @@ internal sealed class CacheInvalidator : ICacheInvalidator
             return;
         }
 
-        await InvalidateByProviderTagsAsync(tags, cancellationToken);
+        await InvalidateByProviderTagsAsync(tags, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Invalidated cache for entity types via {TagCount} tags", tags.Count);
     }
@@ -153,7 +155,7 @@ internal sealed class CacheInvalidator : ICacheInvalidator
             return;
         }
 
-        await InvalidateByProviderTagsAsync(qualifiedTags, cancellationToken);
+        await InvalidateByProviderTagsAsync(qualifiedTags, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Invalidated cache for {TagCount} tags", qualifiedTags.Count);
     }
@@ -184,7 +186,7 @@ internal sealed class CacheInvalidator : ICacheInvalidator
             }
         }
 
-        await InvalidateKeysAsync(keySet, cancellationToken);
+        await InvalidateKeysAsync(keySet, cancellationToken).ConfigureAwait(false);
     }
 
     internal string? GetCurrentContextKey()
@@ -206,7 +208,7 @@ internal sealed class CacheInvalidator : ICacheInvalidator
         {
             try
             {
-                await provider.InvalidateByTagsAsync(tags, cancellationToken);
+                await provider.InvalidateByTagsAsync(tags, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -226,7 +228,7 @@ internal sealed class CacheInvalidator : ICacheInvalidator
             {
                 try
                 {
-                    await provider.RemoveAsync(key, cancellationToken);
+                    await provider.RemoveAsync(key, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {

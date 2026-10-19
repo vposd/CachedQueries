@@ -250,6 +250,68 @@ public class MemoryCacheProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task SetAsync_OverwritingSameKey_ShouldKeepTagTracking()
+    {
+        // Regression: the replaced entry's eviction callback used to wipe tracking of the new entry.
+        var options = new CachingOptions { Tags = ["tag:Order"] };
+        await _provider.SetAsync("k", "v1", options);
+        await _provider.SetAsync("k", "v2", options);
+        await Task.Delay(100); // let any background eviction callbacks run
+
+        await _provider.InvalidateByTagsAsync(["tag:Order"]);
+
+        (await _provider.GetAsync<string>("k")).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SetAsync_AfterClear_ShouldStillBeInvalidatableByTag()
+    {
+        await _provider.SetAsync("before", "v", new CachingOptions { Tags = ["t"] });
+        await _provider.ClearAsync();
+        await _provider.SetAsync("after", "v", new CachingOptions { Tags = ["t"] });
+
+        (await _provider.GetAsync<string>("before")).Should().BeNull();
+        (await _provider.GetAsync<string>("after")).Should().Be("v");
+
+        await _provider.InvalidateByTagsAsync(["t"]);
+        (await _provider.GetAsync<string>("after")).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task InvalidateByTagsAsync_ShouldNotAffectEntriesWithOtherTags()
+    {
+        await _provider.SetAsync("a", "v", new CachingOptions { Tags = ["t1"] });
+        await _provider.SetAsync("b", "v", new CachingOptions { Tags = ["t2"] });
+
+        await _provider.InvalidateByTagsAsync(["t1", "unknown"]);
+
+        (await _provider.GetAsync<string>("a")).Should().BeNull();
+        (await _provider.GetAsync<string>("b")).Should().Be("v");
+    }
+
+    [Fact]
+    public async Task ConcurrentOverwriteAndInvalidate_ShouldNeverLeaveSurvivingEntries()
+    {
+        var options = new CachingOptions { Tags = ["hot"] };
+
+        var writers = Enumerable.Range(0, 8).Select(i => Task.Run(async () =>
+        {
+            for (var j = 0; j < 200; j++)
+            {
+                await _provider.SetAsync($"k{j % 5}", $"v{i}-{j}", options);
+            }
+        }));
+        await Task.WhenAll(writers);
+
+        await _provider.InvalidateByTagsAsync(["hot"]);
+
+        for (var j = 0; j < 5; j++)
+        {
+            (await _provider.GetAsync<string>($"k{j}")).Should().BeNull();
+        }
+    }
+
+    [Fact]
     public async Task ConcurrentSetRemoveAndClear_ShouldNotThrow()
     {
         var options = new CachingOptions

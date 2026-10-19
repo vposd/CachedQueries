@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using CachedQueries.Abstractions;
 using CachedQueries.Interceptors;
 using FluentAssertions;
@@ -32,8 +31,6 @@ public class CacheInvalidationInterceptorTests : IDisposable
 
         _context = new TestDbContext(options);
 
-        // Clear any pending invalidations from previous tests
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.Clear();
     }
 
     public void Dispose()
@@ -261,7 +258,6 @@ public class CacheInvalidationInterceptorFailureTests : IDisposable
         _context.Database.OpenConnection();
         _context.Database.EnsureCreated();
 
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.Clear();
     }
 
     public void Dispose()
@@ -271,19 +267,15 @@ public class CacheInvalidationInterceptorFailureTests : IDisposable
     }
 
     [Fact]
-    public void PendingInvalidations_WhenCleared_ShouldBeEmpty()
+    public void PendingInvalidations_Discard_ShouldRemovePendingTypes()
     {
-        // Arrange
-        var contextId = TransactionCacheInvalidationInterceptor.GetContextIdentifier(_context);
-        var types = new ConcurrentDictionary<Type, byte>();
-        types[typeof(Order)] = 0;
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.TryAdd(contextId, types);
+        PendingInvalidations.Add(_context, [typeof(Order)]);
+        PendingInvalidations.HasPending(_context).Should().BeTrue();
 
-        // Act
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.TryRemove(contextId, out _);
+        PendingInvalidations.Discard(_context);
 
-        // Assert
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.Should().NotContainKey(contextId);
+        PendingInvalidations.HasPending(_context).Should().BeFalse();
+        PendingInvalidations.Take(_context).Should().BeNull();
     }
 
     [Fact]
@@ -346,9 +338,8 @@ public class CacheInvalidationInterceptorFailureTests : IDisposable
         var act = () => _context.SaveChangesAsync();
         await act.Should().ThrowAsync<Exception>();
 
-        // Pending invalidations should have been cleared
-        var contextId = TransactionCacheInvalidationInterceptor.GetContextIdentifier(_context);
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.ContainsKey(contextId).Should().BeFalse();
+        // Pending invalidations should have been cleared (nothing was written outside a transaction)
+        PendingInvalidations.HasPending(_context).Should().BeFalse();
     }
 
     [Fact]
@@ -364,9 +355,8 @@ public class CacheInvalidationInterceptorFailureTests : IDisposable
         var act = () => _context.SaveChanges();
         act.Should().Throw<Exception>();
 
-        // Assert - pending invalidations should have been cleared
-        var contextId = TransactionCacheInvalidationInterceptor.GetContextIdentifier(_context);
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.ContainsKey(contextId).Should().BeFalse();
+        // Assert - pending invalidations should have been cleared (nothing was written outside a transaction)
+        PendingInvalidations.HasPending(_context).Should().BeFalse();
     }
 
     [Fact]

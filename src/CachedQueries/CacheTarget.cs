@@ -11,17 +11,17 @@ public enum CacheTarget
     Auto,
 
     /// <summary>
-    ///     Single item (FirstOrDefault, SingleOrDefault, Find).
+    ///     Single item (FirstOrDefault, SingleOrDefault).
     /// </summary>
     Single,
 
     /// <summary>
-    ///     Collection of items (ToList, ToArray).
+    ///     Collection of items (ToList).
     /// </summary>
     Collection,
 
     /// <summary>
-    ///     Scalar value (Count, Any, Sum, etc.).
+    ///     Scalar value (Count, Any).
     /// </summary>
     Scalar
 }

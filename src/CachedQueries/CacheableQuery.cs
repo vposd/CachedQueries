@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using CachedQueries.Abstractions;
 using CachedQueries.Internal;
@@ -12,6 +11,22 @@ namespace CachedQueries;
 ///     Call terminal methods like <see cref="ToListAsync" />, <see cref="FirstOrDefaultAsync(CancellationToken)" />,
 ///     <see cref="CountAsync" />, or <see cref="AnyAsync(CancellationToken)" /> to execute with caching.
 /// </summary>
+/// <remarks>
+///     <para>
+///         Results served through the cache are loaded with <c>AsNoTracking()</c> (unless the query already uses
+///         <c>AsNoTrackingWithIdentityResolution()</c>) because the same instances may be handed to many callers.
+///         Treat them as read-only; to modify an entity, load it without <c>.Cacheable()</c>.
+///     </para>
+///     <para>
+///         Concurrent cache misses for the same key are coalesced: only one caller per key queries the
+///         database, the others wait for and reuse its result. <c>null</c> results of
+///         <c>FirstOrDefaultAsync</c>/<c>SingleOrDefaultAsync</c> are not cached.
+///     </para>
+///     <para>
+///         When CachedQueries is not configured (<c>UseCachedQueries()</c> was not called) or
+///         <see cref="CacheOptionsBuilder.SkipIf" /> is true, the query executes normally, with tracking.
+///     </para>
+/// </remarks>
 /// <example>
 ///     var orders = await _context.Orders
 ///     .Where(o => o.IsActive)
@@ -20,8 +35,6 @@ namespace CachedQueries;
 /// </example>
 public sealed class CacheableQuery<T> where T : class
 {
-    private static readonly ConcurrentDictionary<string, SemaphoreSlim> KeyLocks = new();
-
     private readonly CachingOptions _options;
 
     internal CacheableQuery(IQueryable<T> source, CachingOptions options)
@@ -35,26 +48,30 @@ public sealed class CacheableQuery<T> where T : class
     /// </summary>
     public IQueryable<T> Query { get; }
 
+    private bool BypassCache => _options.SkipCache || !CacheServiceAccessor.IsConfigured;
+
+    /// <summary>
+    ///     The query actually executed on a cache miss: cached instances are shared between callers,
+    ///     so change tracking is disabled unless the caller chose identity resolution explicitly.
+    /// </summary>
+    private IQueryable<T> CachedExecutionQuery =>
+        UsesIdentityResolution(Query.Expression) ? Query : Query.AsNoTracking();
+
     /// <summary>
     ///     Executes the query and caches the result as a list.
     /// </summary>
     public async Task<List<T>> ToListAsync(CancellationToken cancellationToken = default)
     {
-        if (_options.SkipCache || !CacheServiceAccessor.IsConfigured)
+        if (BypassCache)
         {
-            return await Query.ToListAsync(cancellationToken);
+            return await Query.ToListAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        var (cacheProvider, keyGenerator, contextKey) = ResolveServices();
-        var provider = GetProvider(ResolveTarget(CacheTarget.Collection), cacheProvider);
-        var cacheKey = BuildCacheKey(keyGenerator, contextKey);
+        var call = Prepare(CacheTarget.Collection, generator => generator.GenerateKey(Query));
+        var query = CachedExecutionQuery;
 
-        return await GetOrLoadAsync(
-            cacheKey,
-            provider,
-            () => Query.ToListAsync(cancellationToken),
-            BuildOptionsWithTracking(contextKey),
-            cancellationToken);
+        return (await GetOrLoadAsync(call, async () => await query.ToListAsync(cancellationToken).ConfigureAwait(false),
+            cancellationToken).ConfigureAwait(false))!;
     }
 
     /// <summary>
@@ -67,41 +84,22 @@ public sealed class CacheableQuery<T> where T : class
 
     /// <summary>
     ///     Executes the query with predicate and caches the first result or default.
+    ///     A <c>null</c> result is not cached.
     /// </summary>
     public async Task<T?> FirstOrDefaultAsync(
         Expression<Func<T, bool>>? predicate,
         CancellationToken cancellationToken = default)
     {
-        if (_options.SkipCache || !CacheServiceAccessor.IsConfigured)
+        if (BypassCache)
         {
-            return predicate is null
-                ? await Query.FirstOrDefaultAsync(cancellationToken)
-                : await Query.FirstOrDefaultAsync(predicate, cancellationToken);
+            return await FirstOrDefault(Query, predicate, cancellationToken).ConfigureAwait(false);
         }
 
-        var (cacheProvider, keyGenerator, contextKey) = ResolveServices();
-        var provider = GetProvider(ResolveTarget(CacheTarget.Single), cacheProvider);
+        var call = Prepare(CacheTarget.Single, generator => generator.GenerateKey(Query, predicate));
+        var query = CachedExecutionQuery;
 
-        var baseCacheKey = _options.CacheKey ?? keyGenerator.GenerateKey(Query, predicate);
-        var cacheKey = ComposeKey(baseCacheKey, contextKey);
-        var cached = await provider.GetAsync<T>(cacheKey, cancellationToken);
-        if (cached is not null)
-        {
-            return cached;
-        }
-
-        var result = predicate is null
-            ? await Query.FirstOrDefaultAsync(cancellationToken)
-            : await Query.FirstOrDefaultAsync(predicate, cancellationToken);
-
-        if (result is null)
-        {
-            return result;
-        }
-
-        await provider.SetAsync(cacheKey, result, BuildOptionsWithTracking(contextKey), cancellationToken);
-
-        return result;
+        return await GetOrLoadAsync(call, () => FirstOrDefault(query, predicate, cancellationToken),
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -114,39 +112,22 @@ public sealed class CacheableQuery<T> where T : class
 
     /// <summary>
     ///     Executes the query with predicate and caches the single result or default.
+    ///     A <c>null</c> result is not cached.
     /// </summary>
     public async Task<T?> SingleOrDefaultAsync(
         Expression<Func<T, bool>>? predicate,
         CancellationToken cancellationToken = default)
     {
-        if (_options.SkipCache || !CacheServiceAccessor.IsConfigured)
+        if (BypassCache)
         {
-            return predicate is null
-                ? await Query.SingleOrDefaultAsync(cancellationToken)
-                : await Query.SingleOrDefaultAsync(predicate, cancellationToken);
+            return await SingleOrDefault(Query, predicate, cancellationToken).ConfigureAwait(false);
         }
 
-        var (cacheProvider, keyGenerator, contextKey) = ResolveServices();
-        var provider = GetProvider(ResolveTarget(CacheTarget.Single), cacheProvider);
+        var call = Prepare(CacheTarget.Single, generator => generator.GenerateKey(Query, predicate));
+        var query = CachedExecutionQuery;
 
-        var baseCacheKey = _options.CacheKey ?? keyGenerator.GenerateKey(Query, predicate);
-        var cacheKey = ComposeKey(baseCacheKey, contextKey);
-        var cached = await provider.GetAsync<T>(cacheKey, cancellationToken);
-        if (cached is not null)
-        {
-            return cached;
-        }
-
-        var result = predicate is null
-            ? await Query.SingleOrDefaultAsync(cancellationToken)
-            : await Query.SingleOrDefaultAsync(predicate, cancellationToken);
-
-        if (result is not null)
-        {
-            await provider.SetAsync(cacheKey, result, BuildOptionsWithTracking(contextKey), cancellationToken);
-        }
-
-        return result;
+        return await GetOrLoadAsync(call, () => SingleOrDefault(query, predicate, cancellationToken),
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -154,23 +135,15 @@ public sealed class CacheableQuery<T> where T : class
     /// </summary>
     public async Task<int> CountAsync(CancellationToken cancellationToken = default)
     {
-        if (_options.SkipCache || !CacheServiceAccessor.IsConfigured)
+        if (BypassCache)
         {
-            return await Query.CountAsync(cancellationToken);
+            return await Query.CountAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        var (cacheProvider, keyGenerator, contextKey) = ResolveServices();
-        var provider = GetProvider(ResolveTarget(CacheTarget.Scalar), cacheProvider);
+        var call = Prepare(CacheTarget.Scalar, generator => generator.GenerateKey(Query), CacheKeySuffixes.Count);
 
-        var baseCacheKey = (_options.CacheKey ?? keyGenerator.GenerateKey(Query)) + CacheKeySuffixes.Count;
-        var cacheKey = ComposeKey(baseCacheKey, contextKey);
-
-        return await GetOrLoadScalarAsync(
-            cacheKey,
-            provider,
-            () => Query.CountAsync(cancellationToken),
-            BuildOptionsWithTracking(contextKey),
-            cancellationToken);
+        return await GetOrLoadScalarAsync(call, () => Query.CountAsync(cancellationToken), cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -188,147 +161,125 @@ public sealed class CacheableQuery<T> where T : class
         Expression<Func<T, bool>>? predicate,
         CancellationToken cancellationToken = default)
     {
-        if (_options.SkipCache || !CacheServiceAccessor.IsConfigured)
+        if (BypassCache)
         {
-            return predicate is null
-                ? await Query.AnyAsync(cancellationToken)
-                : await Query.AnyAsync(predicate, cancellationToken);
+            return await Any(Query, predicate, cancellationToken).ConfigureAwait(false);
         }
 
-        var (cacheProvider, keyGenerator, contextKey) = ResolveServices();
-        var provider = GetProvider(ResolveTarget(CacheTarget.Scalar), cacheProvider);
+        var call = Prepare(CacheTarget.Scalar, generator => generator.GenerateKey(Query, predicate),
+            CacheKeySuffixes.Any);
 
-        var baseCacheKey = (_options.CacheKey ?? keyGenerator.GenerateKey(Query, predicate)) + CacheKeySuffixes.Any;
-        var cacheKey = ComposeKey(baseCacheKey, contextKey);
+        return await GetOrLoadScalarAsync(call, () => Any(Query, predicate, cancellationToken), cancellationToken)
+            .ConfigureAwait(false);
+    }
 
-        return await GetOrLoadScalarAsync(
-            cacheKey,
-            provider,
-            async () => predicate is null
-                ? await Query.AnyAsync(cancellationToken)
-                : await Query.AnyAsync(predicate, cancellationToken),
-            BuildOptionsWithTracking(contextKey),
-            cancellationToken);
+    private static Task<T?> FirstOrDefault(IQueryable<T> query, Expression<Func<T, bool>>? predicate,
+        CancellationToken cancellationToken)
+    {
+        return predicate is null
+            ? query.FirstOrDefaultAsync(cancellationToken)
+            : query.FirstOrDefaultAsync(predicate, cancellationToken);
+    }
+
+    private static Task<T?> SingleOrDefault(IQueryable<T> query, Expression<Func<T, bool>>? predicate,
+        CancellationToken cancellationToken)
+    {
+        return predicate is null
+            ? query.SingleOrDefaultAsync(cancellationToken)
+            : query.SingleOrDefaultAsync(predicate, cancellationToken);
+    }
+
+    private static Task<bool> Any(IQueryable<T> query, Expression<Func<T, bool>>? predicate,
+        CancellationToken cancellationToken)
+    {
+        return predicate is null
+            ? query.AnyAsync(cancellationToken)
+            : query.AnyAsync(predicate, cancellationToken);
     }
 
     /// <summary>
-    ///     Gets a value from cache or loads it from the database with stampede protection.
-    ///     Only one concurrent caller per cache key executes the query; others wait for the result.
+    ///     Gets a value from cache or loads it with stampede protection: only one concurrent caller per
+    ///     cache key executes the query; others wait and then read the freshly cached value.
+    ///     <c>null</c> results are returned but not cached.
     /// </summary>
-    private static async Task<TResult> GetOrLoadAsync<TResult>(
-        string cacheKey,
-        ICacheProvider provider,
-        Func<Task<TResult>> loadFromDb,
-        CachingOptions options,
+    private async Task<TResult?> GetOrLoadAsync<TResult>(
+        CacheCall call,
+        Func<Task<TResult?>> loadFromDb,
         CancellationToken cancellationToken) where TResult : class
     {
         // Fast path: check cache without lock
-        var cached = await provider.GetAsync<TResult>(cacheKey, cancellationToken);
+        var cached = await call.Provider.GetAsync<TResult>(call.Key, cancellationToken).ConfigureAwait(false);
         if (cached is not null)
         {
             return cached;
         }
 
-        // Slow path: acquire per-key semaphore to prevent thundering herd
-        var semaphore = KeyLocks.GetOrAdd(cacheKey, _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync(cancellationToken);
-        try
+        using (await KeyedLock.AcquireAsync(call.Key, cancellationToken).ConfigureAwait(false))
         {
-            // Double-check cache after acquiring lock
-            cached = await provider.GetAsync<TResult>(cacheKey, cancellationToken);
+            // Double-check: another caller may have loaded the value while we were waiting
+            cached = await call.Provider.GetAsync<TResult>(call.Key, cancellationToken).ConfigureAwait(false);
             if (cached is not null)
             {
                 return cached;
             }
 
-            var result = await loadFromDb();
-            await provider.SetAsync(cacheKey, result, options, cancellationToken);
+            var result = await loadFromDb().ConfigureAwait(false);
+            if (result is not null)
+            {
+                await call.Provider.SetAsync(call.Key, result, BuildOptionsWithTracking(call.ContextKey),
+                    cancellationToken).ConfigureAwait(false);
+            }
+
             return result;
-        }
-        finally
-        {
-            semaphore.Release();
-            // Clean up if no other waiters are pending (only removes if same instance)
-            KeyLocks.TryRemove(new KeyValuePair<string, SemaphoreSlim>(cacheKey, semaphore));
         }
     }
 
     /// <summary>
-    ///     Gets a scalar value from cache or loads it with stampede protection.
-    ///     Uses nullable wrapper to distinguish cache miss from cached value.
+    ///     Scalar variant of <see cref="GetOrLoadAsync{TResult}" />. Uses a nullable wrapper to distinguish a
+    ///     cache miss from a cached default value (0 / false).
     /// </summary>
-    private static async Task<TResult> GetOrLoadScalarAsync<TResult>(
-        string cacheKey,
-        ICacheProvider provider,
+    private async Task<TResult> GetOrLoadScalarAsync<TResult>(
+        CacheCall call,
         Func<Task<TResult>> loadFromDb,
-        CachingOptions options,
         CancellationToken cancellationToken) where TResult : struct
     {
-        // Fast path: check cache without lock
-        var cached = await provider.GetAsync<TResult?>(cacheKey, cancellationToken);
+        var cached = await call.Provider.GetAsync<TResult?>(call.Key, cancellationToken).ConfigureAwait(false);
         if (cached.HasValue)
         {
             return cached.Value;
         }
 
-        // Slow path: acquire per-key semaphore to prevent thundering herd
-        var semaphore = KeyLocks.GetOrAdd(cacheKey, _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync(cancellationToken);
-        try
+        using (await KeyedLock.AcquireAsync(call.Key, cancellationToken).ConfigureAwait(false))
         {
-            // Double-check cache after acquiring lock
-            cached = await provider.GetAsync<TResult?>(cacheKey, cancellationToken);
+            cached = await call.Provider.GetAsync<TResult?>(call.Key, cancellationToken).ConfigureAwait(false);
             if (cached.HasValue)
             {
                 return cached.Value;
             }
 
-            var result = await loadFromDb();
-            await provider.SetAsync(cacheKey, result, options, cancellationToken);
+            var result = await loadFromDb().ConfigureAwait(false);
+            await call.Provider.SetAsync(call.Key, result, BuildOptionsWithTracking(call.ContextKey),
+                cancellationToken).ConfigureAwait(false);
             return result;
         }
-        finally
-        {
-            semaphore.Release();
-            KeyLocks.TryRemove(new KeyValuePair<string, SemaphoreSlim>(cacheKey, semaphore));
-        }
-    }
-
-    private string BuildCacheKey(ICacheKeyGenerator keyGenerator, string? contextKey)
-    {
-        var hash = _options.CacheKey ?? keyGenerator.GenerateKey(Query);
-        return ComposeKey(hash, contextKey);
     }
 
     /// <summary>
-    ///     Composes the full cache key: {CachePrefix}:{contextKey}:{hash} or {CachePrefix}:{hash}.
+    ///     Resolves provider, context and the full cache key ({CachePrefix}:{contextKey}:{hash}{suffix}).
     /// </summary>
-    private static string ComposeKey(string hash, string? contextKey)
+    private CacheCall Prepare(CacheTarget autoTarget, Func<ICacheKeyGenerator, string> generateKey,
+        string suffix = "")
     {
+        var contextKey = _options.IgnoreContext ? null : CacheServiceAccessor.GetContextKey();
+
+        var target = _options.Target == CacheTarget.Auto ? autoTarget : _options.Target;
+        var provider = CacheServiceAccessor.ProviderFactory?.GetProvider(target) ?? CacheServiceAccessor.CacheProvider!;
+
+        var hash = (_options.CacheKey ?? generateKey(CacheServiceAccessor.KeyGenerator!)) + suffix;
         var prefix = CacheServiceAccessor.CachePrefix;
-        return string.IsNullOrEmpty(contextKey)
-            ? $"{prefix}:{hash}"
-            : $"{prefix}:{contextKey}:{hash}";
-    }
+        var key = string.IsNullOrEmpty(contextKey) ? $"{prefix}:{hash}" : $"{prefix}:{contextKey}:{hash}";
 
-    private CacheTarget ResolveTarget(CacheTarget autoTarget)
-    {
-        return _options.Target == CacheTarget.Auto ? autoTarget : _options.Target;
-    }
-
-    private static ICacheProvider GetProvider(CacheTarget target, ICacheProvider defaultProvider)
-    {
-        var factory = CacheServiceAccessor.ProviderFactory;
-        return factory?.GetProvider(target) ?? defaultProvider;
-    }
-
-    private (ICacheProvider, ICacheKeyGenerator, string?) ResolveServices()
-    {
-        return (
-            CacheServiceAccessor.CacheProvider!,
-            CacheServiceAccessor.KeyGenerator!,
-            _options.IgnoreContext ? null : CacheServiceAccessor.GetContextKey()
-        );
+        return new CacheCall(provider, key, contextKey);
     }
 
     private CachingOptions BuildOptionsWithTracking(string? contextKey)
@@ -340,4 +291,24 @@ public sealed class CacheableQuery<T> where T : class
         var trackingTags = TrackingTags.BuildTrackingTags(entityTypes, _options.Tags, contextKey);
         return _options.WithTrackingTags(trackingTags);
     }
+
+    /// <summary>
+    ///     True when the query chain already contains <c>AsNoTrackingWithIdentityResolution()</c>.
+    /// </summary>
+    private static bool UsesIdentityResolution(Expression expression)
+    {
+        while (expression is MethodCallExpression { Arguments.Count: > 0 } call)
+        {
+            if (call.Method.Name == nameof(EntityFrameworkQueryableExtensions.AsNoTrackingWithIdentityResolution))
+            {
+                return true;
+            }
+
+            expression = call.Arguments[0];
+        }
+
+        return false;
+    }
+
+    private readonly record struct CacheCall(ICacheProvider Provider, string Key, string? ContextKey);
 }
