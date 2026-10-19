@@ -2,8 +2,8 @@
     <PropertyGroup>
         <!-- Build settings -->
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <!-- CS1591: Missing XML comment - suppress until all public API is documented -->
-        <NoWarn>$(NoWarn);CS1591</NoWarn>
+        <!-- CS1591: Missing XML comment - enforced for the published libraries, suppressed elsewhere -->
+        <NoWarn Condition="'$(MSBuildProjectName)' != 'CachedQueries' and '$(MSBuildProjectName)' != 'CachedQueries.Redis'">$(NoWarn);CS1591</NoWarn>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <LangVersion>latest</LangVersion>

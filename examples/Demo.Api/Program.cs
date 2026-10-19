@@ -1,9 +1,11 @@
 using System.Text.Json.Serialization;
 using CachedQueries;
 using CachedQueries.Extensions;
+using CachedQueries.Redis;
 using Demo.Api;
 using Demo.Api.Endpoints;
 using Demo.Api.Entities;
+using Demo.Api.Jobs;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,20 +21,46 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // --- CachedQueries setup ---
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddCachedQueries(config =>
+void ConfigureCache(CachedQueriesConfiguration config)
 {
-    // Default expiration for all cached queries
+    // Default expiration for .Cacheable() / .Cacheable(o => ...) without Expire()/SlidingExpiration()
     config.DefaultOptions = new CachingOptions(TimeSpan.FromMinutes(30));
 
     // Auto-invalidate cache on SaveChanges (default: true)
     config.AutoInvalidation = true;
 
-    // Multi-tenant cache isolation via X-Tenant-Id header
+    // Multi-tenant cache isolation (see TenantCacheContextProvider)
     config.UseContextProvider<TenantCacheContextProvider>();
-});
+}
 
-// Wire up cache invalidation interceptors to DbContext
+// "Cache:Provider" = "Memory" (default, single instance) or "Redis" (distributed, see docker-compose.yml)
+if (string.Equals(builder.Configuration["Cache:Provider"], "Redis", StringComparison.OrdinalIgnoreCase))
+{
+    // One shared connection, atomic Lua-based tag operations
+    builder.Services.AddCachedQueriesWithRedis(builder.Configuration.GetConnectionString("Redis")!, ConfigureCache);
+
+    // Different backends per query type are possible too, e.g. keeping scalar results (Count/Any) in a
+    // second provider. Only do this with providers that every instance shares — an in-process cache per
+    // instance would not see invalidations made by other instances.
+    //
+    // builder.Services.AddCachedQueriesWithRedis(connectionString, config => config
+    //     .UseCollectionProvider<RedisCacheProvider>()
+    //     .UseSingleItemProvider<RedisCacheProvider>()
+    //     .UseScalarProvider<MyOtherSharedProvider>());
+    //
+    // ...and per query: .Cacheable(o => o.UseTarget(CacheTarget.Scalar))
+}
+else
+{
+    builder.Services.AddCachedQueries(ConfigureCache);
+}
+
+// Wire up cache invalidation interceptors to DbContext (must come after AddDbContext)
 builder.Services.AddCacheInvalidation<AppDbContext>();
+
+// --- Background jobs (tenant data changed outside HTTP requests) ---
+builder.Services.AddSingleton<PriceAdjustmentQueue>();
+builder.Services.AddHostedService<PriceAdjustmentWorker>();
 
 // --- Swagger ---
 builder.Services.AddEndpointsApiExplorer();
@@ -61,31 +89,8 @@ app.UseSwaggerUI();
 app.MapCustomersEndpoints();
 app.MapGoodsEndpoints();
 app.MapOrdersEndpoints();
-
-// --- Cache management endpoints ---
-app.MapPost("/api/cache/clear-all", async () =>
-{
-    await Cache.ClearAllAsync();
-    return Results.Ok(new { message = "All cache cleared" });
-}).WithTags("Cache");
-
-app.MapPost("/api/cache/invalidate-entity/{entityType}", async (string entityType) =>
-{
-    var type = entityType.ToLowerInvariant() switch
-    {
-        "customer" or "customers" => typeof(Customer),
-        "good" or "goods" => typeof(Good),
-        "order" or "orders" => typeof(Order),
-        "orderitem" or "orderitems" => typeof(OrderItem),
-        _ => null
-    };
-
-    if (type is null)
-        return Results.BadRequest(new { error = $"Unknown entity type: {entityType}" });
-
-    await CacheExtensions.InvalidateAsync([type]);
-    return Results.Ok(new { message = $"Cache invalidated for {entityType}" });
-}).WithTags("Cache");
+app.MapCacheEndpoints();
+app.MapJobEndpoints();
 
 app.Run();
 

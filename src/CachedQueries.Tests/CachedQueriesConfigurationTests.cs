@@ -3,6 +3,8 @@ using CachedQueries.Providers;
 using FluentAssertions;
 using Xunit;
 
+#pragma warning disable CS0618 // exercising obsolete members on purpose
+
 namespace CachedQueries.Tests;
 
 public class CachedQueriesConfigurationTests

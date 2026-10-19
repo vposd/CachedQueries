@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Data.Common;
 using CachedQueries.Abstractions;
 using CachedQueries.Interceptors;
@@ -41,8 +40,6 @@ public class TransactionCacheInvalidationInterceptorTests : IDisposable
         _context.Database.OpenConnection();
         _context.Database.EnsureCreated();
 
-        // Clear any pending invalidations from previous tests
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.Clear();
     }
 
     public void Dispose()
@@ -154,12 +151,6 @@ public class TransactionCacheInvalidationInterceptorTests : IDisposable
             Arg.Any<CancellationToken>());
     }
 
-    [Fact]
-    public void PendingInvalidations_ShouldBeConcurrentDictionary()
-    {
-        // Assert - verify the static dictionary exists and is accessible
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.Should().NotBeNull();
-    }
 
     [Fact]
     public async Task Transaction_WhenExceptionDuringCommit_ShouldNotInvalidate()
@@ -258,7 +249,6 @@ public class TransactionCacheInvalidationInterceptorAdditionalTests : IDisposabl
         _context.Database.OpenConnection();
         _context.Database.EnsureCreated();
 
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.Clear();
     }
 
     public void Dispose()
@@ -278,19 +268,15 @@ public class TransactionCacheInvalidationInterceptorAdditionalTests : IDisposabl
     }
 
     [Fact]
-    public void PendingInvalidations_WhenManuallyCleared_ShouldBeEmpty()
+    public void PendingInvalidations_Discard_ShouldRemovePendingTypes()
     {
-        // Arrange
-        var contextId = TransactionCacheInvalidationInterceptor.GetContextIdentifier(_context);
-        var types = new ConcurrentDictionary<Type, byte>();
-        types[typeof(Order)] = 0;
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.TryAdd(contextId, types);
+        PendingInvalidations.Add(_context, [typeof(Order)]);
+        PendingInvalidations.HasPending(_context).Should().BeTrue();
 
-        // Act
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.TryRemove(contextId, out _);
+        PendingInvalidations.Discard(_context);
 
-        // Assert
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.Should().NotContainKey(contextId);
+        PendingInvalidations.HasPending(_context).Should().BeFalse();
+        PendingInvalidations.Take(_context).Should().BeNull();
     }
 
     [Fact]
@@ -362,50 +348,37 @@ public class TransactionCacheInvalidationInterceptorAdditionalTests : IDisposabl
     }
 
     [Fact]
-    public void TransactionFailed_ShouldClearPendingInvalidations()
+    public void TransactionFailed_ShouldKeepPendingInvalidations()
     {
-        // Arrange: seed pending invalidations
-        var contextId = TransactionCacheInvalidationInterceptor.GetContextIdentifier(_context);
-        var types = new ConcurrentDictionary<Type, byte>();
-        types[typeof(Order)] = 0;
-        TransactionCacheInvalidationInterceptor.PendingInvalidations[contextId] = types;
+        // A failed savepoint/rollback does not end the transaction and a failed commit wrote nothing,
+        // so pending invalidations are kept (at worst an extra invalidation later).
+        PendingInvalidations.Add(_context, [typeof(Order)]);
 
-        // Get a real DbTransaction from the context
         using var efTransaction = _context.Database.BeginTransaction();
         var dbTransaction = efTransaction.GetDbTransaction();
-
         var eventData = CreateTransactionErrorEventData(dbTransaction, false);
 
-        // Act
         _transactionInterceptor.TransactionFailed(dbTransaction, eventData);
 
-        // Assert
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.ContainsKey(contextId).Should().BeFalse();
-
+        PendingInvalidations.HasPending(_context).Should().BeTrue();
         efTransaction.Rollback();
+        PendingInvalidations.HasPending(_context).Should().BeFalse();
     }
 
     [Fact]
-    public async Task TransactionFailedAsync_ShouldClearPendingInvalidations()
+    public async Task TransactionFailedAsync_ShouldKeepPendingInvalidations()
     {
-        // Arrange: seed pending invalidations
-        var contextId = TransactionCacheInvalidationInterceptor.GetContextIdentifier(_context);
-        var types = new ConcurrentDictionary<Type, byte>();
-        types[typeof(Order)] = 0;
-        TransactionCacheInvalidationInterceptor.PendingInvalidations[contextId] = types;
+        PendingInvalidations.Add(_context, [typeof(Order)]);
 
         await using var efTransaction = await _context.Database.BeginTransactionAsync();
         var dbTransaction = efTransaction.GetDbTransaction();
-
         var eventData = CreateTransactionErrorEventData(dbTransaction, true);
 
-        // Act
         await _transactionInterceptor.TransactionFailedAsync(dbTransaction, eventData);
 
-        // Assert
-        TransactionCacheInvalidationInterceptor.PendingInvalidations.ContainsKey(contextId).Should().BeFalse();
-
+        PendingInvalidations.HasPending(_context).Should().BeTrue();
         await efTransaction.RollbackAsync();
+        PendingInvalidations.HasPending(_context).Should().BeFalse();
     }
 
     private TransactionErrorEventData CreateTransactionErrorEventData(DbTransaction transaction, bool async)

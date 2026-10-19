@@ -8,13 +8,13 @@ namespace CachedQueries.Internal;
 internal static class TrackingTags
 {
     /// <summary>
-    ///     Builds a tag name for an entity type, optionally scoped to a context.
-    ///     Uses Type.FullName which is already unique enough to avoid collisions with user tags.
+    ///     Builds the provider-level tag for an entity type, optionally scoped to a context.
+    ///     Identical to <see cref="UserTag" /> of <see cref="CacheTags.ForEntity(Type)" />, which is what allows
+    ///     <c>WithTags(CacheTags.ForEntity&lt;T&gt;())</c> to opt back into automatic invalidation.
     /// </summary>
     internal static string EntityTag(Type entityType, string? contextKey)
     {
-        var typeName = entityType.FullName ?? entityType.Name;
-        return contextKey is null ? $"tag:{typeName}" : $"{contextKey}:tag:{typeName}";
+        return UserTag(CacheTags.ForEntity(entityType), contextKey);
     }
 
     /// <summary>

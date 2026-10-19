@@ -1,42 +1,40 @@
-using System.Collections.Concurrent;
 using System.Data.Common;
 using CachedQueries.Abstractions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 namespace CachedQueries.Interceptors;
 
 /// <summary>
-///     EF Core interceptor that handles cache invalidation on transaction commit.
-///     Works together with <see cref="CacheInvalidationInterceptor" />.
+///     EF Core interceptor that runs deferred cache invalidation when an EF transaction commits,
+///     and discards it on rollback. Works together with <see cref="CacheInvalidationInterceptor" />.
 /// </summary>
+/// <remarks>
+///     Only transactions committed through EF are observed. When a context joins an external transaction via
+///     <c>Database.UseTransaction(dbTransaction)</c> and that transaction is committed outside EF (or through another
+///     context), no commit event is raised for this context — invalidate manually after committing.
+/// </remarks>
 public sealed class TransactionCacheInvalidationInterceptor(
     ICacheInvalidator invalidator,
     ILogger<TransactionCacheInvalidationInterceptor>? logger = null)
     : DbTransactionInterceptor
 {
-    // Track pending invalidations per DbContext instance (shared with SaveChanges interceptor)
-    // Key: DbContext.ContextId.ToString() (unique per context instance + lease)
-    // Value: thread-safe set of changed entity types
-    internal static readonly ConcurrentDictionary<string, ConcurrentDictionary<Type, byte>>
-        PendingInvalidations = new();
-
-    internal static string GetContextIdentifier(DbContext context)
-    {
-        return context.ContextId.ToString();
-    }
-
+    /// <inheritdoc />
     public override void TransactionCommitted(DbTransaction transaction, TransactionEndEventData eventData)
     {
         if (eventData.Context is not null)
         {
-            InvalidatePendingChanges(eventData.Context);
+            var entityTypes = PendingInvalidations.Take(eventData.Context);
+            if (entityTypes is not null)
+            {
+                InvalidationRunner.Invalidate(invalidator, entityTypes, logger, "after transaction commit");
+            }
         }
 
         base.TransactionCommitted(transaction, eventData);
     }
 
+    /// <inheritdoc />
     public override async Task TransactionCommittedAsync(
         DbTransaction transaction,
         TransactionEndEventData eventData,
@@ -44,101 +42,44 @@ public sealed class TransactionCacheInvalidationInterceptor(
     {
         if (eventData.Context is not null)
         {
-            await InvalidatePendingChangesAsync(eventData.Context, cancellationToken);
+            var entityTypes = PendingInvalidations.Take(eventData.Context);
+            if (entityTypes is not null)
+            {
+                await InvalidationRunner.InvalidateAsync(invalidator, entityTypes, logger,
+                    "after transaction commit", cancellationToken).ConfigureAwait(false);
+            }
         }
 
-        await base.TransactionCommittedAsync(transaction, eventData, cancellationToken);
+        await base.TransactionCommittedAsync(transaction, eventData, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public override void TransactionRolledBack(DbTransaction transaction, TransactionEndEventData eventData)
     {
-        if (eventData.Context is not null)
-        {
-            var contextId = GetContextIdentifier(eventData.Context);
-            PendingInvalidations.TryRemove(contextId, out _);
-            logger?.LogDebug("Transaction rolled back, discarding pending cache invalidations");
-        }
-
+        DiscardPending(eventData);
         base.TransactionRolledBack(transaction, eventData);
     }
 
+    /// <inheritdoc />
     public override Task TransactionRolledBackAsync(
         DbTransaction transaction,
         TransactionEndEventData eventData,
         CancellationToken cancellationToken = default)
     {
-        if (eventData.Context is not null)
-        {
-            var contextId = GetContextIdentifier(eventData.Context);
-            PendingInvalidations.TryRemove(contextId, out _);
-            logger?.LogDebug("Transaction rolled back, discarding pending cache invalidations");
-        }
-
+        DiscardPending(eventData);
         return base.TransactionRolledBackAsync(transaction, eventData, cancellationToken);
     }
 
-    public override void TransactionFailed(DbTransaction transaction, TransactionErrorEventData eventData)
+    // TransactionFailed is intentionally not handled: a failed savepoint or rollback does not end the
+    // transaction, and a failed commit wrote nothing. Keeping pending invalidations can at worst cause an
+    // extra invalidation later; the state is released together with the DbContext.
+
+    private void DiscardPending(TransactionEndEventData eventData)
     {
         if (eventData.Context is not null)
         {
-            var contextId = GetContextIdentifier(eventData.Context);
-            PendingInvalidations.TryRemove(contextId, out _);
-        }
-
-        base.TransactionFailed(transaction, eventData);
-    }
-
-    public override Task TransactionFailedAsync(
-        DbTransaction transaction,
-        TransactionErrorEventData eventData,
-        CancellationToken cancellationToken = default)
-    {
-        if (eventData.Context is not null)
-        {
-            var contextId = GetContextIdentifier(eventData.Context);
-            PendingInvalidations.TryRemove(contextId, out _);
-        }
-
-        return base.TransactionFailedAsync(transaction, eventData, cancellationToken);
-    }
-
-    private void InvalidatePendingChanges(DbContext context)
-    {
-        var contextId = GetContextIdentifier(context);
-
-        if (!PendingInvalidations.TryRemove(contextId, out var entityTypes) || entityTypes.IsEmpty)
-        {
-            return;
-        }
-
-        try
-        {
-            invalidator.InvalidateAsync(entityTypes.Keys).GetAwaiter().GetResult();
-            logger?.LogDebug("Invalidated cache for {Count} entity types after transaction commit", entityTypes.Count);
-        }
-        catch (Exception ex)
-        {
-            logger?.LogWarning(ex, "Failed to invalidate cache after transaction commit");
-        }
-    }
-
-    private async Task InvalidatePendingChangesAsync(DbContext context, CancellationToken cancellationToken)
-    {
-        var contextId = GetContextIdentifier(context);
-
-        if (!PendingInvalidations.TryRemove(contextId, out var entityTypes) || entityTypes.IsEmpty)
-        {
-            return;
-        }
-
-        try
-        {
-            await invalidator.InvalidateAsync(entityTypes.Keys, cancellationToken);
-            logger?.LogDebug("Invalidated cache for {Count} entity types after transaction commit", entityTypes.Count);
-        }
-        catch (Exception ex)
-        {
-            logger?.LogWarning(ex, "Failed to invalidate cache after transaction commit");
+            PendingInvalidations.Discard(eventData.Context);
+            logger?.LogDebug("Transaction rolled back, discarding pending cache invalidations");
         }
     }
 }

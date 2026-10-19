@@ -4,11 +4,13 @@ WORKDIR /src
 # Copy solution and project files
 COPY Directory.Build.props ./
 COPY src/CachedQueries/CachedQueries.csproj src/CachedQueries/
+COPY src/CachedQueries.Redis/CachedQueries.Redis.csproj src/CachedQueries.Redis/
 COPY examples/Demo.Api/Demo.Api.csproj examples/Demo.Api/
 RUN dotnet restore examples/Demo.Api/Demo.Api.csproj
 
 # Copy everything and build
 COPY src/CachedQueries/ src/CachedQueries/
+COPY src/CachedQueries.Redis/ src/CachedQueries.Redis/
 COPY examples/Demo.Api/ examples/Demo.Api/
 RUN dotnet publish examples/Demo.Api/Demo.Api.csproj -c Release -o /app --no-restore
 

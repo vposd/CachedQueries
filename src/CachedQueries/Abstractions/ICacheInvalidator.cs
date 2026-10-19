@@ -2,7 +2,8 @@ namespace CachedQueries.Abstractions;
 
 /// <summary>
 ///     Handles cache invalidation when entities change.
-///     Tracks cache entries and their associated entity types, tags, and context for invalidation.
+///     Entries are tracked through provider-level tags (entity types, user tags, context), so invalidation works
+///     across application instances when a distributed provider is used.
 /// </summary>
 public interface ICacheInvalidator
 {
@@ -10,6 +11,10 @@ public interface ICacheInvalidator
     ///     Invalidates cache entries for the specified entity types.
     ///     Only entries matching the current context (or global entries without context) are invalidated.
     /// </summary>
+    /// <remarks>
+    ///     Without an ambient context (background services, message handlers) only global entries are invalidated;
+    ///     use the overload with an explicit context key to reach a tenant's entries.
+    /// </remarks>
     /// <param name="entityTypes">The entity types whose cache entries should be invalidated.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task InvalidateAsync(IEnumerable<Type> entityTypes, CancellationToken cancellationToken = default);
@@ -51,6 +56,7 @@ public interface ICacheInvalidator
     ///     The cache context key (e.g., tenant ID). Null for global (context-independent) entries.
     ///     When invalidating, global entries and entries matching the current context are removed.
     /// </param>
+    [Obsolete("No longer used: tracking tags are passed to ICacheProvider.SetAsync via CachingOptions.Tags. Will be removed in the next major version.")]
     void RegisterCacheEntry(string cacheKey, IEnumerable<Type> entityTypes, string? contextKey = null);
 
     /// <summary>
@@ -61,6 +67,7 @@ public interface ICacheInvalidator
     /// <param name="contextKey">
     ///     The cache context key (e.g., tenant ID). Null for global (context-independent) entries.
     /// </param>
+    [Obsolete("No longer used: tracking tags are passed to ICacheProvider.SetAsync via CachingOptions.Tags. Will be removed in the next major version.")]
     void RegisterCacheEntry(string cacheKey, IEnumerable<string> tags, string? contextKey = null);
 
     /// <summary>

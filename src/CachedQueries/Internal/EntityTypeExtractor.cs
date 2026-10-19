@@ -1,6 +1,5 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace CachedQueries.Internal;
 
@@ -8,6 +7,12 @@ namespace CachedQueries.Internal;
 ///     Extracts entity types from a LINQ expression tree.
 ///     Used to determine which entity types a query depends on for cache invalidation.
 /// </summary>
+/// <remarks>
+///     Detected dependencies: query roots (<c>DbSet</c>s, including those used in joins and subqueries),
+///     navigation properties referenced anywhere in the query (<c>Include</c>, filters, projections), and
+///     captured <see cref="IQueryable" /> variables. String-based <c>Include("Path")</c> is not detected; use a
+///     lambda include or add explicit tags for such queries.
+/// </remarks>
 internal static class EntityTypeExtractor
 {
     public static IReadOnlySet<Type> ExtractEntityTypes<T>(IQueryable<T> query)
@@ -25,12 +30,36 @@ internal static class EntityTypeExtractor
         return visitor.EntityTypes;
     }
 
-    private static bool IsEntityType(Type type)
+    internal static bool IsEntityType(Type type)
     {
-        return type.IsClass &&
-               !type.IsPrimitive &&
-               !type.Namespace?.StartsWith("System", StringComparison.Ordinal) == true &&
-               type != typeof(string);
+        if (!type.IsClass || type == typeof(string))
+        {
+            return false;
+        }
+
+        var ns = type.Namespace;
+        return ns is null || (ns != "System" && !ns.StartsWith("System.", StringComparison.Ordinal) &&
+                              !ns.StartsWith("Microsoft.", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    ///     Returns T for any IEnumerable&lt;T&gt; (collections, sets, DbSet&lt;T&gt;, IQueryable&lt;T&gt;), otherwise null.
+    /// </summary>
+    internal static Type? GetSequenceElementType(Type type)
+    {
+        if (type == typeof(string))
+        {
+            return null;
+        }
+
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+        {
+            return type.GetGenericArguments()[0];
+        }
+
+        return type.GetInterfaces()
+            .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            ?.GetGenericArguments()[0];
     }
 
     private sealed class EntityTypeVisitor : ExpressionVisitor
@@ -44,13 +73,23 @@ internal static class EntityTypeExtractor
             _entityTypes.Add(type);
         }
 
-        [ExcludeFromCodeCoverage]
+        protected override Expression VisitExtension(Expression node)
+        {
+            // EF Core represents DbSet<T> as a QueryRootExpression (not a ConstantExpression)
+            if (node is QueryRootExpression root)
+            {
+                _entityTypes.Add(root.ElementType);
+            }
+
+            return node;
+        }
+
         protected override Expression VisitConstant(ConstantExpression node)
         {
-            // DbSet<T> appears as a constant in the expression tree
+            // Queryables inlined as constants (e.g. non-EF providers)
             if (node.Value is IQueryable queryable)
             {
-                _entityTypes.Add(queryable.ElementType);
+                VisitQueryable(queryable);
             }
 
             return base.VisitConstant(node);
@@ -58,74 +97,36 @@ internal static class EntityTypeExtractor
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            // Include navigation properties
             var memberType = node.Type;
-
-            if (memberType.IsGenericType)
+            var candidate = GetSequenceElementType(memberType) ?? memberType;
+            if (IsEntityType(candidate))
             {
-                var genericType = memberType.GetGenericTypeDefinition();
-                if (genericType == typeof(ICollection<>) ||
-                    genericType == typeof(IEnumerable<>) ||
-                    genericType == typeof(List<>) ||
-                    genericType == typeof(IList<>))
-                {
-                    var elementType = memberType.GetGenericArguments()[0];
-                    if (IsEntityType(elementType))
-                    {
-                        _entityTypes.Add(elementType);
-                    }
-                }
+                _entityTypes.Add(candidate);
             }
-            else if (IsEntityType(memberType))
+
+            // Captured queryables (e.g. `db.Customers` used inside a subquery, or a pre-built IQueryable variable)
+            // carry their own expression tree with further dependencies.
+            if (typeof(IQueryable).IsAssignableFrom(memberType) &&
+                ClosureEvaluator.TryEvaluate(node, out var value) &&
+                value is IQueryable queryable)
             {
-                _entityTypes.Add(memberType);
+                VisitQueryable(queryable);
+                return node;
             }
 
             return base.VisitMember(node);
         }
 
-        protected override Expression VisitMethodCall(MethodCallExpression node)
+        private void VisitQueryable(IQueryable queryable)
         {
-            // Handle Include/ThenInclude
-            if (node.Method.DeclaringType == typeof(EntityFrameworkQueryableExtensions))
+            if (IsEntityType(queryable.ElementType))
             {
-                if (node.Method.Name is "Include" or "ThenInclude")
-                {
-                    ExtractIncludedType(node);
-                }
+                _entityTypes.Add(queryable.ElementType);
             }
 
-            return base.VisitMethodCall(node);
-        }
-
-        private void ExtractIncludedType(MethodCallExpression node)
-        {
-            // The lambda expression in Include contains the navigation property
-            foreach (var arg in node.Arguments)
+            if (ClosureEvaluator.HasOwnExpression(queryable))
             {
-                if (arg is UnaryExpression { Operand: LambdaExpression lambda })
-                {
-                    var returnType = lambda.ReturnType;
-
-                    if (returnType.IsGenericType)
-                    {
-                        var genericDef = returnType.GetGenericTypeDefinition();
-                        if (genericDef == typeof(ICollection<>) ||
-                            genericDef == typeof(IEnumerable<>) ||
-                            genericDef == typeof(List<>))
-                        {
-                            var elementType = returnType.GetGenericArguments()[0];
-                            if (IsEntityType(elementType))
-                            {
-                                _entityTypes.Add(elementType);
-                            }
-                        }
-                    }
-                    else if (IsEntityType(returnType))
-                    {
-                        _entityTypes.Add(returnType);
-                    }
-                }
+                Visit(queryable.Expression);
             }
         }
     }

@@ -6,7 +6,8 @@ namespace CachedQueries.Extensions;
 public static class CacheableExtensions
 {
     /// <summary>
-    ///     Enables caching for the query with default options (30 min absolute expiration).
+    ///     Enables caching for the query with default options
+    ///     (<see cref="CachedQueriesConfiguration.DefaultOptions" />; 30 min absolute expiration when not configured).
     ///     Call a terminal method like <c>ToListAsync()</c> to execute.
     /// </summary>
     /// <example>
@@ -17,7 +18,7 @@ public static class CacheableExtensions
     /// </example>
     public static CacheableQuery<T> Cacheable<T>(this IQueryable<T> query) where T : class
     {
-        return new CacheableQuery<T>(query, CachingOptions.Default);
+        return new CacheableQuery<T>(query, new CacheOptionsBuilder().Build());
     }
 
     /// <summary>
@@ -41,6 +42,7 @@ public static class CacheableExtensions
 
     /// <summary>
     ///     Enables caching for the query with explicit options.
+    ///     <see cref="CachedQueriesConfiguration.DefaultOptions" /> is not applied: the given options are used as-is.
     /// </summary>
     /// <example>
     ///     var options = new CachingOptions(TimeSpan.FromHours(1));

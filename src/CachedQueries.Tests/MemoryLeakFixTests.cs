@@ -8,8 +8,8 @@ using Xunit;
 namespace CachedQueries.Tests;
 
 /// <summary>
-///     Tests verifying the memory leak fix in MemoryCacheProvider.
-///     ConcurrentBag was replaced with ConcurrentDictionary for proper key removal support.
+///     Tests verifying that removal, tag invalidation and clearing in MemoryCacheProvider
+///     do not leave stale entries or tracking state behind.
 /// </summary>
 public class MemoryLeakFixTests : IDisposable
 {
